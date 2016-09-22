@@ -536,11 +536,12 @@ Module Necklace.
   Proof.
     intro m. induction m; intros l ltm.
     - apply Forall_nil.
-    - unfold missing_below. destruct (in_dec Nat.eq_dec m l).
-      + fold missing_below. apply Forall_cons. omega. apply IHm. omega.
-      + fold missing_below. apply IHm. omega.
+    - unfold missing_below. destruct (in_dec Nat.eq_dec m l); fold missing_below.
+      + apply Forall_cons. omega. apply IHm. omega.
+      + apply IHm. omega.
   Qed.
 
+  
   
         
                   
