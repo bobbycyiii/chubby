@@ -7,13 +7,42 @@ Require Export Coq.Lists.List.
 Require Export Coq.Bool.Bool.
 Require Export Coq.Program.Basics.
 Require Import Coq.Logic.FunctionalExtensionality.
+Require rt_inv.
+
+(* from Andrew Appel's online notes "Verified Functional Algorithms."
+     We note that Ltac definitions may be treated as black boxes;
+     it is presumed impossible to prove falsity by introducing
+     Ltac definitions and using them. *)
 
 
-Fixpoint labels (m : nat) :=
-  match m with
-    | 0 => nil
-    | S n' => n' :: (labels n')
-  end.
+Lemma beq_reflect : forall x y, reflect (x = y) (x =? y).
+Proof.
+  intros x y.
+  apply iff_reflect. symmetry.  apply beq_nat_true_iff.
+Qed.
+
+Lemma blt_reflect : forall x y, reflect (x < y) (x <? y).
+Proof.
+  intros x y.
+  apply iff_reflect. symmetry. apply Nat.ltb_lt.
+Qed.
+
+Lemma ble_reflect : forall x y, reflect (x <= y) (x <=? y).
+Proof.
+  intros x y.
+  apply iff_reflect. symmetry. apply Nat.leb_le.
+Qed.
+
+Hint Resolve blt_reflect ble_reflect beq_reflect : bdestruct.
+Ltac bdestruct X :=
+  let H := fresh in let e := fresh "e" in
+                    evar (e: Prop);
+                      assert (H: reflect e X); subst e;
+                      [eauto with bdestruct
+                      | destruct H as [H|H];
+                        [ | try first [apply not_lt in H | apply not_le in H]]].
+
+Ltac inv H := inversion H; clear H; subst.
 
 Module Necklace.
   Parameter n : nat.
@@ -48,188 +77,8 @@ Module Necklace.
    Thus we model faces of the n-dipyramid by
    natural numbers less than 2*n. *)
 
-  Definition face := {f : nat | f < 2 * n}.
+  Definition face (m : nat) : Prop := m < 2 * n.
 
-  (* For "convenience" we establish some trivial
-     but important operations on faces, corresponding
-     to operations on natural numbers. *)
-  Definition fpf (f0 : face) : nat := proj1_sig f0.
-  (* fp for "forget proof face", viz. the proof that
-     whatever is less than 2 * n. *)
-  Definition eq_face (f0 f1 : face) : Prop := fpf f0 = fpf f1.
-  Notation "f0 f= f1" := (eq_face f0 f1) (at level 70).
-  Definition eqb_face (f0 f1 : face) : bool := fpf f0 =? fpf f1.
-  Notation "f0 f=? f1" := (eqb_face f0 f1) (at level 70).
-  Definition lt_face (f0 f1 : face) : Prop := fpf f0 < fpf f1.
-  Notation "f0 f< f1" := (lt_face f0 f1) (at level 70).
-  Definition ltb_face (f0 f1 : face) : bool := fpf f0 <? fpf f1.
-  Notation "f0 f<? f1" := (ltb_face f0 f1) (at level 70).
-  Definition le_face (f0 f1 : face) : Prop := fpf f0 <= fpf f1.
-  Notation "f0 f<= f1" := (le_face f0 f1) (at level 70).
-  Definition leb_face (f0 f1 : face) : bool := fpf f0 <=? fpf f1.
-  Notation "f0 f<=? f1" := (leb_face f0 f1) (at level 70).
-
-  Lemma eqf_reflect: forall (f0 f1:face), reflect (f0 f= f1) (f0 f=? f1).
-  Proof.
-    intros. apply iff_reflect.
-    unfold eq_face. unfold eqb_face.
-    destruct f0. destruct f1. simpl.
-    symmetry. apply Nat.eqb_eq.
-  Qed.
-
-  Lemma eq_face_refl : forall (f: face), f f= f.
-  Proof.
-    intro. destruct f. unfold eq_face. reflexivity.
-  Qed.
-  
-    
-  
-  Lemma ltf_reflect: forall (f0 f1:face), reflect (f0 f< f1) (f0 f<? f1).
-  Proof.
-    intros. apply iff_reflect.
-    unfold lt_face. unfold ltb_face.
-    destruct f0. destruct f1. simpl.
-    symmetry. apply Nat.ltb_lt.
-  Qed.
-
-  Lemma lef_reflect: forall (f0 f1:face), reflect (f0 f<= f1) (f0 f<=? f1).
-  Proof.
-    intros. apply iff_reflect.
-    unfold le_face. unfold leb_face.
-    destruct f0. destruct f1. simpl.
-    symmetry. apply Nat.leb_le.
-  Qed.
-  
-  Lemma not_lt_face: forall (f0 f1:face), not ( f0 f< f1 ) -> f1 f<= f0.
-  Proof.
-    intros. unfold le_face. unfold lt_face in H.
-    destruct f0. destruct f1. simpl in *. omega.
-  Qed.
-
-  Lemma not_le_face: forall (f0 f1:face), not ( f0 f<= f1 ) -> f1 f< f0.
-  Proof.
-    intros. unfold lt_face. unfold le_face in H.
-    destruct f0. destruct f1. simpl in *. omega.
-  Qed.
-      
-  Hint Resolve eqf_reflect ltf_reflect lef_reflect : bdestruct.
-  (* Basically just A. Appel's bdestruct and inv tactics from Perm.v, 
-     from his online notes *Verified functional algorithms.* *)
-  Ltac bdestruct_f X :=
-    let H := fresh in let e := fresh "e" in
-                      evar (e: Prop);
-                        assert (H: reflect e X); subst e;
-                        [eauto with bdestruct
-                        | destruct H as [H|H];
-                          [ | try first [apply not_lt_face in H | apply not_le_face in H]]].
-
-  Ltac inv H := inversion H; clear H; subst.
-
-  (* A face pair is a pair of disjoint faces
-     of the n-dipyramid. Since they are disjoint,
-     we can represent the unordered pair uniquely
-     by the literally ordered pair, i. e. not just
-     a pair in any order, but in order agreeing with f<. *)
-  Definition face_pair := { p : face * face | fst p f< snd p }.
-  Definition fpff (p : face * face) : nat * nat := (proj1_sig (fst p), proj1_sig (snd p)).
-  (* "Forget proof face*face". *)
-  Definition fpfp (p : face_pair) : nat * nat := fpff (proj1_sig p).
-
-  (* Two face-pairs will be said to *clash* when
-     they have a face in common. Clashing is not
-     an equivalence relation, nor is its negation. *)
-  Definition clash_nat (p0 p1 : nat * nat) : Prop :=
-    fst p0 = fst p1 \/ fst p0 = snd p1 \/ snd p0 = fst p1 \/ snd p0 = snd p1.
-  Definition clash (fp0 fp1 : face_pair) : Prop :=
-    clash_nat (fpfp fp0) (fpfp fp1).    
-    
-  Notation "p0 ## p1" := (clash p0 p1) (at level 40).
-  Definition clashb_nat (p0 p1 : nat * nat) : bool :=
-    orb (fst p0 =? fst p1)
-        (orb (fst p0 =? snd p1)
-             (orb (snd p0 =? fst p1)
-                  (snd p0 =? snd p1))).
-  Definition clashb (fp0 fp1 : face_pair) : bool :=
-    clashb_nat (fpfp fp0) (fpfp fp1).
-         
-  Notation "p0 #? p1" := (clashb p0 p1) (at level 40).
-
-  Lemma clash_reflect: forall (fp0 fp1 : face_pair), reflect (clash fp0 fp1) (clashb fp0 fp1).
-  Proof.
-    intros. apply iff_reflect.
-    unfold clash. unfold clashb.
-    destruct fp0. destruct fp1.
-    unfold clash_nat. unfold clashb_nat.
-    simpl. destruct x. destruct x0.
-    simpl. destruct f. destruct f0.
-    destruct f1. destruct f2. simpl.
-    split; intro H.
-    - destruct H. rewrite H.
-      replace (x1 =? x1) with true. reflexivity.
-      symmetry. apply Nat.eqb_refl.
-      destruct H. rewrite H. rewrite Bool.orb_comm.
-      replace (x2 =? x2) with true. reflexivity.
-      symmetry. apply Nat.eqb_refl.
-      destruct H. rewrite H.
-      SearchAbout orb. rewrite orb_true_iff.
-      right. rewrite orb_true_iff. right.
-      rewrite orb_true_iff. left. replace (x1 =? x1) with true.
-      reflexivity. symmetry. apply Nat.eqb_refl.
-      rewrite H. rewrite orb_true_iff. right.
-      rewrite orb_true_iff. right. rewrite orb_true_iff. right.
-      apply Nat.eqb_refl.
-    - rewrite orb_true_iff in H.
-      destruct H. left. apply Nat.eqb_eq. assumption.
-      rewrite orb_true_iff in H.
-      destruct H. right. left. apply Nat.eqb_eq. assumption.
-      rewrite orb_true_iff in H.
-      destruct H. right. right. left. apply Nat.eqb_eq. assumption.
-      right. right. right. apply Nat.eqb_eq. assumption.
-  Qed.
-  
-  Hint Resolve clash_reflect : bdestruct.
-
-  Check Forall.
-  
-  Lemma beq_reflect : forall x y, reflect (x = y) (x =? y).
-  Proof.
-    intros x y.
-    apply iff_reflect. symmetry.  apply beq_nat_true_iff.
-  Qed.
-  
-  Lemma blt_reflect : forall x y, reflect (x < y) (x <? y).
-  Proof.
-    intros x y.
-    apply iff_reflect. symmetry. apply Nat.ltb_lt.
-  Qed.
-  
-  Lemma ble_reflect : forall x y, reflect (x <= y) (x <=? y).
-  Proof.
-    intros x y.
-    apply iff_reflect. symmetry. apply Nat.leb_le.
-  Qed.
-
-  Hint Resolve blt_reflect ble_reflect beq_reflect : bdestruct.
-  Ltac bdestruct_nat X :=
-    let H := fresh in let e := fresh "e" in
-                      evar (e: Prop);
-                        assert (H: reflect e X); subst e;
-                        [eauto with bdestruct
-                        | destruct H as [H|H];
-                          [ | try first [apply not_lt in H | apply not_le in H]]].
-
-  (* A list of face pairs will be said to be *clash-free*
-     when no two of its elements clash. One could formulate
-     this by defining the cartesian square of a list and then
-     the cartesian square minus the diagonal, but that's more
-     complicated than the following inductive definition. *)
-  
-  Inductive clash_free : list face_pair -> Prop :=
-  | cf_nil : clash_free nil
-  | cf_cons : forall (fp : face_pair) (ls : list face_pair),
-                clash_free ls ->
-                Forall (fun fp' => not (clash fp fp')) ls ->
-                clash_free (fp :: ls).
 
   (*
    The following operations are supposed to
@@ -243,171 +92,103 @@ Module Necklace.
   (* This corresponds to a rotation by 2*pi*t/n 
      about a line through the two suspension poles. *)
 
-  Definition znz := { y : nat | y < n }.  
-  Definition rot_part (t m : nat) :=
-    match (m <? n) with
-      | true =>
-        match (m + t <? n) with
-          | true => m + t
-          | false => m + t - n
-        end
-      | false =>
-        match (m + t <? 2*n) with
-          | true => m + t
-          |false => m + t - n
-        end
-    end.
+  Definition rot (t m : nat) := rt_inv.rt n t m.
   
-  Lemma rot_aux : forall (t m : nat),
-                    t < n -> m < 2 * n -> rot_part t m < 2 * n.
+  Lemma rot_face : forall (t m : nat),
+                    t < n -> face m -> face (rot t m).
   Proof.
+    unfold face.
     intros t m ltn lm2n.
-    unfold rot_part.
-    bdestruct_nat (m <? n); bdestruct_nat (m + t <? n);
-    bdestruct_nat (m+t <? 2 * n); omega.
+    unfold rot. unfold rt_inv.rt.
+    bdestruct (m <? n); bdestruct (m + t <? n);
+    bdestruct (m+t <? 2 * n); omega.
   Qed.
 
-  Definition rot (tn : znz) (f : face) : face :=
-    match tn with
-      | exist _ t pft =>
-        match f with
-          | exist _ m pfm =>
-            exist (fun y => y < 2 * n) (rot_part t m) (rot_aux t m pft pfm)
-        end
-    end.  
-
-  Lemma rot_aux_pole : forall (t m : nat),
-                     t < n -> m < 2 * n -> (m < n) <-> ((rot_part t m) < n).
+  Definition on_top (m : nat) : Prop := m < n.
+  
+  Lemma rot_top : forall (t m : nat),
+                     t < n -> face m -> (on_top m <-> on_top (rot t m)).
   Proof.
+    unfold on_top. unfold face.
     intros t m ltn lm2n.
     split; intro H;
-    unfold rot_part in *;
-    bdestruct_nat (m <? n); bdestruct_nat (m + t <? n);
-    bdestruct_nat (m+t <? 2 * n); omega.
+    unfold rot in *; unfold rt_inv.rt in *;
+    bdestruct (m <? n); bdestruct (m + t <? n);
+    bdestruct (m+t <? 2 * n); omega.
   Qed.
-
-  Definition on_top (f:face) : Prop :=
-    match f with
-      | exist _ m pfm => m < n
-    end.
-        
-  Lemma rot_pole: forall (tn : znz) (f: face), on_top f <-> on_top (rot tn f).                        
-  Proof.
-    intros tn f. destruct tn as [t pft].
-    destruct f as [m pfm].
-    simpl. apply rot_aux_pole. assumption. assumption.
-  Qed.    
   
-  Lemma rot_part_inj : forall (t m0 m1 : nat),
-                         t < n -> m0 < 2 * n -> m1 < 2 * n ->
-                         (rot_part t m0) = (rot_part t m1) ->
+  Lemma rot_inj : forall (t m0 m1 : nat),
+                         t < n -> face m0 -> face m1 ->
+                         (rot t m0) = (rot t m1) ->
                          m0 = m1.
   Proof.
+    unfold face in *.
     intros t m0 m1 ltn lt0 lt1 rq.
-    unfold rot_part in rq.
-    bdestruct_nat (m0 <? n);
-      bdestruct_nat (m0 + t <? n);
-      bdestruct_nat (m0 + t <? 2 * n);
-      bdestruct_nat (m1 <? n);
-      bdestruct_nat (m1 + t <? n);
-      bdestruct_nat (m1 + t <? 2 * n);
+    unfold rot in rq; unfold rt_inv.rt in rq.
+    bdestruct (m0 <? n);
+      bdestruct (m0 + t <? n);
+      bdestruct (m0 + t <? 2 * n);
+      bdestruct (m1 <? n);
+      bdestruct (m1 + t <? n);
+      bdestruct (m1 + t <? 2 * n);
       omega.
   Qed.
 
-  Lemma rot_inj : forall (tn : znz) (f0 f1 : face),
-                    rot tn f0 f= rot tn f1 -> f0 f= f1.
+  Lemma rot_0_id : forall (m : nat), face m -> rot 0 m = m.
   Proof.
-    intros tn f0 f1 rq.
-    destruct tn as [t pft].
-    destruct f0 as [m0 pf0].
-    destruct f1 as [m1 pf1].
-    unfold rot in rq.
-    unfold eq_face in *.
-    unfold fpf in *.
-    unfold proj1_sig in *.
-    apply (rot_part_inj t m0 m1 pft pf0 pf1 rq).
+    intro m. unfold face. intro fm.
+    unfold rot. unfold rt_inv.rt. rewrite plus_0_r.
+    bdestruct (m <? n); bdestruct (m <? 2*n); omega.
   Qed.
-      
+                                      
+  (* rot is bijective on faces because it's an injection
+     from a finite set to itself; also, it's invertible. *)
+
+  Lemma rot_inv : forall (t m : nat),
+                    t < n -> face m -> rot t (rot (n - t) m) = m.
+  Proof.
+    unfold face. unfold rot. apply rt_inv.rt_inv.
+  Qed.
+  
+  
   (* The p-flip is the reflection through
      the plane in which the polygon lies of
      which the dipyramid is a suspension. *)
 
-  Definition p_flip_nat (m : nat) : nat :=
+  Definition p_flip (m : nat) : nat :=
     match (m <? n) with
       | true => m + n
       | false => m - n
     end.
   
-  Lemma p_flip_nat_2n : forall (m : nat), m < 2 * n -> p_flip_nat m < 2 * n.
+  Lemma p_flip_face : forall (m : nat), face m -> face (p_flip m).
   Proof.
+    unfold face.
     intros m H.
-    unfold p_flip_nat.
-    bdestruct_nat (m <? n); omega.
+    unfold p_flip.
+    bdestruct (m <? n); omega.
   Qed.
   
-  Definition p_flip (f : face) : face :=
-    match f with
-      | exist _ m pf => exist _ (p_flip_nat m) (p_flip_nat_2n m pf)
-    end.
-
-  Definition p_flip_nat_inj :
-    forall (m0 m1 : nat), m0 < 2 * n -> m1 < 2 * n ->
-                          p_flip_nat m0 = p_flip_nat m1 -> m0 = m1.
+  Definition p_flip_inj :
+    forall (m0 m1 : nat), face m0 -> face m1 ->
+                          p_flip m0 = p_flip m1 -> m0 = m1.
   Proof.
+    unfold face.
     intros m0 m1 lt0 lt1 pq.
-    unfold p_flip_nat in pq.
-    bdestruct_nat (m0 <? n); bdestruct_nat (m1 <? n); omega.
+    unfold p_flip in pq.
+    bdestruct (m0 <? n); bdestruct (m1 <? n); omega.
   Qed.
 
-  Lemma p_flip_inj : forall (f0 f1 : face),
-                            p_flip f0 f= p_flip f1 -> f0 f= f1.
+  Definition p_flip_inv :
+    forall (m : nat), face m -> p_flip (p_flip m) = m.
   Proof.
-    intros f0 f1 H.
-    destruct f0 as [m0 pf0]. destruct f1 as [m1 pf1].
-    unfold p_flip in H. unfold eq_face in *.
-    unfold fpf in *. unfold proj1_sig in *.
-    apply (p_flip_nat_inj m0 m1 pf0 pf1 H).
-  Qed.
-
-  Lemma aux_p_flip : forall (f0 f1 : face),
-                       f0 f< f1 -> not (p_flip f0 f= p_flip f1).
-  Proof.
-    intros f0 f1 H.
-    unfold not. intro. apply p_flip_inj in H0.
-    destruct f0 as [m0]. destruct f1 as [m1].
-    unfold eq_face in *. unfold lt_face in *.
-    unfold fpf in *. unfold proj1_sig in *. omega.
+    unfold face.
+    intros m fm. unfold p_flip.
+    bdestruct (m <? n).
+    - bdestruct (m + n <? n); omega.
+    - bdestruct (m - n <? n); omega.
   Qed.
   
-  Lemma lt_face_dich : forall (f0 f1 : face),
-                         not (f0 f= f1) -> ((f0 f< f1) \/ (f1 f< f0)).
-  Proof.
-    intros f0 f1 nq01.
-    destruct f0 as [m0 pf0]. destruct f1 as [m1 pf1].
-    unfold eq_face in nq01. unfold lt_face.
-    unfold fpf in *. unfold proj1_sig in *.
-    omega.
-  Qed.
-
-  Lemma lt_face_neq : forall (f0 f1 : face),
-                        f0 f< f1 -> not (f0 f= f1).
-  Proof.
-    intros f0 f1 lt01.
-    destruct f0 as [m0 pf0]. destruct f1 as [m1 pf1].
-    unfold lt_face in lt01. unfold eq_face.
-    unfold fpf in *. unfold proj1_sig in *.
-    omega.
-  Qed.
-
-  Lemma aux_flip_fp : forall (f0 f1 : face),
-                        f0 f< f1 -> ((p_flip f0 f< p_flip f1) \/
-                                     (p_flip f1 f< p_flip f0)).
-  Proof.
-    intros f0 f1 H.
-    apply lt_face_dich.
-    apply aux_p_flip. assumption.
-  Qed.  
-    
   (* The v-flip is the reflection through
      the plane through the poles and the
      vertex common to the faces 0, n-1, n, 2*n - 1. *)
@@ -422,119 +203,151 @@ Module Necklace.
      m => n + (n - ((m - n) + 1)), which is
      m => 3 * n - (m + 1). *)
   
-  Definition v_flip_nat (m : nat) : nat :=
+  Definition v_flip (m : nat) : nat :=
     match m <? n with
       | true => n - (S m)
       | false => 3 * n - (S m)
     end.  
 
-  Lemma v_flip_nat_2n : forall (m : nat), m < 2 * n -> v_flip_nat m < 2 * n.
+  Lemma v_flip_face : forall (m : nat), face m -> face (v_flip m).
   Proof.
+    unfold face.
     intros m H.
-    unfold v_flip_nat.
-    bdestruct_nat (m <? n); omega.
+    unfold v_flip.
+    bdestruct (m <? n); omega.
   Qed.
 
-  Definition v_flip (f : face) : face :=
-    match f with
-      | exist _ m pfm =>
-        exist (fun y => y < 2 * n) (v_flip_nat m)
-              (v_flip_nat_2n m pfm)
-    end.
-  
-  Lemma v_flip_nat_inj : forall (m0 m1 : nat),
-                           m0 < 2 * n -> m1 < 2 * n ->
-                           v_flip_nat m0 = v_flip_nat m1 ->
+  Lemma v_flip_inj : forall (m0 m1 : nat),
+                           face m0 -> face m1 ->
+                           v_flip m0 = v_flip m1 ->
                            m0 = m1.
   Proof.
+    unfold face.
     intros m0 m1 pf0 pf1 vq.
-    unfold v_flip_nat in vq.
-    bdestruct_nat (m0 <? n);
-      bdestruct_nat (m1 <? n);
+    unfold v_flip in vq.
+    bdestruct (m0 <? n);
+      bdestruct (m1 <? n);
       omega.
   Qed.
-    
-  Lemma v_flip_inj : forall (f0 f1 : face),
-                       v_flip f0 f= v_flip f1 -> f0 f= f1.
+
+  Lemma v_flip_inv : forall (m : nat),
+                       face m -> v_flip (v_flip m) = m.
   Proof.
-    intros f0 f1.
-    destruct f0 as [m0 pf0].
-    destruct f1 as [m1 pf1].
-    unfold v_flip. unfold eq_face.
-    unfold fpf. unfold proj1_sig.
-    apply (v_flip_nat_inj m0 m1 pf0 pf1).
+    unfold face.
+    intros m fm. unfold v_flip.
+    bdestruct (m <? n).
+    - bdestruct (n - S m <? n); omega.
+    - bdestruct (3 * n - S m <? n); omega.
   Qed.
+  
+  (* The dipyramidal symmetry group is generated by
+     these operations. (We note that a dipyramidal
+     symmetry must, by definition, preserve the
+     suspension structure---it must take suspension
+     points to suspension points. This is only 
+     important when it is a 4-dipyramid.) 
 
-  Definition label (f : face) : nat :=
-    match f with
-      | exist _ m pfm => m
-    end.
+     In fact, every pole-preserving symmetry is
+     either a rotation or a rotation followed by
+     the v-flip; and every symmetry is either a pole-
+     preserving symmetry or a pole-preserving symmetry
+     followed by the p-flip. We take this as our
+     definition of the dipyramidal symmetry group.
 
-  Fixpoint faces (l : list face_pair) : list face :=
+     The least tenable claim made in the above
+     paragraph is the one about pole-preserving
+     symmetries. This claim reduces to a similar
+     claim about the generation of the usual dihedral
+     group, which the reader will enjoy verifying.
+
+     The action of the subgroup PR generated by rot
+     and p_flip is strongly transitive on the faces,
+     so the faces are a PR torsor, if you like.
+     I don't (yet). *)
+                      
+  (* Having introduced the symmetry group, we now
+     introduce the other objects of interest on which
+     it acts---clash-free face-pairings. This action
+     arises from an action on face-pairs, which in
+     turn arises from the action on faces. In prepar-
+     ation for this introduction we introduce some
+     auxiliary functions on pairs and pair-lists,
+     and prove their specifications. *)
+  
+  Fixpoint faces (l : list (nat*nat)) : list nat :=
     match l with
       | nil => nil
-      | fp :: fps =>
-        match fp with
-          | exist _ p pfp =>
-            match p with
-              | (f0, f1) =>
-                f0 :: (f1 :: (faces fps))
-            end
+      | p :: ps =>
+        match p with
+          | (m0, m1) =>
+            m0 :: (m1 :: (faces ps))
         end
     end.
 
-  Check map.
-  Check In.
-  SearchAbout In.
+  (* If l is a list of pairs of numbers, then
+     (faces l) should be a list L of numbers such
+     that a number x is in L if and only if x
+     is an entry of some pair in L, i.e. if there
+     exists a pair y in L such that x is an entry of y. *)
 
-  Fixpoint inbf (f : face) (l : list face) : bool :=
-    match l with
-      | nil => false
-      | f' :: fs => if f f=? f' then true else (inbf f fs)
-    end.
-
-  Fixpoint In_face (f : face) (l : list face) : Prop :=
-    match l with
-      | nil => False
-      | f' :: fs => f f= f' \/ (In_face f fs)
-    end.
-
-  Lemma reflect_in_face : forall (f : face) (l : list face),
-                            reflect (In_face f l) (inbf f l).
+  Lemma faces_spec : forall (l : list (nat*nat)) (x : nat),
+                       In x (faces l) <-> exists (y: nat*nat),
+                                            (In y l /\ (x = fst y \/ x = snd y)).
   Proof.
-    intros. apply iff_reflect.
-    induction l; split; intro; inversion H;
-    unfold inbf; bdestruct_f (f f=? a).
-    - reflexivity.
-    - contradiction.
-    - reflexivity.
-    - fold inbf. apply IHl. assumption.
-    - unfold In_face. left. assumption.
-    - unfold In_face. right. fold In_face.
-      apply IHl. assumption.
+    intro l. induction l; intro x; split; intro H.
+    - inv H.
+    - destruct H as [y H].
+      destruct H as [contr _].
+      inv contr.
+    - destruct a. simpl in H.
+      destruct H as [n0x | H].
+      + rewrite <- n0x in *.
+        exists (n0,n1). split.
+        * unfold In. left. reflexivity.
+        * left. reflexivity.
+      + destruct H as [n1x | inxfl].
+        * rewrite <- n1x in *.
+          exists (n0,n1). split.
+          unfold In. left. reflexivity.
+          right. reflexivity.
+        * apply IHl in inxfl.
+          destruct inxfl as [y H].
+          exists y. split.
+          change (In y ((n0,n1) :: l)) with ((n0,n1) = y \/ In y l).
+          right. destruct H. assumption.
+          destruct H. assumption.
+    - destruct a. simpl. destruct H as [y H].
+      destruct H as [inynl xy].
+      destruct inynl.
+      + rewrite <- H in *.
+        destruct xy as [xn | xn]; simpl in xn; symmetry in xn.
+        * left. assumption.
+        * right. left. assumption.
+      + right. right. apply IHl. exists y.
+        split; assumption.
   Qed.
-
+  
+                           
   Fixpoint nums (b : nat) : list nat :=
     match b with
       | 0 => nil
       | S b' => b' :: nums b'
     end.
 
+  (* nums b should be all the numbers less than b. *)
   Lemma nums_spec : forall (n' x : nat), x < n' <-> In x (nums n').
   Proof.
     intro n'. induction n'; intro x; split; intro H.
     - omega.
     - inv H.
-    - simpl. bdestruct_nat (n' =? x).
+    - simpl. bdestruct (n' =? x).
       + left. assumption.
       + right. assert (x < n').
         { omega. }
         apply IHn'. assumption.
     - inv H. omega. apply IHn' in H0. omega.
   Qed.
-  
-  Check map.
-  
+    
   Definition range (l : nat) (r : nat) : list nat :=
     map (fun x => x + l) (nums (r - l)).
 
@@ -547,6 +360,10 @@ Module Necklace.
       apply f_equal. apply IHl.
   Qed.
 
+  (* range l r should be all the numbers x between l and r in the
+     computer science (and what ought to be the mathematical) standard
+     sense, viz. l <= x < r. See EWD 831. *)
+  
   Lemma range_spec : forall (l r x : nat), (l <= x /\ x < r) <-> (In x (range l r)).
   Proof.
     intros l r x. split; intro H.
@@ -583,6 +400,12 @@ Module Necklace.
 
   Definition asymmetric_difference := adiff.
 
+  (* The following is not in the standard library where
+     I could find it. Perhaps I should get better
+     at looking for things. At any rate, this is a
+     theorem we use in the proof of the specification
+     of adiff. *)
+  
   Theorem in_remove_in : forall (A : Type) (eq_dec : forall x y : A, {x = y} + {x <> y})
                                 (l : list A) (x y : A),
                            In x (remove eq_dec y l) <-> (x <> y /\ In x l).
@@ -620,67 +443,118 @@ Module Necklace.
       destruct inxal as [xqa | inxl].
       contradiction. assumption.
   Qed.
-        
-  Lemma in_adiff_in : forall (m s : list nat) (x : nat),
-                       In x (adiff s m) -> In x s.
+
+  (* For all lists of naturals s and m (subtrahend and minuend), 
+     for every natural number x, x should be in (adiff s m) if and only if 
+     both x is in s and x is not in m. *)
+  
+  Theorem adiff_spec : forall (s m : list nat) (x : nat),
+                         In x (adiff s m) <-> (In x s /\ not (In x m)).
   Proof.
-    intro m; induction m; intros s x; intro H.
-    - simpl in H. assumption.
-    - simpl in H. 
-    
-  Lemma adiff_nil : forall (l : list nat), adiff nil l = nil.
-  Proof.
-    intro l; induction l.
-    - reflexivity.
-    - simpl. assumption.
+    intros s m. generalize dependent s. induction m; intros s x; split; intro H.
+    - simpl in H. split. assumption. intro contr. inv contr.
+    - simpl. destruct H. assumption.
+    - simpl in H. rewrite in_remove_in in H.
+      destruct H as [xna inxad].
+      apply IHm in inxad. destruct inxad as [inxs ninxm].
+      split. assumption. intro contr. inv contr.
+      pose(uhoh:= eq_refl x). apply xna in uhoh.
+      assumption. contradiction.
+    - destruct H as [inx ninxam].
+      simpl. rewrite in_remove_in. split.
+      + intro contr. rewrite contr in *.
+        simpl in ninxam. tauto.
+      + apply IHm. split.
+        * assumption.
+        * intro contr. simpl in ninxam. tauto.
   Qed.
-    
+      
   Definition missing_below (m : nat) (l : list nat) :=
-    asymmetric_difference (nums m) l.
-      
+    adiff (nums m) l.
 
-  Lemma mb_0 : forall (l: list nat), missing_below 0 l = nil.
-  Proof.
-    intro l; induction l.
-    - reflexivity.
-    - unfold missing_below. fold missing_below. assumption.
-  Qed.
-      
-
-                          
-    
-
+  (* A number x should be missing in l below m
+     if and only if both x is less than m and 
+     x is not in l. *)
+  
   Lemma mb_spec: forall (n': nat),
                  forall (l : list nat),
-                   LocallySorted gt l ->
-                   forall (x : nat),
-                     ((In x (missing_below n' l))
-                      <->
-                      (x < n' /\ not (In x l))).
+                 forall (x : nat),
+                   ((In x (missing_below n' l))
+                    <->
+                    (x < n' /\ not (In x l))).
   Proof.
-    destruct n'.
-    
-        
-      
-    
-      
-      
-      
-      
-        
-      
-              
-                      
-                      
-                      
-          
-      
-      
-                      
-    
+    intros. split; intro H.
+    - unfold missing_below in H.
+      apply adiff_spec in H.
+      destruct H as [inxn ninxl].
+      apply nums_spec in inxn. split; assumption.
+    - destruct H.
+      unfold missing_below.
+      apply adiff_spec.
+      rewrite <- nums_spec. split; assumption.
+  Qed.
+
+  (* Having finished the auxiliary functions, we move on
+     to the objects acted upon by our group. *)
+
+  (* A face pair is a pair of disjoint faces
+     of the n-dipyramid. Since they are disjoint,
+     we can represent the unordered pair uniquely
+     by a---literally---ordered pair, i. e. not just
+     a pair in any particular order, but in fact 
+     in the order agreeing with <. *)
   
+  Definition face_pair (m0 m1 : nat) : Prop := face m0 /\ face m1 /\ m0 < m1.
+
+  (* Two pairs will be said to *clash* when
+     they have an entry in common. Clashing is not
+     an equivalence relation, nor is its negation. *)
+  
+  Definition clash (p0 p1 : nat * nat) : Prop := 
+    fst p0 = fst p1 \/ fst p0 = snd p1 \/ snd p0 = fst p1 \/ snd p0 = snd p1.
+
+    
+  Notation "p0 ## p1" := (clash p0 p1) (at level 40).
+  
+  Definition clashb (p0 p1 : nat * nat) : bool :=
+    orb (fst p0 =? fst p1)
+        (orb (fst p0 =? snd p1)
+             (orb (snd p0 =? fst p1)
+                  (snd p0 =? snd p1))).
+  Notation "p0 #? p1" := (clashb p0 p1) (at level 40).
+
+  Lemma clash_reflect: forall (p0 p1 : nat*nat), reflect (clash p0 p1) (clashb p0 p1).
+  Proof.
+    intros. apply iff_reflect.
+    unfold clash. unfold clashb.
+    destruct p0. destruct p1.
+    simpl. split; intro H.
+    - rewrite orb_true_iff.
+      rewrite orb_true_iff. rewrite orb_true_iff.
+      rewrite Nat.eqb_eq. rewrite Nat.eqb_eq.
+      rewrite Nat.eqb_eq. rewrite Nat.eqb_eq.
+      assumption.
+    - rewrite <- Nat.eqb_eq. rewrite <- Nat.eqb_eq.
+      rewrite <- Nat.eqb_eq. rewrite <- Nat.eqb_eq.
+      rewrite <- orb_true_iff. rewrite <- orb_true_iff.
+      rewrite <- orb_true_iff. assumption.
+  Qed.
+    
+  Hint Resolve clash_reflect : bdestruct.
+
+  (* A list of face pairs will be said to be *clash-free*
+     when no two of its elements clash. One could formulate
+     this by defining the cartesian square of a list and then
+     the cartesian square minus the diagonal, but that's more
+     complicated than the following inductive definition. *)
+  
+  Inductive clash_free : list (nat * nat) -> Prop :=
+  | cf_nil : clash_free nil
+  | cf_cons : forall (p : nat * nat) (ls : list (nat * nat)),
+                clash_free ls ->
+                Forall (fun p' => not (clash p p')) ls ->
+                clash_free (p :: ls).
+
   
     
-    
-  
 End Necklace.
