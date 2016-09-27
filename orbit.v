@@ -6,6 +6,8 @@ Require Export Coq.Sorting.Sorted.
 Require Export Coq.Lists.List.
 Require Export Coq.Bool.Bool.
 Require Export Coq.Program.Basics.
+Require Import Coq.Logic.FunctionalExtensionality.
+
 
 Fixpoint labels (m : nat) :=
   match m with
@@ -511,40 +513,157 @@ Module Necklace.
     - unfold In_face. right. fold In_face.
       apply IHl. assumption.
   Qed.
-    
-  Fixpoint missing_below (m : nat) (l : list nat) : list nat :=
-    match m with
+
+  Fixpoint nums (b : nat) : list nat :=
+    match b with
       | 0 => nil
-      | S m' => match in_dec Nat.eq_dec m' l with
-                  | left _ => m' :: (missing_below m' l)
-                  | right _ => missing_below m' l
-                end
+      | S b' => b' :: nums b'
     end.
-  Check Forall.
 
-  Lemma missing_below_nil : forall (m : nat), missing_below m nil = nil.
+  Lemma nums_spec : forall (n' x : nat), x < n' <-> In x (nums n').
   Proof.
-    intro m. induction m.
+    intro n'. induction n'; intro x; split; intro H.
+    - omega.
+    - inv H.
+    - simpl. bdestruct_nat (n' =? x).
+      + left. assumption.
+      + right. assert (x < n').
+        { omega. }
+        apply IHn'. assumption.
+    - inv H. omega. apply IHn' in H0. omega.
+  Qed.
+  
+  Check map.
+  
+  Definition range (l : nat) (r : nat) : list nat :=
+    map (fun x => x + l) (nums (r - l)).
+
+  Theorem map_compose : forall (A : Type) (l : list A) (B C : Type) (g : B -> C) (f : A -> B),
+                          map g (map f l) = map (compose g f) l.
+  Proof.
+    intros A l. induction l; intros.
     - reflexivity.
-    - unfold missing_below.
-      simpl. fold missing_below. assumption.
-  Qed.
-  
-  Lemma missing_below_nat : forall (m : nat) (l: list nat),
-                              m <= 2 * n ->
-                              Forall (fun k => k < 2 * n) (missing_below m l).
-  Proof.
-    intro m. induction m; intros l ltm.
-    - apply Forall_nil.
-    - unfold missing_below. destruct (in_dec Nat.eq_dec m l); fold missing_below.
-      + apply Forall_cons. omega. apply IHm. omega.
-      + apply IHm. omega.
+    - simpl. unfold compose at 1.
+      apply f_equal. apply IHl.
   Qed.
 
-  
-  
+  Lemma range_spec : forall (l r x : nat), (l <= x /\ x < r) <-> (In x (range l r)).
+  Proof.
+    intros l r x. split; intro H.
+    - assert (inq0: x - l < r - l).
+      { omega. }
+      apply nums_spec in inq0.
+      apply in_map with (f:= (fun y => y + l)) in inq0.
+      replace (x - l + l) with (x) in inq0. 2: omega.
+      unfold range. assumption.
+    - split; generalize dependent H; generalize dependent x;
+      generalize dependent r; generalize dependent l.
+      + intro l; induction l.
+        * intros. omega.
+        * intros r x H. unfold range in H.
+          induction (r - S l).
+          inv H.
+          inversion H. omega. apply IHn0. assumption.
+      + intros l r x inx. unfold range in inx.
+        apply in_map with (f:= (fun z => z - l)) in inx.
+        rewrite map_compose in inx.
+        replace (compose (fun z : nat => z - l) (fun x : nat => x + l))
+        with (fun z : nat => z) in inx.
+        replace (map (fun z : nat => z) (nums (r - l))) with (nums (r - l)) in inx.
+        apply nums_spec in inx. omega.
+        symmetry. apply map_id.
+        extensionality zz. unfold compose. omega.
+  Qed.          
+
+  Fixpoint adiff (s m : list nat) : list nat :=
+    match m with
+      | nil => s
+      | h :: t => remove Nat.eq_dec h (adiff s t)
+    end.
+
+  Definition asymmetric_difference := adiff.
+
+  Theorem in_remove_in : forall (A : Type) (eq_dec : forall x y : A, {x = y} + {x <> y})
+                                (l : list A) (x y : A),
+                           In x (remove eq_dec y l) <-> (x <> y /\ In x l).
+  Proof.
+    intros A eq_dec l. induction l; intros x y; split; intro H.
+    - inv H.
+    - destruct H as [_ contr]. inv contr.
+    - assert (xny: x <> y).
+      { intro contr. rewrite contr in H.
+        apply remove_In in H. assumption. }
+      split. assumption.
+      change (In x (a :: l)) with (a = x \/ In x l).
+      destruct (eq_dec a x).
+      left. assumption.
+      right. assert (inx: In x (remove eq_dec y l)).
+      { change (remove eq_dec y (a :: l))
+        with (if eq_dec y a then remove eq_dec y l else a :: remove eq_dec y l) in H.
+        destruct (eq_dec y a). assumption.
+        change (In x (a :: remove eq_dec y l))
+        with (a = x \/ In x (remove eq_dec y l)) in H.
+        destruct H. contradiction. assumption. }
+      apply IHl in inx. destruct inx. assumption.
+    - change (remove eq_dec y (a :: l))
+      with (if eq_dec y a then remove eq_dec y l else a :: remove eq_dec y l).
+      destruct (eq_dec y a) as [yqa | yna].
+      apply IHl. rewrite yqa in *.
+      destruct H as [xna inxal].
+      destruct inxal. symmetry in H. contradiction.
+      split; assumption.
+      change (In x (a :: remove eq_dec y l))
+      with (a = x \/ In x (remove eq_dec y l)).
+      destruct (eq_dec a x) as [aqx | anx].
+      left. assumption.
+      right. apply IHl. destruct H as [xny inxal]. split. assumption.
+      destruct inxal as [xqa | inxl].
+      contradiction. assumption.
+  Qed.
         
-                  
+  Lemma in_adiff_in : forall (m s : list nat) (x : nat),
+                       In x (adiff s m) -> In x s.
+  Proof.
+    intro m; induction m; intros s x; intro H.
+    - simpl in H. assumption.
+    - simpl in H. 
+    
+  Lemma adiff_nil : forall (l : list nat), adiff nil l = nil.
+  Proof.
+    intro l; induction l.
+    - reflexivity.
+    - simpl. assumption.
+  Qed.
+    
+  Definition missing_below (m : nat) (l : list nat) :=
+    asymmetric_difference (nums m) l.
+      
+
+  Lemma mb_0 : forall (l: list nat), missing_below 0 l = nil.
+  Proof.
+    intro l; induction l.
+    - reflexivity.
+    - unfold missing_below. fold missing_below. assumption.
+  Qed.
+      
+
+                          
+    
+
+  Lemma mb_spec: forall (n': nat),
+                 forall (l : list nat),
+                   LocallySorted gt l ->
+                   forall (x : nat),
+                     ((In x (missing_below n' l))
+                      <->
+                      (x < n' /\ not (In x l))).
+  Proof.
+    destruct n'.
+    
+        
+      
+    
+      
       
       
       
