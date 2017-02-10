@@ -1,0 +1,210 @@
+\documentclass{article}
+\usepackage{amssymb,amsmath,amsthm,graphicx}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{construction}[theorem]{Construction}
+
+\theoremstyle{plain}
+\newtheorem*{claim}{Claim}
+\newtheorem*{program}{Program}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{definitions}[theorem]{Definitions}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{examples}[theorem]{Examples}
+\newtheorem{remark}[theorem]{Remark}
+\numberwithin{equation}{section}
+\newcommand{\MOM}{\textsc{Mom}}
+\begin{document}
+\title{Combinatorial \MOM\ technology with boundary}
+\author{RCH3}
+\date{\today}
+\maketitle
+In the original \MOM\ papers, there is a big
+fuss about first trying to show that there is
+in fact an embedded handle structure of a given
+type, and then to show that one can assume that
+this structure is ``full.'' Fullness serves two
+purposes: on one hand, it rules out obvious
+non-hyperbolicity conditions on the embedded
+handle structure; on the other hand, it is
+straightforward to enumerate full structures.
+However, it was mighty hard to show that we can
+assume our structures to be full in the original
+sense. I would like to propose a more generous
+definition of fullness which lends itself to an
+easier analysis, which I present here.
+
+The flexibility comes from allowing ourselves
+to base our handle structures on bounded surfaces.
+This idea was already used in the original \MOM\ papers
+but was exploited more than accepted. One used in those
+papers such a handle structure only as a stepping stone
+towards a handle structure on a closed surface. In this
+whitepaper we accept such structures in themselves.
+
+\begin{definition}\label{defn:init}
+If $S$ is a tame surface, then a \emph{\MOM\ handle-structure based on $S$}
+is the result of attaching 1-handles and 2-handles to the $S\times \{1\}$
+boundary component of $S\times I$, in a sufficiently nice way. We'll want
+to be more precise later about how nice we can and should make these structures:
+for now, here are some properties we can get and which we like:
+\begin{itemize}
+\item the 1-handle attaching discs and 2-handle attaching curves are disjoint
+      from $(\partial S) \times \{1\}$;
+\item the 2-handles are transverse to the 1-handles;
+\item all the 2-handles have minimal geometric intersection number with the 1-handles;
+\item the intersection of any two 2-handles intersects $S \times \{1\}$ only
+      along 1-handle disc boundaries;
+\item the boundary components not containing $S\times\{0\}$ are tori.
+\end{itemize}
+
+To such a handle structure we naturally associate a graph embedding
+$\Gamma \hookrightarrow S (\times \{1\})$, viz. the embedding of the graph formed
+by the cores of the 1- and 2- handles. The structure is \emph{full}
+when $S \downharpoonright \Gamma$ is a disjoint union of discs and
+$\partial$-parallel annuli (or punctured discs, depending on how
+you've decided to represent your surface $S$ of finite type).
+(End of Definition.)
+\end{definition}
+\begin{proposition}
+It is straightforward to represent, enumerate, and triangulate
+full \MOM\ handle structures (even on bounded bases).
+\end{proposition}
+\proof[Sketch]
+Representing, enumerating, and triangulating full structures
+on closed bases was done already in the original \MOM\ papers,
+and possibly before, e.g. maybe by Matveev and company. What
+is new is that we can allow bounded bases.
+
+To represent a full \MOM\ structure on a closed base
+requires only a map on the base (a full graph embedding on
+the base), together with information about how the vertices'
+corresponding 1-handle attaching discs get attached, i.e.
+how much the 2-handles twist around the 1-handle. To enumerate
+them is a simple matter of enumerating orbit representatives
+of deranged involutions on dipyramid faces under the dipyramid
+symmetry group. To triangulate them, one just uses the associated
+dipyramid gluing.
+
+To represent a full \MOM\ structure on a bounded base, 
+consider that we can cap off the base's boundary components
+to get a full structure on a closed base. We just use the
+corresponding map and twist info, together with information about
+which faces of the map come from capping boundary components.
+To enumerate these, we just enumerate the corresponding
+full closed structures, then enumerate choices of faces to puncture.
+To triangulate such a structure, look at the picture boundaryFull.svg
+on the Dropbox. Non-equatorial edge-classes of the dipyramidal cellulation
+of the closed structure correspond to faces of the map. Puncturing
+the faces corresponds to removing such an edge-class. We can accomplish
+this by removing a lozenge around the edge-class; and we can do this by
+undoing the dipyramidal gluing, and attaching some ``plectrums'' to
+triangles adjacent to this edge class, then gluing up the outer triangles
+as before, but leaving the new triangles forming a bigon unglued.
+(End of Sketch.)
+
+For \MOM\ theory to apply to volume questions, we must begin
+with a theorem of the form ``If $N$ is a Foo manifold of geometric
+complexity at most Bar, then $N$ admits a nicely embedded handle structure of
+combinatorial complexity at most Quz.'' Let us
+call such a theorem a \MOM\ theorem. The ``nice embeddings''
+are more precisely defined as follows.
+
+\begin{definition}
+A \emph{based manifold} is $(X,K)$ where $X$ is a manifold
+and $K$ is a boundary-free subsurface of $\partial X$.
+
+Given a handle structure $H$ based on a connected
+surface $S$, there is a unique boundary-free subsurface
+of $\partial |H|$ containing $S$, where $|H|$ is the
+underlying space of $H$. So to any handle structure $H$
+we may canonically associate the based manifold $B(H) = (|H|, K)$.
+
+A \emph{based embedding} between two based manifolds 
+$(X,K) \hookrightarrow (X',K')$ is simply
+an embedding identifying $K$ oriented-homeomorphically with $K'$.
+
+An embedding $f: M \hookrightarrow N$ is \emph{nonelementary}
+when the induced map $\pi_1(f)$ has nonabelian image.
+(End of Definition.)
+\end{definition}
+
+The following is the primary \MOM\ theorem from the JAMS paper:
+
+\begin{theorem}[Thms. 5.9 and 6.1, JAMS paper]
+If $N$ a compact orientable 3-manifold with $\partial N = T^2$
+admits a finite-volume complete hyperbolic metric on its interior,
+and if $vol(N) < 2.848$, then there exists a \MOM\ handle structure
+$H$ based on $T^2$ and a nonelementary based embedding 
+$B(H) \hookrightarrow (N, \partial N)$, such that $H$ has at most
+three 1-handles, and has 2-handles all of valence 3.
+\end{theorem}
+
+The proof of this theorem takes up the bulk of the JAMS paper,
+using numerical computing and a case analysis thirteen strong.
+The following work is not about simplifying this theorem's proof.
+
+However, a sixth of the work of the JAMS paper and the vast 
+majority of the Commentarii paper are dedicated to showing that
+we may assume these structures are torus-friendly, full,
+and hyperbolic. I believe the work presented here gives a
+simpler approach to this part of the \MOM\ literature.
+
+Another \MOM\ theorem which Craig, Rob, and I would like
+to prove is the following
+\begin{conjecture}[from MOM-1.5 Project]
+If $N$ a compact orientable 3-manifold
+admits a finite-volume hyperbolic metric with totally geodesic
+boundary, and $vol(N) < 7.4$, then there exists a \MOM\ handle
+structure $H$ based on $\Sigma_2$ and a based embedding
+$B(H) \hookrightarrow (N,\partial N)$, such that $H$
+has one 1-handle and two valence-3 2-handles.
+\end{conjecture}
+
+This promises to be much simpler to prove.
+
+Finally, in the low cusp area project we are hoping to prove
+\begin{conjecture}[from Low Cusp Area project]
+If $N$ a compact orientable 3-manifold admitting a
+complete finite-volume hyperbolic metric on its interior,
+and if $N$ has a cusp $T$ with maximal cusp area at most
+$5.24$, then there exists a \MOM\ handle structure $H$
+based on $T^2$ and a nonelementary based embedding $B(H) \hookrightarrow (N,T)$
+such that H has one 1-handle and one 2-handle of valence at most 7.
+\end{conjecture}
+
+The rest of this whitepaper is basically an argument
+that after proving such theorems, we can get a computer
+to do the rest of the work for us.
+
+\section{Fullness}
+Assuming we already know how to represent, enumerate,
+and triangulate full handle structure of given type,
+we would like to promote the handle structure embeddings
+coming from our \MOM\ theorems into embeddings of
+full such structures. Here is how that works. I'll do
+the original case first, where the base is a torus,
+and the based embedding is further assumed to be nonelementary.
+
+\begin{proposition}
+Suppose $N$ is a hyperbolic (generalized) link complement,
+and $T$ is a component of $\partial N$. Suppose that $H$
+is a \MOM\ handle structure based on $T^2$, and that
+$B(H) \hookrightarrow (N, T)$ is a nonelementary based embedding;
+and suppose $\Gamma \hookrightarrow \Xi$ is the fatgraph
+coming from the embedding of $H$'s graph into $T^2$.
+
+Then there is a full \MOM\ handle structure $H'$ based on
+either $T^2$ or $A \sqcup A$ (the disjoint union of two annuli)
+with the same fatgraph $\Gamma \hookrightarrow \Xi$, and
+there is a nonelementary based embedding $B(H') \hookrightarrow (N, T)$.
+\end{proposition}
+
+\end{document}
