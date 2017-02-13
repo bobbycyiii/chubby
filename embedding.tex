@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{amssymb,amsmath,amsthm,graphicx}
+\usepackage{geometry}
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}[theorem]{Corollary}
@@ -58,10 +59,9 @@ for now, here are some properties we can get and which we like:
 \begin{itemize}
 \item the 1-handle attaching discs and 2-handle attaching curves are disjoint
       from $(\partial S) \times \{1\}$;
+\item the 1-handles are disjoint, and the 2-handles are disjoint;
 \item the 2-handles are transverse to the 1-handles;
 \item all the 2-handles have minimal geometric intersection number with the 1-handles;
-\item the intersection of any two 2-handles intersects $S \times \{1\}$ only
-      along 1-handle disc boundaries;
 \item the boundary components not containing $S\times\{0\}$ are tori.
 \end{itemize}
 
@@ -177,7 +177,7 @@ complete finite-volume hyperbolic metric on its interior,
 and if $N$ has a cusp $T$ with maximal cusp area at most
 $5.24$, then there exists a \MOM\ handle structure $H$
 based on $T^2$ and a nonelementary based embedding $B(H) \hookrightarrow (N,T)$
-such that H has one 1-handle and one 2-handle of valence at most 7.
+such that H has one 1-handle and one 2-handle of valence $\leq 7$.
 \end{conjecture}
 
 The rest of this whitepaper is basically an argument
@@ -186,7 +186,7 @@ to do the rest of the work for us.
 
 \section{Fullness}
 Assuming we already know how to represent, enumerate,
-and triangulate full handle structure of given type,
+and triangulate full handle structures of given type,
 we would like to promote the handle structure embeddings
 coming from our \MOM\ theorems into embeddings of
 full such structures. Here is how that works. I'll do
@@ -196,17 +196,107 @@ and the based embedding is further assumed to be nonelementary.
 \begin{proposition}
 Suppose $N$ is a hyperbolic (generalized) link complement,
 and $T$ is a component of $\partial N$. Suppose that $H$
-is a \MOM\ handle structure based on $T^2$, and that
+is a \MOM\ handle structure based on $T^2$ with $n$ 1-handles, and that
 $B(H) \hookrightarrow (N, T)$ is a nonelementary based embedding;
 and suppose $\Gamma \hookrightarrow \Xi$ is the fatgraph
 coming from the embedding of $H$'s graph into $T^2$.
 
-Then there is a full \MOM\ handle structure $H'$ based on
-either $T^2$ or $A \sqcup A$ (the disjoint union of two annuli)
-with the same fatgraph $\Gamma \hookrightarrow \Xi$, and
+Then there is a full \MOM\ handle structure $H'$ that is based on
+either $T^2$ or a disjoint union of at most $n+1$ annuli
+and that has a fatgraph $\Gamma' \hookrightarrow \Xi'$ with
+at most the same number of vertices and edges as $\Gamma$; and
 there is a nonelementary based embedding $B(H') \hookrightarrow (N, T)$.
 \end{proposition}
 
 \begin{proof}
-dte
+If $H$ is full, we pick $H'$ to be $H$. Otherwise,
+there is an essential curve in $T^2 \setminus \Gamma$.
+\begin{itemize}
+\item 
+	Suppose there is an essential curve in $T^2 \setminus \Gamma$
+	which is separating in $T^2$. Every such curve $\kappa$
+	bounds a disc $d_\kappa$ in $T^2$. We can pick $\kappa$ so
+	the intersection $d_\kappa \cap \Gamma$ is one component $\Gamma'$ of $\Gamma$
+	with the fewest vertices.
+	\begin{itemize}
+	\item 
+		Suppose $\Gamma'$ is a single point. Then this point
+		corresponds to a valence-0 1-handle $h_1$.
+		We can remove $h_1$ to get another
+		handle structure $H'$. Then $H$ is $H'$ with a 1-handle
+		attached along two discs $c,c'$. Let $k, k'$ be, respectively,
+		the boundary components of $H'$ containing $c,c'$. Then
+		the boundary component $t$ of $H'$ intersecting $h_1$ is
+		either $k$ with $h_1$ attached or $k \# k'$, according
+		as $k = k'$ or $k \neq k'$.
+		\begin{itemize}
+		\item
+			If $k = k'$, then $t$ is $k$ with a 1-handle $h_1$
+			attached. Since $t$ is a torus, $k$ is a sphere.
+			Since $(H, T^2)$ embeds
+			non-elementarily in $(N,T)$, $k$ bounds a ball.
+			It doesn't bound a ball to the $T$ side, since
+			$T \subset \partial N$, and thus $k$ bounds
+			a ball $B$ to the side of $N$ including $h_1$.
+			Therefore, $\pi_1(|H'|)$ has the same image
+			in $\pi_1(N)$ as does $\pi_1(H)$.
+			Also, exactly one boundary component of $|H'|$
+			is a sphere.
+		\item
+			If $k \neq k'$, then one of $k,k'$ is a torus
+			and the other is $S^2$. Let $k = S^2$ and
+			$k' = T^2$. Since $(H, T^2)$
+			embeds non-elementarily in $(N,T)$, $k$ bounds a ball in $N$.
+			It doesn't bound a ball to the $T$ side, since
+			$T \subset \partial N$, and thus $k$ bounds
+			a ball $B$ to the side of $N$ excluding $T$,
+			and thus excluding $h_1$. Thus $B \cup R$,
+			and therefore a regular neighborhood $B'$ of that,
+			is a ball. Therefore, as before, 
+			$\pi_1(|H'|)$ has the same image in 
+			in $\pi_1(N)$ as does $\pi_1(H)$.
+			Also, exactly one boundary component of $|H'|$
+			is a sphere.
+		\end{itemize}
+		Therefore, $(H',T^2)$ embeds nonelementarily in $(N,T)$.
+		Also, exactly one boundary component of $|H'|$ is a sphere $S$.
+		$S$ intersects some 2-handle $h_2$. Removing $h_2$ does not
+		change the image of $\pi_1(H')$ in $\pi_1(N)$, so we may
+		remove $h_2$ to get a new handle structure $H''$ such that
+		$(H'', T^2)$ also embeds nonelementarily in $(N, T)$. But
+		now every lateral boundary component of $|H''|$ is a torus.
+		Isotope the 2-handles to have minimum geometric
+		intersection number with the 1-handles to get a handle structure
+		$H'''$. This is a \MOM\ handle structure based on $T^2$
+		admitting a nonelementary based embedding 
+		$B(H''') \hookrightarrow (N, T)$ whose graph $\Gamma'''$
+		has two fewer vertices and no more edges than $\Gamma$.
+	\item 
+		Suppose there is a 1-handle of $H$ which identifies a
+		vertex $v$ of $\Gamma'$ with a vertex $V$ not in $\Gamma'$.
+		Then (see the figure cutnpaste.svg) we can cut $H$ 
+		along $\kappa$ and paste along $v-V$
+		to get a handle structure $H'$ such that $|H| \approx |H'|$,
+		so that $H'$ has as many 1-handles as does $H$, and the
+		bag (multiset) of valences of 1-handles of $H'$ is the
+		bag of 1-handle valences of $H$, except with one
+		instance of $val(v)$ replaced by $0$. Thus, not only 
+		is $H'$ simpler than $H$, but $H'$ has a valence-0 1-handle $h_1$.
+		(You can check that the valences of the 2-handles also do
+		not increase, and some decrease in valence.)
+	\item
+		Suppose all the vertices of $\Gamma'$ are identified
+		with one another by 1-handles. Then $|H|$ is a
+		$\partial$-connect sum of a handle structure
+		$H'$ based on $T^2$ with a handle structure $G$
+		based on the boundary of a ball $B$. The boundary
+		connect-sum yields a torus; therefore, it is the
+		sum of a sphere and torus.
+		\begin{itemize}
+		\item
+			If 
+		\end{itemize}
+	\end{itemize}
+\end{itemize}
+\end{proof}
 \end{document}
