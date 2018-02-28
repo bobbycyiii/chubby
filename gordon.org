@@ -1,6 +1,16 @@
 This is my understanding of my work for our proof
 of the Gordon conjecture.
 
+#+NAME: reginaPreamble
+#+BEGIN_SRC python
+  from regina import Triangulation3, Perm4
+  from regina.NormalSurfaces import enumerate as surfs
+  from regina.NormalCoords import NS_STANDARD as std
+  from regina.NormalCoords import NS_QUAD as quad
+  from regina.NormalListFlags import NS_FUNDAMENTAL as fund
+  from regina.NormalListFlags import NS_VERTEX as vtx
+#+END_SRC
+
 * TODO Enumerating necklace manifolds
 
 ** Definitions
@@ -570,7 +580,7 @@ of the Gordon conjecture.
 
      #+END_SRC
 
-**** The lot
+**** Implementation
      #+NAME: naiveApproach
      #+BEGIN_SRC python :noweb yes :tangle naive.py
        from dipyrAction import *
@@ -708,23 +718,240 @@ of the Gordon conjecture.
    or not it has appropriate vertex links, and whether
    or not it has any faults.
 
+   First we must determine whether or not the manifold
+   is a valid input to the algorithm. We will assume
+   our 
+
    #+NAME: cusped
    #+BEGIN_SRC python
      def cusped(mfld):
          cpts = mfld.boundaryComponents()
          for cpt in cpts:
              dt = cpt.build()
-             if dt.eulerCharTri() != 0:
+             if dt.eulerChar() != 0:
                  return False
          return True
 
+     def sane(mfld):
+         ori = mfld.isOrientable()
+         valid = mfld.isValid()
+         cuspd = cusped(mfld)
+         return ori and valid and cuspd
+
+   #+END_SRC
+
+   We are beholden first to find sphere or $P^2$ faults,
+   to prove or disprove irreducibility. Then we must
+   find disc faults, to prove or disprove boundary-reducibility
+   (this is the same as determining whether or not the
+   manifold is a solid torus, as the manifold is irreducible
+   with torus boundary by assumption). After proving
+   irreducibility and boundary-irreducibility we may
+   search for tori and Klein bottles, and for annuli
+   and M\"{o}bius bands.
+
+   In order to find torus faults we need a way to tell
+   whether or not a 3-manifold is $T^2\times I$. The following
+   is such an algorithm (this was joint work with Neil Hoffman).
+   It uses Dave's work on knots in solid tori.
+
+   #+NAME: t2xi
+   #+BEGIN_SRC python
+     def isT2xI(mfld):
+         m = Triangulation3(mfld)
+         if not m.isValid():
+             return False
+         if not m.isConnected():
+             return False
+         if not m.isOrientable():
+             return False
+         m.idealToFinite()
+         m.intelligentSimplify()
+         bcts = m.boundaryComponents()
+         if len(bcts) != 2:
+             return False
+         for bct in bcts:
+             b = bct.build()
+             if not b.isOrientable():
+                 return False
+             if not b.eulerChar() == 0:
+                 return False
+         # m has two boundary components, both tori.
+
+         # Conceivably, it may happen that
+         # intelligentSimplify does not
+         # simplify the boundary tori to have
+         # one-vertex triangulations. We now
+         # accomplish this simplification in
+         # the most naive manner possible. It
+         # is naive because the gluings and
+         # layerings change the triangulation,
+         # which destroys the edge list and
+         # list of boundary components.
+
+         bct0 = bcts[0]
+         bct1 = bcts[1]
+         def foldable(edge):
+             if not edge.isBoundary():
+                 return False
+             embs = edge.embeddings()
+             (F0,F1) = (embs[0].vertices(),\
+                        embs[-1].vertices())
+             (D0,D1) = (embs[0].simplex(),\
+                        embs[-1].simplex())
+             lvx = D0.vertex(F0[2])
+             rvx = D1.vertex(F1[2])
+             return lvx != rvx
+         def embedded(edge):
+             src = edge.face(0,0)
+             snk = edge.face(0,1)
+             return src != snk
+         laskdjf;aksdflkasd;fj
+         while bct0.countFaces() > 2 and bct1.countFaces() > 2:
+             bdyedges = bct0.faces(1)
+             for e in bdyedges:
+                 if embedded
    #+END_SRC
 
    #+NAME: faults
    #+BEGIN_SRC python
-     def findSphereFault(mfld):
-         
+     def findQuickFaults(mfld):
+         assert sane(mfld)
+         qvis = surfs(mfld, quad, vtx)
+         def isP2(surf):
+             if not surf.isCompact():
+                 return False
+             return surf.eulerChar() == 1
+         def isS2(surf):
+             if not surf.isCompact():
+                 return False
+             return surf.eulerChar() == 2
+         def isT2(surf):
+             if not surf.isCompact():
+                 return False
+             if not surf.isOrientable():
+                 return False
+             return surf.EulerChar() == 0
+         def isK2(surf):
+             if not surf.isCompact():
+                 return False
+             if surf.isOrientable():
+                 return False
+             return surf.EulerChar() == 0
+    
+         # We remember the tori for later.
+    
+         tori = []
+    
+         for s in qvis:
+             if isP2(s):
+                 return (s,"qv","projective plane")
+             if isK2(s):
+                 return (s,"qv","Klein bottle")
+             if isT2(s):
+                 tori.append(s)
+                 continue
+             if not isS2(s):
+                 continue
+             cpts = s.cutAlong()
+             cpts.intelligentSimplify()
+             if cpts.splitIntoComponents() == 1:
+                 # Non-separating sphere
+                 return (s,"qv","non-separating sphere")
+
+             # The following smells bad.
+             # I do not understand why
+             # cutAlong does not return a
+             # list of components, or if
+             # one insists upon using trees,
+             # why one cannot iterate upon
+             # the leaves of a tree instead
+             # of all its nodes.
+        
+             cpt0 = cpts.firstChild()
+             cpt1 = cpt0.nextSibling()
+        
+             if cpt0.isBall() or cpt1.isBall():
+                 continue
+             else:
+                 return (s,"qv","essential separating sphere")
+
+         # That concludes the search for quad-vertex spheres and
+         # projective planes. Conceivably this might miss some spheres and
+         # projective planes, but it's a good go at finding faults.
+
+         # Now we look for discs.
+
+         m = Triangulation3(mfld)
+         m.idealToFinite()
+         m.intelligentSimplify()
+
+         if m.hasCompressingDisc():
+             return (None,"qv","compressing disc")
+
+         # Now we know mfld is irreducible and boundary
+         # irreducible. Let's go through the tori now.
+
+         for t in tori:
+             cpts = t.cutAlong()
+             cpts.intelligentSimplify()
+             if cpts.splitIntoComponents() == 1:
+                 return (t,"qv","non-separating torus")
+             cpt0 = cpts.firstChild()
+             cpt1 = cpt0.nextSibling()
+             if cpt0.hasCompressingDisc():
+                 continue
+             if cpt1.hasCompressingDisc():
+                 continue
+             if isT2xI(cpt0):
+                 continue
+             if isT2xI(cpt1):
+                 continue
+             return (t,"qv","essential torus")
+
+         # If there are no tori, we can try to
+         # find Mobius strips and annuli instead.
+
+         qvms = surfs(m,quad,vtx)
+         def isM2(surf):
+             assert surf.isCompact()
+             if surf.isOrientable():
+                 return False
+             if not surf.hasRealBoundary():
+                 return False
+             return surf.eulerChar() == 0
+         def isA2(surf):
+             assert surf.isCompact()
+             if not surf.isOrientable():
+                 return False
+             if not surf.hasRealBoundary():
+                 return False
+             return surf.eulerChar() == 0
+         for s in qvms:
+             if isM2(s):
+                 return (s,"qv","Mobius strip")
+             if not isA2(s):
+                 continue
+             cpts = s.cutAlong()
+             cpts.intelligentSimplify()
+             if cpts.splitIntoComponents() == 1:
+                 return (s,"qv", "non-separating annulus")
+             if len(mfld.boundaryComponents()) > 1:
+                 continue
+             cpt0 = cpts.firstChild()
+             cpt1 = cpts.nextSibling()
+             if cpt0.isBall():
+                 continue
+             if cpt1.isBall():
+                 continue
+             if cpt0.hasCompressingDisc():
+                 continue
+             if cpt1.hasCompressingDisc():
+                 continue
+             return (s,"qv","essential annulus")
+    
    #+END_SRC
+
 
 * TODO Bounding the number of exceptional fillings
 
