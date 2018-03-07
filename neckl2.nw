@@ -561,6 +561,14 @@ def linkComplement(mfld):
         return True
 
 <<unhyp.py>>=
+from regina import Triangulation3
+from regina import NormalSurfaces as NS
+enumerate = NS.enumerate
+from regina import NS_STANDARD as NSS
+from regina import NS_QUAD as NSQ
+from regina import NS_FUNDAMENTAL as NSF
+# This computation is partially supported by NSF
+from regina import NS_VERTEX as NSV
 <<link complement>>
 @
 \subsection{Finding faults}
@@ -573,6 +581,25 @@ irreducible, atoroidal, and anannular.
 spaces satisfy all these properties, yet
 are not hyperbolic.)
 
+All faults are topologically essential
+surfaces in some way. There are several
+interesting kinds of surfaces that are
+never essential. We incorporate this
+into the following easy check.
+
+<<trivially inessential>>=
+def triviallyInessential(surf):
+    if surf.isVertexLinking() or \
+       surf.isSplitting() or \
+       surf.isThinEdgeLink()[0] != None or\
+       surf.isThinEdgeLink()[1] != None:
+        return True
+    else:
+        return False
+
+<<unhyp.py>>=
+<<trivially inessential>>
+@ 
 \subsubsection{Spheres and projective planes}
 We first need to determine whether or
 not it is reducible. Regina already has
@@ -598,12 +625,9 @@ The plan is simply to go through the
 standard fundamental surfaces and check if
 they are essential spheres or $P^2$s.
 
-<<essential spheres and P2s>>=
-def essentialSphereOrP2(regina_mfld):
-    M = Triangulation3(regina_mfld)
-    assert M.isConnected()
-    nsl = NormalSurfaces.enumerate
-    l = nsl(M, NS_STANDARD, NS_FUNDAMENTAL)
+<<essential P2>>=
+def essentialP2In(nsl):
+    l = nsl
     n = l.size()
     for i in range(0,n):
         s = l.surface(i)
@@ -613,15 +637,33 @@ def essentialSphereOrP2(regina_mfld):
                 continue
             if s.isOrientable():
                 continue
-<<unhyp.py>>=
-<<essential spheres or P2s>>
 @
 At this point we know $s = P^2$. We return its index in the
 normal surface iterator [[l]],
 and indicate that it is $P^2$. If there is a projective
 plane, it is essential (Rolfsen, Lem. 5.1).
-<<essential spheres or P2s>>=
+<<essential P2>>=
             return (i,"P2")
+@ 
+After the [[for]] loop, if we found no
+projective planes, then there are none.
+<<essential P2>>=
+    else:
+        return None
+
+@
+Now we look for essential spheres.            
+<<essential S2>>=
+def essentialS2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(0,n):
+        s = l.surface(i)
+        x = s.eulerChar()
+        if x != 2:
+            continue
+	if triviallyInessential(s):
+	    continue
 @
 If the Euler characteristic is 2, then
 $s$ is a sphere.
@@ -637,14 +679,14 @@ large [[if]] statement but inside the
 overall [[for]] loop. The statements inside
 the [[if]] are at indentation level at least 3;
 the following is at indentation level 2.
-<<essential spheres or P2s>>=
+<<essential S2>>=
         m = s.cutAlong()
         m.finiteToIdeal()
         m.intelligentSimplify()
 @
 If $m$ is connected, then $s$ was non-separating,
 and hence essential.
-<<essential spheres or P2s>>=
+<<essential S2>>=
         if m.isConnected():
             return (i, "Non-separating S2")
 @
@@ -655,7 +697,7 @@ $s$ is essential precisely when neither component
 of $M$ cut along $s$ is a ball. We've idealized the
 cut, so this is equivalent to neither component
 of $m$ being $S^3$.
-<<essential spheres or P2s>>=
+<<essential S2>>=
         m.splitIntoComponents()
         m0 = m.firstChild()
         m1 = m0.nextSibling()
@@ -670,10 +712,12 @@ This code is only run if none of the above
 encountered. In that case, there are no
 essential spheres or projective planes whatever
 by normal surface theory, and the manifold is irreducible.
-<<essential spheres or P2s>>=
+<<essential S2>>=
     return None
+    
 <<unhyp.py>>=
-<<essential spheres or P2s>>
+<<essential P2>>
+<<essential S2>>
 @
 \subsubsection{Finding an essential disk}
 For our sakes, developing a method to find
@@ -684,9 +728,9 @@ disc if and only if it is a solid torus, and this already
 has an optimized implementation in Regina, viz. the
 method [[isSolidTorus]]. The reader may wonder why
 we use this instead of the more obvious
-[[hasCompressingDisk]]. The reason is that, assuming
+[[hasCompressingDisc]]. The reason is that, assuming
 irreducibility, the [[isSolidTorus]] test can yield [[False]]
-more quickly than [[hasCompressingDisk]] can,
+more quickly than [[hasCompressingDisc]] can,
 since, among other things, [[isSolidTorus]] does homology checks.
 
 \subsubsection{Finding essential tori and Klein bottles}
@@ -782,15 +826,12 @@ def isT2xI(mfld):
             return False
     else:
         return True
+	
 <<unhyp.py>>=
 <<is T2xI>>
-<<essential tori or K2s>>=
-def essentialToriOrK2(mfld)
-    M = Triangulation3(mfld)
-    M.finiteToIdeal()
-    M.intelligentSimplify()
-    nsl = NormalSurfaces.enumerate
-    l = nsl(M, NS_STANDARD, NS_FUNDAMENTAL)
+<<essential K2>>=
+def essentialK2In(nsl):
+    l = nsl
     n = l.size()
     for i in range(n):
         s = l.surface(i)
@@ -801,8 +842,29 @@ def essentialToriOrK2(mfld)
             continue
         if not s.isOrientable():
             return (s,"K2")
-<<unhyp.py>>=
-<<essential tori or K2s>>
+@
+If the [[for]] loop has concluded, then
+there is no Klein bottle.
+<<essential K2>>=
+    return None
+
+@ 
+Now we look for essential tori.
+<<essential T2>>=
+def essentialT2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
+        x = s.eulerChar()
+        if x != 0:
+            continue
+        if not s.isCompact():
+            continue
+        if not s.isOrientable():
+            continue
+        if triviallyInessential(s):
+            continue
 @
 Having located a fundamental normal torus,
 we should test whether or not it is essential.
@@ -820,17 +882,12 @@ even though the original 3-manifold is irreducible.
 If one of the components is reducible, the torus is called
 a \emph{convolutube}.)
 @
-Of course, we should first ensure that
-$s$ is not a vertex link; these are never essential.
-<<essential tori or K2s>>=
-        if s.isVertexLinking():
-            continue
-@
-Of next concern to us, as above,
+Of first concern to us
 is whether or not it separates. If it doesn't,
 then it is a non-separating torus and hence essential.
-<<essential tori or K2s>>=
+<<essential T2>>=
         m = s.cutAlong()
+	m.intelligentSimplify()
         if m.isConnected():
             return(s,"Non-separating T^2")
 @
@@ -839,29 +896,32 @@ now test whether or not it is essential,
 by testing whether the components of
 $m$ are either $\partial$-compressible or
 $T^2 \times I$. 
-<<essential tori or K2s>>=
+<<essential T2>>=
         m.idealToFinite()
         m.intelligentSimplify()
         m.splitIntoComponents()
         m0 = m.firstChild()
         m1 = m0.nextSibling()
-        if m0.hasCompressingDisk() \
-           or m1.hasCompressingDisk() \
+        if m0.hasCompressingDisc() \
+           or m1.hasCompressingDisc() \
            or isT2xI(m0) \
            or isT2xI(m1):
             continue
 @
 If they are not, then the torus is
 essential. 
-<<essential tori or K2s>>=
+<<essential T2>>=
         return (s,"Essential T^2")
 @
 Otherwise, if there is no essential torus,
-then return nothing.
-<<essential tori or K2s>>=
+then return nothing. (This else is outside the [[for]] loop.)
+<<essential T2>>=
     else:
         return None
-
+	
+<<unhyp.py>>=
+<<essential K2>>
+<<essential T2>>
 @
 \subsubsection{Essential annuli and M\"obius strips}
 Now, as for the atoroidal remainder, there
@@ -892,11 +952,9 @@ Q-vertex surfaces.
   $A$ is isotopic to a Q-vertex surface.
 \end{proof}
 
-<<essential annulus or Mobius band>>=
-def essentialAnnulusOrM2(mfld):
-    M = Triangulation3(mfld)
-    nsl = NormalSurfaces.enumerate
-    l = nsl(M, NS_QUAD, NS_VERTEX)
+<<essential M2>>=
+def essentialM2In(nsl):
+    l = nsl
     n = l.size()
     for i in range(n):
         s = l.surface(i)
@@ -905,22 +963,44 @@ def essentialAnnulusOrM2(mfld):
         x = s.eulerChar()
         if x != 0:
             continue
-<<unhyp.py>>=
-<<essential annulus or Mobius band>>
 @
 At this point we know [[s]] is either
 an annulus or a M\"{o}bius band. If it's
 not orientable, it's the latter, and is
 a witness against hyperbolicity.
-<<essential annulus or Mobius band>>=
+<<essential M2>>=
         if not s.isOrientable():
             return (i,"Mobius band")
 @
-Otherwise, [[s]] is an annulus. To determine
+After the [[for]] loop, there were no
+M\"{o}bius bands. So there isn't one in the list.
+<<essential M2>>=
+    else:
+        return None
+
+@
+Now we look for essential annuli.
+<<essential A2>>=
+def essentialA2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
+        if not s.hasRealBoundary():
+            continue
+        x = s.eulerChar()
+        if x != 0:
+            continue
+        if not s.isOrientable():
+            continue
+        if triviallyInessential(s):
+            continue
+@ 
+At this point we know [[s]] is an annulus. To determine
 whether or not it is essential, cut along it.
 If the complement is connected, then the
 annulus is nonseparating, and is thus essential.
-<<essential annulus or Mobius band>>=
+<<essential A2>>=
         m = s.cutAlong()
         if m.isConnected():
             return (i,"Nonseparating annulus")
@@ -932,7 +1012,7 @@ is a ball or is a solid torus. (That is, when
 [[s]] is not compressible; by the irreducibility
 and $\partial$-irreducibility of our given
 manifold, we can just do ball and solid torus tests.)
-<<essential annulus or Mobius band>>=
+<<essential A2>>=
         m.splitIntoComponents()
         m0 = m.firstChild()
         m1 = m0.nextSibling()
@@ -947,33 +1027,71 @@ manifold, we can just do ball and solid torus tests.)
 Finally, if we have gone through all quad-vertex
 surfaces and found no essential annulus (or M\"{o}bius band),
 then there is no such surface by Q-normal surface theory.
-<<essential annulus or Mobius band>>=
+<<essential A2>>=
     else:
         return None
+<<unhyp.py>>=
+<<essential M2>>
+<<essential A2>>
+
 @        
 \subsection{Determining hyperbolicity}
 With all the fault-finding routines done,
 we can now put them all together into a
 hyperbolicity test for nontrivial link complements.
 <<hyperbolicity>>=
-def findFault(mfld)
+def findFault(mfld):
     assert linkComplement(mfld)
-    s = essentialSphereOrP2(mfld)
-    if s != None:
-        return s
+    M = Triangulation3(mfld)
+    M.finiteToIdeal()
+    M.intelligentSimplify()
+    l = enumerate(M,NSS,NSF)
+    p2 = essentialP2In(l)
+    if p2 != None:
+        return p2
+    s2 = essentialS2In(l)
+    if s2 != None:
+        return s2
     if mfld.isSolidTorus():
-        return ([],"Is solid torus")
-    s = essentialTorusOrK2(mfld)
-    if s != None:
-        return s
-    s = essentialAnnulusOrM2(mfld)
-    if s != None:
-        return s
+        return ([], "D2")
+    k2 = essentialK2In(l)
+    if k2 != None:
+        return k2
+    t2 = essentialT2In(l)
+    if t2 != None:
+        return t2
+    M = Triangulation3(mfld)
+    M.idealToFinite()
+    M.intelligentSimplify()
+    l = enumerate(M,NSQ,NSV)
+    m2 = essentialM2In(l)
+    if m2 != None:
+        return m2
+    a2 = essentialA2In(l)
+    if a2 != None:
+        return a2
     return None
 
+def isCommutator(expr):
+    l = expr.terms()
+    if len(l) != 4 or \
+       l[0] != l[2].inverse() or \
+       l[1] != l[3].inverse():
+        return False
+    else:
+        return True
+	
 def hyperbolicity(mfld):
     if mfld.hasStrictAngleStructure():
         return (True, "strict angle structure")
+    G = mfld.fundamentalGroup()
+    G.intelligentSimplify()
+    name = G.recogniseGroup()
+    if name != '':
+        return (False, "pi1 is " + name)
+    if G.countRelations() == 1:
+        if isCommutator(G.relation(0)):
+	    return (False, "pi1 is <a,b | [a^p,b^q]>")
     s = findFault(mfld)
     if s != None:
         return (False, s)
@@ -989,232 +1107,48 @@ manifolds.
 <<vetting.py>>=
 from neckl import forallOrbitReps
 from neckl import makeNecklace
+from unhyp import linkComplement
 from unhyp import hyperbolicity
-def vetNecklaces(n):
+from sys import stdout
+from time import clock
+def vetNecklaces(n,wstat):
     hyp = []
     unh = []
     def vetInv(inv,h,u):
-    	mfld = makeNecklace(inv)
+        if wstat:
+	    print str(inv)
+        mfld = makeNecklace(inv)
+        if not linkComplement(mfld):
+           if wstat:
+               print "invalid\n"
+           return None
+        before = clock()
+	mfld.intelligentSimplify()
         s = hyperbolicity(mfld)
-        if s[0] == True:
-            h.append(s)
+	elapsed = clock() - before
+        if s[0]:
+            h.append((inv,s,elapsed))
+            status = " hyp\n"
         else:
-            u.append(s)
+            u.append((inv,s,elapsed))
+            status = " unh\n"
+        if wstat:
+            print status
+	stdout.flush()
     vi = lambda inv: vetInv(inv,hyp,unh)
     forallOrbitReps(n,vi)
     return (hyp, unh)
 
 if __name__ == "__main__":
+    hyp = []
+    unh = []
     for i in range(4,8):
-        (hyp, unh) = vetNecklaces(i)
-        print str(hyp)
-        print "********"
-@ 
+        (h, u) = vetNecklaces(i,True)
+        hyp.append(h)
+	unh.append(h)
+    for i in range(4,8):
+        print str(hyp[i-4])
+	print str(unh[i-4])
+@
+        
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@
-There are only 3 sane 4-bead necklace gluings 
-and 13 sane 5-bead necklace gluings,
-and they are all irreducible.
-@
-As it turns out, 3 sane 6-bead necklace gluings
-have an embedded $P^2$; these cannot embed nonelementarily.
-Then there are 16 6-bead necklace gluings which
-have a nontrivial connect-sum decomposition and don't have a
-$P^2$. But, happily, they are all of the form 
-$(D^2 \times S^1)\#(D^2\times S^1)$.
-This does not embed nonelementarily into hyperbolic 3-manifolds.
-The remaining 88 sane 6-bead necklace gluings are irreducible.
-@
-By inspection, all but one 4-bead 
-gluing are atoroidal. Conveniently,
-the same is true of 5-bead gluings. We explain the
-toroidal ones after dealing with the 6-beads.
-@
-All but 20 6-bead gluings are
-atoroidal, and among these, 6 have an embedded $K^2$.
-Each of the remaining 14 splits along a torus into
-two atoroidal pieces. The fundamental
-groups of 10 of these pieces manifestly admit only elementary
-embeddings into $PSL_2 \mathbf{C}$. These
-manifolds are in Table \ref{tab:obv6}. We give them as both
-their necklace gluing and their Regina isomorphism
-signature, and their ``children'' just as
-isomorphism signatures.
-\begin{table}
-  \begin{center}
-    \begin{tabular}{ | c | c | c | c | c | } \hline
-      IsoSig & Gluing &  $\pi_1$ Presentation\\ \hline
-      [[gLLAQbcdefffhbbhabb]] &
-      $(11\ 10) (9\ 1) (8\ 5) (7\ 0) (6\ 2) (4\ 3)$ &
-      $\langle a,b\ |\ a^{-2} b^2 a^2 b^{-2}\rangle$ \\ \hline
-   
-      [[gLLAQbeddfffaabgabg]] &
-      $(11\ 10) (9\ 4) (8\ 1) (7\ 3) (6\ 2) (5\ 0)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2\rangle$ \\ \hline
-
-      [[gLLAQbeddfffhhbghgg]] &
-      $(11\ 10) (9\ 4) (8\ 3) (7\ 0) (6\ 2) (5\ 1)$ &
-      $\langle a,b\ |\ a^2 b^{-2} a^{-2} b^2\rangle$ \\ \hline
-
-      [[gLLMQbcdfeffagbaabg]] &
-      $(11\ 10) (9\ 1) (8\ 4) (7\ 0) (6\ 2) (5\ 3)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2 \rangle$ \\ 
-       &
-      $(11\ 10) (9\ 5) (8\ 0) (7\ 2) (6\ 3) (4\ 1)$ & \\ \hline
-      
-      [[gLLPQccdfeffabghhbg]] &
-      $(11\ 10) (9\ 5) (8\ 1) (7\ 3) (6\ 2) (4\ 0)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2\rangle$ \\ \hline
-      
-      
-      [[gLLPQcdeffefafqqaqo]] &
-      $(11\ 10) (9\ 1) (8\ 0) (7\ 4) (6\ 3) (5\ 2)$ &
-      $\langle a,b\ |\ a^2 b^2 a^{-2} b^{-2} \rangle$ \\
-       &
-      $(11\ 10) (9\ 1) (8\ 0) (7\ 5) (6\ 3) (4\ 2)$ & \\ \hline
-
-      [[gLLPQcdeffefqfaqaqo]] &
-      $(11\ 4) (10\ 1) (9\ 0) (8\ 5) (7\ 3) (6\ 2)$ & 
-      $\langle a,b\ |\ a^{-2} b^3 a^2 b^{-3}\rangle$\\
-       &
-      $(11\ 4) (10\ 2) (9\ 1) (8\ 0) (7\ 5) (6\ 3)$ & \\ \hline
-    \end{tabular}
-  \caption{The obviously elementary 6-bead irreducible toroidal necklace gluings.}\label{tab:obv6}
-  \end{center}
-\end{table}
-The remaining 4 manifolds have only three isomorphism types, as given in Table \ref{tab:nobv}.
-\begin{table}
-  \begin{center}
-  \begin{tabular}{ | c | c | } \hline
-  IsoSig & Gluing \\ \hline
-  [[gLLMQbeeffefxxxxxax]] & 
-  $(11\ 10) (9\ 4) (8\ 5) (7\ 2) (6\ 1) (3\ 0)$ \\ \hline
-  [[gLLPQcdfeeffafaaaaf]] &
-  $(11\ 10) (9\ 1) (8\ 4) (7\ 5) (6\ 2) (3\ 0)$ \\
-   &
-  $(11\ 10) (9\ 7) (8\ 6) (5\ 2) (4\ 1) (3\ 0)$ \\ \hline
-  [[gLLMQcecefffhabaahb]] &
-  $(11\ 10) (9\ 2) (8\ 4) (7\ 5) (6\ 1) (3\ 0)$ \\ \hline
-  \end{tabular}
-  \end{center}
-  \caption{The non-trivial 6-bead irreducible toroidal necklace gluings.}\label{tab:nobv}
-\end{table}
-@
-To deal with the remaining three 6-bead manifolds (four gluings), we
-examine their fundamental groups, and more importantly the
-fundamental groups of their atoroidal pieces, as follows.
-@
-\begin{table}
-\begin{center}
-  \begin{tabular}{ | c | c | c | } \hline
-    Parent IsoSig & Child $\pi_1$ Presentations \\ \hline
-    [[gLLMQbeeffefxxxxxax]] & $\langle a,b\ |\ a^{-1} b^{-1} a^{-1} b^3\rangle$, \\
-                            & $\langle a,b,c\ |\ a^{-1} b a b^{-1},\ b^{1} c^{-1} b c\rangle$\\ \hline
-    [[gLLPQcdfeeffafaaaaf]] & $\langle a,b,c\ |\ a b^{-1} a^{-1} b, a b^{-1} c a^{-1} b c^{-1}\rangle$\\
-                            & $\langle a,b\ |\ a^{-2} b^{-1} a^2 b\rangle$\\ \hline
-    [[gLLMQcecefffhabaahb]] & $\langle a,b,c\ |\ b^{-1} c b c^{-1}, a^{-1} b c^{-1} a b^{-1} c\rangle$\\ 
-                            & $\langle a,b\ |\ a^{-3} b^3\rangle$\\ \hline
-  \end{tabular}
-\end{center}
-\end{table}
-Except for the first group presentation,
-these presentations show that these groups
-do not admit discrete, torsion-free, nonabelian
-representations into $PSL_2\mathbf{C}$, because hyperbolic and parabolic
-elements of $PSL_2\mathbf{C}$ commute if and only if
-they share an axis, and a power of such an element
-has the same axis as the element. 
-
-For the first group, $G_0 = \langle a,b\ |\ a^{-1} b^{-1} a^{-1} b^3 \rangle$,
-we can introduce $c = a^{-1} b^{-1}$ to get
-$G_0 = \langle a,b,c\ |\ a b c, c^2 b^4\rangle$. But $a b c$ is
-a defining relator for $a$, so we can remove it and get
-$G_0 = \langle b,c\ |\ c^2 b^4\rangle$, which now plainly
-doesn't admit such a representation into $PSL_2 \mathbf{C}$.
-
-So, for each of the three remaining 6-bead 3-manifolds $M$,
-$\pi_1(M)$ is a pushout of groups $H_0,H_1$ along 
-a common subgroup $H = \mathbf{Z}^2$,
-and the only discrete torsion-free representations of
-$H_0,H_1$ into $PSL_2\mathbf{C}$ are abelian. But then
-for any representation $\rho: \pi_1(M) \to PSL_2\mathbf{C}$,
-$\rho(H_0),\rho(H_1)$ are abelian subgroups
-of $PSL_2\mathbf{C}$ with a common abelian subgroup.
-Thus all $\rho(\pi_1(M))$ is abelian. Therefore,
-none of the remaining 3-manifolds $M$
-embed nonelementarily in a hyperbolic $N$.
-
-@
-The unique irreducible toroidal 4-bead
-manifold, gluing $(7\ 2) (6\ 0) (5\ 3) (4\ 1)$
-has isomorphism signature
-[[eLPkbdcddhbbbg]] and fundamental group
-presentation $\langle a,b\ |\ a^2 b^{-2} a^{-2} b^2\rangle$.
-So it does not embed nonelementarily.
-@
-Finally, the unique irreducible toroidal 5-bead
-manifold, gluing $(9\ 8) (7\ 3) (6\ 4) (5\ 1) (2\ 0)$,
-has isomorphism signature [[fLLQcbeddeeahbgah]].
-Its atoroidal pieces have fundamental groups
-$\langle a,b,c\ |\ a c a^{-1} c^{-1}, b c^{-1} b^{-1} c\rangle$
-and $\langle a,b\ |\ a^3 b^{-2}\rangle$. By the pushout
-argument above, this manifold doesn't embed nonelementarily
-in a hyperbolic $N$. 
-
-This leaves us with a list of 17 potential
-hyperbolic manifolds, which Regina verifies
-as hyperbolic (it can find strict angle
-structures on them), and 51 Seifert-fibered
-spaces with their associated non-separating annuli.
-@
-We would like to identify the 17 hyperbolic 6-bead manifolds,
-which, by the above, are the only 6-bead necklace
-gluings which embed nonelementarily in a hyperbolic $N$.
-This is relatively straightforward using [[SnapPy]]'s
-[[identify]] procedure. You may check that there are
-6 [[m129]]s, 2 [[s776]]s, 1 [[s780]], 1 [[s443]],
-1 [[s647]], 2 [[s785]]s, 1 [[s782]], 1 [[m292]],
-1 [[s596]], and 1 [[s774]].
-@
-Finally, for the lower bead numbers. There are three
-hyperbolic 5-bead necklace gluings, which, again, are
-the only 5-bead necklace gluings which embed nonelementarily
-in a hyperbolic $N$. They are [[m295]], [[m203]], and [[m125]].
-And there is a unique 4-bead hyperbolic necklace gluing,
-the unique 4-bead necklace gluing which embeds nonelementarily
-in a hyperbolic $N$. It is [[m129]], the Whitehead link.
-@
-In summary, the following are the unique $d$-bead necklace
-gluings which embed nonelementarily into a hyperbolic $N$;
-they are all hyperbolic census manifolds.
-\begin{table}
-    \begin{center}
-        \begin{tabular} { | c | c | } \hline
-        Bead number & Necklace embeddables \\ \hline
-        4 & [[m129]] \\ \hline
-        5 & [[m125]], [[m203]], [[m295]] \\ \hline
-        6 & [[m129]], [[m292]], \\
-          & [[s443]], [[s596]], [[s647]], \\
-          & [[s774]], [[s776]], \\
-          & [[s780]], [[s782]], [[s785]] \\ \hline
-        \end{tabular}
-    \end{center}
-\end{table}
-@
