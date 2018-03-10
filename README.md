@@ -12,7 +12,7 @@ To compile the documentation, you need Noweb, available
 
 To do everything in one fell swoop, run the following:
 
-    notangle -Rcompile.sh neckl2.nw > compile.sh
+    notangle -Rcompile.sh neckl.nw > compile.sh
     chmod +x compile.sh
     ./compile.sh
 
