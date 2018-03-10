@@ -12,9 +12,9 @@ To compile the documentation, you need Noweb, available
 
 To do everything in one fell swoop, run the following:
 
-   notangle -Rcompile.sh neckl2.nw > compile.sh
-   chmod +x compile.sh
-   ./compile.sh
+    notangle -Rcompile.sh neckl2.nw > compile.sh
+    chmod +x compile.sh
+    ./compile.sh
 
 This runs the enumeration and naming, builds the LaTeX files,
 and compiles the LaTeX into PDF files.
