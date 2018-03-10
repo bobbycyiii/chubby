@@ -1,6 +1,7 @@
-\documentclass{article}
+\documentclass[10pt]{article}
 \usepackage{noweb}
 \noweboptions{smallcode,longchunks}
+\usepackage{geometry}
 \usepackage{amssymb,amsmath,amsthm,graphicx}
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
@@ -25,10 +26,16 @@
 \newcommand{\MOM}{\textsc{Mom}}
 \begin{document}
 \pagestyle{noweb}
+\title{[[neckl2]]}
+\author{Robert C. Haraway III}
+\date{\today}
+\maketitle
+\section*{Conventions}
+We use camel-case naming, following Regina.
 <<neckl.py>>=
-from regina import *
+from regina import Triangulation3, Perm4
 @ 
-\paragraph{Necklace gluings with $n$ beads}
+\section{Necklace gluings with $n$ beads}
 \begin{definition}
 An $n$-dipyramid is a 3-ball with a cell structure
 whose boundary triangulation is the suspension
@@ -39,46 +46,18 @@ take care to remember which vertices are suspension points.
 The following is our implementation of this
 definition in Regina.
 <<how to make an n-dipyr>>=
-def make_dipyr(n):
+def makeDipyr(n):
 	"""Returns an n-dipyr."""
-	newt = NTriangulation()
+	newt = Triangulation3()
 	for i in range(0,n):
 		newt.newTetrahedron()
 	for i in range(0,n):
-		me = newt.getTetrahedron(i)
-		you = newt.getTetrahedron((i+1)%n)
-		me.joinTo(2,you,NPerm4(2,3))
+		me = newt.simplex(i)
+		you = newt.simplex((i+1)%n)
+		me.join(2,you,Perm4(2,3))
 	return newt
 <<neckl.py>>=
 <<how to make an n-dipyr>>
-@
-\begin{definition}
-A \emph{necklace gluing of bead number $n$} is a oriented face-pairing
-of all the faces of an $n$-dipyramid such that every face-pair preserves the partition
-of the dipyramid's vertices into suspension points and ``lateral'' points.
-\end{definition}
-The set of necklace gluings of bead number $n$ on an $n$-dipyramid is naturally in bijection
-with the fixed-point-free involutions on the set of faces of that $n$-dipyramid.
-There are $2 \cdot n$ faces, so given any labelling of the faces by naturals less
-than $2 \cdot n$, we get an identification sending fixed-point-free involutions
-in $S_{2 \cdot n}$ to necklace gluings. 
-@
-The labelling we choose involves a choice
-of higher and lower suspension point, an orientation of the base polygon, and
-a choice of face thereon. With these choices, mark the sides of the base polygon
-with naturals between 0 and $n$, such that the chosen face takes marking 0, and
-the cyclic ordering on faces from the orientation induces the cyclic ordering
-coming from the quotient monoid $\mathbf{N}/n\mathbf{N}$. Then a face of the
-$n$-dipyramid which is adjacent to the lower suspension point takes as a label
-the marking on the side of the base of which it is a cone, but a face of the
-$n$-dipyramid adjacent to the higher suspension point takes instead $n$ plus
-the marking on its base side. (Cf. Figure \ref{fig:bead3}.)
-@
-\begin{figure}
-\centering
-\includegraphics[width=.4\textwidth]{bead3.png}
-\caption{Our labelled 3-dipyramid.}\label{fig:bead3}
-\end{figure}
 @
 As you can verify, we have glued up the $n$-dipyramid so
 that the interior faces are all faces 2 and 3 of their
@@ -95,36 +74,88 @@ N.B. In the above paragraph, the labels 0,1,2,3 refer to
 Regina's internal labelling system, not our just imposed
 face labelling on the boundary faces of the dipyramid.
 @
+\begin{definition}
+  A \emph{necklace gluing of bead number $n$}
+  is a oriented face-pairing
+  of all the faces of an $n$-dipyramid
+  such that every face-pair preserves the partition
+  of the dipyramid's vertices
+  into suspension points '' points.
+\end{definition}
+The set of necklace gluings
+of bead number $n$ on an $n$-dipyramid
+is naturally in bijection
+with the fixed-point-free involutions
+on the set of faces of that $n$-dipyramid.
+There are $2 \cdot n$ faces, so given any
+labelling of the faces by naturals less
+than $2 \cdot n$, we get an identification
+sending fixed-point-free involutions
+in $S_{2 \cdot n}$ to necklace gluings. 
+@
+The labelling we choose involves a choice
+of higher and lower suspension point, an
+orientation of the base polygon, and
+a choice of face thereon. With these choices,
+mark the sides of the base polygon
+with $\{2\cdot i : 0 \leq i < n\}$, such that
+the chosen face takes marking 0, and
+the cyclic ordering on faces from the
+orientation induces the natural cyclic
+ordering $0 < 2 < \cdots < 2\cdot n - 2$.
+Then a face of the $n$-dipyramid which
+is adjacent to the lower suspension point
+takes as a label the marking on the side of
+the base of which it is a cone, but a face of the
+$n$-dipyramid adjacent to the higher
+suspension point takes instead $1$ plus
+the marking on its base side. (Cf. Figure \ref{fig:bead5}.)
+@
+%\begin{figure}
+%\centering
+%\includegraphics[width=.4\textwidth]{dipyr5.png}
+%\caption{Our labelled 5-dipyramid in stereographic projection
+%from the higher suspension point.}\label{fig:bead5}
+%\end{figure}
+@
 Therefore, the following code accomplishes a necklace
 gluing, given a fixed-point-free involution in
 $S_{2\cdot n}$ in cycle notation,
 assuming Regina maintains the indexing of tetrahedra.
-<<how to make a necklace gluing>>=
-def which_tet(n,face):
-    if face < n:
-        return face
-    else:
-        return face - n
 
-def make_necklace(fpfinv):
+First, it is easy to match a face label with a tetrahedron index.
+<<neckl.py>>=
+<<how to make a necklace gluing>>
+
+<<how to make a necklace gluing>>=
+def whichTet(face):
+    return face / 2
+@
+We represent face-pairings as lists of pairs
+of natural numbers. To accomplish a gluing,
+we make an appropriate dipyramid, and for every
+pair in the list, glue the faces together.
+The first task is to determine which tetrahedras'
+faces are getting glued together.
+
+<<how to make a necklace gluing>>=
+def makeNecklace(fpfinv):
     n = len(fpfinv)
-    ndipyr = make_dipyr(n)
+    ndipyr = makeDipyr(n)
     local = list(fpfinv)
     while local != []:
         (i,j) = local.pop()
-        me = ndipyr.getTetrahedron(which_tet(n,i))
-        you = ndipyr.getTetrahedron(which_tet(n,j))
-<<neckl.py>>=
-<<how to make a necklace gluing>>
+        me = ndipyr.simplex(whichTet(i))
+        you = ndipyr.simplex(whichTet(j))
+	
 @
 The face of [[me]] getting glued is
-either 0 or 1 according, respectively,
-as $i$ is less than or at least $n$.
+either 0 or 1, respectively, according
+as $i$ is adjacent to the lower or
+higher suspension point, i.e. according
+as $i$ is even or odd.
 <<how to make a necklace gluing>>=
-        if i < n:
-                f = 0
-        else:
-                f = 1
+        meFace = i % 2
 @
 We now split into two cases according as
 $i,j$ lie on the same or different suspension points.
@@ -137,8 +168,8 @@ But it must reverse orientation, so that
 the whole manifold is oriented. Thus the induced
 map on the vertices is the permutation $(2\ 3)$.
 <<how to make a necklace gluing>>=
-        if ((i < n) == (j < n)):
-            me.joinTo(f,you,NPerm4(2,3))
+        if (i % 2 == j % 2):
+            me.join(meFace,you,Perm4(2,3))
 @
 On the other hand, if they lie along different
 suspension points, then the 0,1 vertices must
@@ -146,20 +177,20 @@ be flipped. Thus the 2 and 3 vertices must be
 fixed so that the gluing is oriented.
 <<how to make a necklace gluing>>=
         else:
-            me.joinTo(f,you,NPerm4(0,1))
-    ndipyr.setPacketLabel(str(fpfinv))
+            me.join(meFace,you,Perm4(0,1))
+    ndipyr.setLabel(str(fpfinv))
     return ndipyr
 @
-\paragraph{Enumerating necklace gluings}
+\section{Enumerating necklace gluings}
 Our next goal is to get a list as small as
-possible which for every necklace gluing G
-contains a manifold homeomorphic to G. We
+possible which for every necklace gluing
+contains a manifold homeomorphic to that gluing. We
 could, of course, just enumerate all
 fixed-point-free involutions and put the
 associated gluings in a list. But many of
 these, presumably, will be asymmetric, so
 that by applying elements of the symmetry
-group of the $n$-dipyr, we get different
+group of the $n$-dipyramid, we get different
 gluings which are homeomorphic. We wish to
 eliminate as much of such redundancy as we
 reasonably can.
@@ -185,11 +216,11 @@ We define what it means to remove an involution
 from the tree. This takes much less time
 than removing an involution from a list.
 Finally, we do the most natural thing after that:
-let $R$ be an empty list to contain representatives, and then
 while the tree still contains an involution $\sigma$,
-put $\sigma$ in $R$, and remove every element of
-$\sigma$'s orbit from the tree. Return $R$, the desired
-list of orbit representatives.
+remove every element of $\sigma$'s orbit from the tree,
+and then do something with $\sigma$ (e.g. put $\sigma$
+in some list, or determine whether or not it represents
+a hyperbolic 3-manifold).
 @
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
@@ -198,6 +229,7 @@ acts on several things at once, we have different functions
 associated to these actions. But let us begin with how $DP$
 acts on faces.
 @
+\begin{definition}
 A face we represent as a natural number below $2 \cdot n$.
 There are three symmetries of the dipyramid which generate
 its symmetry group and are relatively easy to write down:
@@ -205,44 +237,36 @@ a counterclockwise rotation by an $n$th of a revolution;
 the reflection through the plane through the base, which we
 call a \emph{p-flip}; and
 a reflection through a plane through the suspension points
-and a lateral vertex, which we call a \emph{v-flip}. 
-For the lateral vertex, we pick the
-vertex common to the faces labelled $0,n-1,n,2\cdot n - 1$.
+and a lateral vertex, which we call a \emph{v-flip}. If
+that lateral vertex is adjacent to faces $0,1,2\cdot(n-1), 2\cdot n - 1$,
+then we call it \emph{the} v-flip.
+\end{definition}
 @
-We contend the following implements these symmetries as
-they act on face labels. For convenience, we implement the
-rotation through $t$ $n$ths of a revolution.
+\begin{proposition}
+  The following implements these symmetries as
+  they act on face labels. For convenience, we implement the
+  rotation through $t$ $n$ths of a revolution.
+  \end{proposition}
 @
 <<how to act>>=
 def rt(n,t,face):
-    if face < n:
-        if face + t < n:
-            return face + t
-        else:
-            return face + t - n
-    else:
-        if face + t < 2 * n:
-            return face + t
-        else:
-            return face + t - n
+    return (face + 2*t) % (2*n)
 
-def p_fl(n,face):
-    if face < n:
-        return face + n
-    else:
-        return face - n
+def pFlip(face):
+    return face + 1 - 2*(face%2)
 
-def v_fl(n,face):
-    if face < n:
-        return n - (face + 1)
-    else:
-        return (3 * n) - (face + 1)
+def vFlip(n,face):
+    return 2*(n-1 + face%2) - face
+
 <<neckl.py>>=
 <<how to act>>
 @
 You may check that a symmetry of the dipyramid
 is a rotation followed possibly by the p-flip,
-followed possibly by the v-flip.
+followed possibly by the v-flip. (We also
+remind the reader that in Python, [[m % n]]
+is the remainder upon division of $m$ by $n$,
+at least 0 and less than $n$.)
 @
 Because $DP$ acts on so many things,
 we introduce a poor man's datatype to
@@ -254,17 +278,17 @@ of a string and number, where the string
 the number [[t]] is assumed less than $n$.
 @
 <<how to act>>=
-def act_face (n,dp,face):
+def actFace (n,dp,face):
     (s,t) = dp
     r = rt(n,t,face)
     if s == "Rot":
         return r
     if s == "VRot":
-        return v_fl(n,r)
+        return vFlip(n,r)
     if s == "PRot":
-        return p_fl(n,r)
+        return pFlip(r)
     if s == "VPRot":
-        return v_fl(n,p_fl(n,r))
+        return vFlip(n,pFlip(r))
     else:
         raise Exception
 @
@@ -280,22 +304,22 @@ is not as simple as applying the action to each entry; we
 have to maintain the order's consistency.
 @
 <<how to act>>=
-def act_face_pair(n,dp,facepair):
+def actFacePair(n,dp,facepair):
     (i,j) = facepair
-    a_f = act_face
+    a_f = actFace
     (x,y) = (a_f (n,dp,i), a_f(n,dp,j))
     if x > y:
         return (x,y)
     else:
         return (y,x)
 @
-Finally, we represent a gluing as a >-sorted list
+Finally, we represent a gluing as a $>$-sorted list
 of face-pairs. So we have to sort
 after applying the action on face-pairs.
 @
 <<how to act>>=
-def act_gluing(n,dp,gluing):
-    afp = act_face_pair
+def actGluing(n,dp,gluing):
+    afp = actFacePair
     unsorted = map((lambda fp: afp(n,dp,fp)), \
                                  gluing)
     return sorted(unsorted, reverse=True)
@@ -307,11 +331,11 @@ and only elements from the orbit. We do not
 remove duplicates from this list.
 @
 <<how to orbit>>=
-def orbit_with_repeats(n,gluing):
+def orbitWithRepeats(n,gluing):
     l = gluing
     nums = range(n)
     nums.reverse()
-    ag = act_gluing
+    ag = actGluing
     symm_types = ["Rot","VRot","PRot","VPRot"]
     out = []
     for s in symm_types:
@@ -409,7 +433,7 @@ def fpf(l,m):
             fpf(smush(lpp,m), []), \
             fpf([f] + lpp, [fp] + m))
     
-def original_tree(n):
+def originalTree(n):
     nums = range(2*n)
     nums.reverse()
     return fpf(nums, [])
@@ -420,13 +444,13 @@ It's pretty simple to extract at least one involution
 from our tree if there is one. Just go left.
 @
 <<how to get an involution if there is one>>=
-def get_left_inv(pt):
+def leftInvolution(pt):
     if pt[0] == "PTLeaf":
         return []
     else:
         (str, p, lt, rt) = pt
         assert str == "PTBranch"
-        return [p] + get_left_inv(lt)
+        return [p] + leftInvolution(lt)
 <<neckl.py>>=
 <<how to get an involution if there is one>>
 @
@@ -468,7 +492,7 @@ Otherwise, it's just the tree with the rest of the involution
 removed from the left child.
 @
 <<how to remove an involution>>=
-def remove_involution(l,pt):
+def removeInvolution(l,pt):
     if l == []:
         return pt
     if pt[0] == "PTLeaf":
@@ -477,8 +501,8 @@ def remove_involution(l,pt):
     assert str == "PTBranch"
     if p != pp:
         return ("PTBranch", pp, lt, \
-                remove_involution(l,rt))
-    ltp = remove_involution(ps,lt)
+                removeInvolution(l,rt))
+    ltp = removeInvolution(ps,lt)
     if ltp[0] == "PTLeaf":
         return rt
     else:
@@ -493,543 +517,926 @@ than time proportional to the number of \emph{gluings}.
 @
 In conclusion for this section, it's now completely
 straightforward to implement our original plan as
-described above: pop top, remove orbit, repeat.
+described above: pop top, remove orbit, do something
+with the orbit representative (here encapsulated
+in a function [[f]]), repeat.
 @
-<<how to get orbit representatives>>=
-def orbit_reps(n):
-    pt = original_tree(n)
-    reps = []
+<<how to do stuff with orbit representatives>>=
+def forallOrbitReps(n,f):
+    pt = originalTree(n)
     while pt[0] != "PTLeaf":
-        l = get_left_inv(pt)
-        reps = [l] + reps
-        lorb = orbit_with_repeats(n,l)
+        l = leftInvolution(pt)
+        lorb = orbitWithRepeats(n,l)
         for lp in lorb:
-             pt = remove_involution(lp,pt)
-    return reps
-<<neckl.py>>=
-<<how to get orbit representatives>>
-@
-\paragraph{Vetting the manifolds}
-We can now generate all the manifolds of interest to us.
-So now our task is to determine among these which can
-embed nonelementarily into a one-cusped hyperbolic 3-manifold.
+             pt = removeInvolution(lp,pt)
+	f(l)
 
+<<neckl.py>>=
+<<how to do stuff with orbit representatives>>
+@
+\section{Vetting the manifolds}
+We can now generate all the manifolds of interest to us.
+So now our task is to determine among these which are
+hyperbolic.
+\subsection{Sanity checks}
 We can first implement some basic sanity checks. All necklace
 gluings are orientable. Likewise, they are all connected.
 (If we were testing arbitrary MOM gluings, then we would 
 add a connectedness test.) Our other requirement, though, 
 is that the links of all the vertices must be tori. This
 is known in the literature as a "(generalized) link complement,"
-i.e. the complement of a link in some closed 3-manifold.
+i.e. the complement of a nontrivial link in some closed orientable 3-manifold.
 <<link complement>>=
-def link_complement(mfld):
+def linkComplement(mfld):
+    if not mfld.isOrientable():
+        return False
+    if not mfld.isConnected():
+        return False
+    M = Triangulation3(mfld)
+    M.finiteToIdeal()
+    if not M.isValid():
+        return False
     vs = mfld.vertices()
     for v in vs:
         if not (v.link() == v.TORUS):
             return False
     else:
         return True
-<<neckl.py>>=
+
+<<unhyp.py>>=
+from regina import Triangulation3
+from regina import NormalSurfaces as NS
+enumerate = NS.enumerate
+from regina import NS_STANDARD as NSS
+from regina import NS_QUAD as NSQ
+from regina import NS_FUNDAMENTAL as NSF
+# This computation is partially supported by NSF
+from regina import NS_VERTEX as NSV
 <<link complement>>
 @
-Now comes the real work. We now find necessary
-conditions for a manifold to embed nonelementarily
-into a one-cusped hyperbolic 3-manifold.
-@
-Suppose now that M embeds nonelementarily into
-a one-cusped hyperbolic 3-manifold N. If M
-has an essential sphere S, let $M = M_0 \# M_1$
-be the associated connect-sum decomposition of M.
-Because $S$ bounds a ball in $N$, one of $M_0$,
-$M_1$ is an $S^3$-link-complement. But M's
-connect-sum decomposition is not empty, since
-$S^3$ doesn't embed nonelementarily into N.
-So M has a non-empty connect-sum decomposition
-with at most one summand which is not an
-$S^3$-link-complement. So it will behoove us
-to get statistics on the lengths of the connect-sum
-decompositions of our given manifolds. Regina
-only implements connect-sum decompositions for
-closed 3-manifolds, so we roll our own routine here.
-<<connect-sum decomposition>>=
-def slow_connect_sum(regina_mfld):
-    M = NTriangulation(regina_mfld)
-    if not M.isConnected():
-        raise Exception("Not connected")
-    if not M.isOrientable():
-        raise Exception("Not orientable")
-    if not link_complement(M):
-        raise Exception("Not a generalized link complement")
-    nsl = NNormalSurfaceList.enumerate
-    l = nsl(M, NS_STANDARD, \
-               NS_FUNDAMENTAL)
-    n = l.getNumberOfSurfaces()
+\subsection{Finding faults}
+Now comes the real work. For a nontrivial
+link complement $M$, $M$ is hyperbolic if
+and only if it is irreducible, boundary
+irreducible, atoroidal, and anannular.
+(This is not true for closed orientable
+3-manifolds, as small Seifert-fibered
+spaces satisfy all these properties, yet
+are not hyperbolic.)
+
+All faults are topologically essential
+surfaces in some way. There are several
+interesting kinds of surfaces that are
+never essential. We incorporate this
+into the following easy check.
+
+<<trivially inessential>>=
+def triviallyInessential(surf):
+    if surf.isVertexLinking() or \
+       surf.isSplitting() or \
+       surf.isThinEdgeLink()[0] != None or\
+       surf.isThinEdgeLink()[1] != None:
+        return True
+    else:
+        return False
+
+<<unhyp.py>>=
+<<trivially inessential>>
+@ 
+\subsubsection{Spheres, projective planes, and discs}
+We first need to determine whether or
+not it is reducible. Regina already has
+a routine for this, but that routine is
+only guaranteed to work for closed 3-manifolds.
+So we roll our own, slow version here. It
+is an interesting question whether or not
+one could get a (comparatively) much quicker
+scheme using only quad-vertex surfaces on
+ideal triangulations. We do not presume to
+determine this one way or the other.
+We have a choice of either using standard
+coordinates and fundamental surfaces, in
+which case we can use ideal triangulations
+(see Matveev); or we can use quad coordinates
+and vertex surfaces, but we can only use
+``material'' triangulations. The latter
+have more tetrahedra. We use the more
+familiar standard and fundamental surfaces
+when we can.
+
+The plan is simply to go through the
+standard fundamental surfaces and check if
+they are essential spheres or $P^2$s.
+
+Since the construction of normal surface
+lists is costly, we do not write functions
+determining whether or not a 3-manifold
+has an essential surface of a given type,
+but rather whether a given normal surface
+list has a such a surface. (One could probably
+clean the following up using Regina's filter
+formalism. TODO)
+
+<<essential P2>>=
+def essentialP2In(nsl):
+    l = nsl
+    n = l.size()
     for i in range(0,n):
-        s = l.getSurface(i)
+        s = l.surface(i)
         x = s.eulerChar()
-<<neckl.py>>=
-<<connect-sum decomposition>>
-@
-For completeness we deal with the possibility of
-projective planes. Of course, if $M$ has an embedded
-projective plane, then it cannot embed into $N$.
-<<connect-sum decomposition>>=
         if x != 2:
             if x != 1:
                 continue
             if s.isOrientable():
                 continue
 @
-At this point we know $s = P^2$. This should
-be impossible, so we throw an exception. This will make
-the routine less useful for other folks, but it ensures
-that we've exhausted the possibilities for reducibility.
-<<connect-sum decomposition>>=
-            raise Exception("P^2!")
+At this point we know $s = P^2$. We return its index in the
+normal surface iterator [[l]],
+and indicate that it is $P^2$. If there is a projective
+plane, it is essential (Rolfsen, Lem. 5.1).
+<<essential P2>>=
+            return (i,"$P^2$")
+@ 
+After the [[for]] loop, if we found no
+projective planes, then there are none.
+<<essential P2>>=
+    else:
+        return None
+
 @
-At this point we know $s$ is a sphere.
-Cut $M$ along $s$ into $m$. Then
-$m$ has two sphere boundary components. 
+Now we look for essential spheres.            
+<<essential S2>>=
+def essentialS2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(0,n):
+        s = l.surface(i)
+        x = s.eulerChar()
+        if x != 2:
+            continue
+	if triviallyInessential(s):
+	    continue
+@
+If the Euler characteristic is 2, then
+$s$ is a sphere.
+Cut $M$ along $s$ into $m$. (It is
+  unfortunate here that we cut instead of crush.
+  We should probably be able to crush instead. TODO)
+Then $m$ has two sphere boundary components. 
 We cap them off by idealizing $m$.
 @
 We note here that Python includes indentation
 as a critical part of its syntax. It's somewhat
-hard to tell in this PDF that the following
+hard to tell in this document that the following
 code is indented outside the previous
 large [[if]] statement but inside the
 overall [[for]] loop. The statements inside
 the [[if]] are at indentation level at least 3;
 the following is at indentation level 2.
-<<connect-sum decomposition>>=
+<<essential S2>>=
         m = s.cutAlong()
         m.finiteToIdeal()
         m.intelligentSimplify()
 @
 If $m$ is connected, then $s$ was non-separating,
-and established the connect-sum $M = (S^2 \times S^1) \# m$.
-This is impossible for non-elementary embeddings, so
-again we raise an exception.
-<<connect-sum decomposition>>=
+and hence essential.
+<<essential S2>>=
         if m.isConnected():
-            raise Exception("Non-separating S^2!")
+            return (i, "non-separating $S^2$")
 @
-Now, suppose instead that $s$ separates $M$. Then 
+Now, suppose instead that $s$ separates $M$. Since
+we assumed $M$ was connected to begin with, it
+separates $M$ into two components. The sphere 
 $s$ is essential precisely when neither component
 of $M$ cut along $s$ is a ball. We've idealized the
 cut, so this is equivalent to neither component
 of $m$ being $S^3$.
-<<connect-sum decomposition>>=
+<<essential S2>>=
         m.splitIntoComponents()
-        m0 = m.getFirstTreeChild()
-        m1 = m0.getNextTreeSibling()
+        m0 = m.firstChild()
+        m1 = m0.nextSibling()
         if not (m0.isThreeSphere() or \
                 m1.isThreeSphere()):
-            return slow_connect_sum(m0) + \
-                   slow_connect_sum(m1)
+            return (i,"Connect-sum $S^2$")
 @
 The following
 is at indentation level 1, outside the [[for]] loop.
 This code is only run if none of the above
-[[raise]] or [[return]] statements are
-encountered. In that case, there were no
-interesting surfaces.
-But if there is no essential sphere, then
-$M$ is irreducible. So we just need to determine
-whether or not it's $S^3$. (No necklace manifold
-is $S^3$; they all have boundary.) 
-<<connect-sum decomposition>>=
-    if M.isThreeSphere():
-        return []
-    else:
-        return [M]
-
-def vet_reds(sane_mflds):
-    oks = []
-    bads = []
-    for i in range(len(sane_mflds)):
-        mfld = sane_mflds[i]
-        try:
-            csd = slow_connect_sum(mfld)
-            oks = [((i,mfld),csd)] + oks
-        except:
-            bads = [(i,mfld)] + bads
-    return (oks,bads)
+[[return]] statements are
+encountered. In that case, there are no
+essential spheres or projective planes whatever
+by normal surface theory, and the manifold is irreducible.
+<<essential S2>>=
+    return None
+    
+<<unhyp.py>>=
+<<essential P2>>
+<<essential S2>>
 @
-There are only 3 sane 4-bead necklace gluings 
-and 13 sane 5-bead necklace gluings,
-and they are all irreducible.
+
+For our sakes, developing a method to find
+an essential disk is trivial,
+for $M$ is assumed to be an irreducible nontrivial
+link complement. In that case, $M$ admits a compressing
+disc if and only if it is a solid torus, and this already
+has an optimized implementation in Regina, viz. the
+method [[isSolidTorus]]. The reader may wonder why
+we use this instead of the more obvious
+[[hasCompressingDisc]]. The reason is that, assuming
+irreducibility, the [[isSolidTorus]] test can yield [[False]]
+more quickly than [[hasCompressingDisc]] can,
+since, among other things, [[isSolidTorus]] does homology checks.
 @
-As it turns out, 3 sane 6-bead necklace gluings
-have an embedded $P^2$; these cannot embed nonelementarily.
-Then there are 16 6-bead necklace gluings which
-have a nontrivial connect-sum decomposition and don't have a
-$P^2$. But, happily, they are all of the form 
-$(D^2 \times S^1)\#(D^2\times S^1)$.
-This does not embed nonelementarily into hyperbolic 3-manifolds.
-The remaining 88 sane 6-bead necklace gluings are irreducible.
-@
-Suppose now that we have an irreducible manifold $M$ which
-embeds nonelementarily into $N$. If $M$ is not hyperbolic,
-then it has an essential torus. (One can, in fact, show something
-more, about which more later should it prove necessary.)
-(And, of course, conversely, if it has an essential torus,
-then it is not hyperbolic.) So let's look for essential
-tori and cut along them until we can do so no more.
-
-N. B. By ``essential torus,'' I mean a properly embedded
-incompressible torus which is not boundary parallel.
-
-N. B. Cutting along essential tori until there are no
-more (which is what we are doing) is not how 
-the JSJ decomposition works. The JSJ
-decomposition is more subtle than that.
-In particular, Seifert-fibered manifold 
-is not necessarily atoroidal,
-but its JSJ decomposition is just itself.
-
-Neil Hoffman and I have found a way to
-speed up the $T^2 \times I$ test
-from my thesis using Berge and Dave's work on
-fillings of links in solid tori; I use that here.
-
-I also add some basic diagnostic stuff on the side
-to see what's going on while the procedure.
-<<cut along essential tori>>=
-from new_unhyp import new_isT2xI as isT2xI
-def cut_essential_tori(regina_mfld, loc):
-    print loc
-    M = NTriangulation(regina_mfld)
-    M.finiteToIdeal()
-    M.intelligentSimplify()
-    nsl = NNormalSurfaceList.enumerate
-    l = nsl(M, NS_STANDARD, \
-                         NS_FUNDAMENTAL)
-    n = l.getNumberOfSurfaces()
-    print "There are " + str(n) + " surfaces"
-    for i in range(0,n):
-        print "Working on surface " + str(i)
-        s = l.getSurface(i)
+\subsubsection{Finding essential tori and Klein bottles}
+First, no hyperbolic nontrivial link complement has
+an embedded Klein bottle. Any Klein bottle whatever
+is a witness against hyperbolicity (for nontrivial
+link complements). We note that if we do return a $K^2$, then
+it may not necessarily be an essential $K^2$.
+<<essential K2>>=
+def essentialK2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
         x = s.eulerChar()
         if x != 0:
             continue
-        if s.hasRealBoundary():
+        if not s.isCompact():
             continue
-<<neckl.py>>=
-<<cut along essential tori>>
-@
-Again, for completeness' sake we make
-an allowance for Klein bottles in the
-form of an exception.
-<<cut along essential tori>>=
         if not s.isOrientable():
-            raise Exception("K^2!")
+            return (s,"$K^2$")
+@
+If the [[for]] loop has concluded, then
+there is no Klein bottle.
+<<essential K2>>=
+    return None
+
+@
+An \emph{essential torus} is an embedded torus
+that is neither compressible nor boundary parallel.
+Compressibility is already implemented in Regina.
+In general, boundary parallelism can be determined
+using the methods of Jaco and Tollefson; however,
+these have not yet been implemented in Regina.
+Nevertheless, it only requires a test of homeomorphism
+to $T^2 \times I$.
+@
+Neil Hoffman, Will Pettersson and I have found
+the following faster method to test for homeomorphism
+to $T^2 \times I$, and it also only uses methods
+already implemented in Regina. The method works
+due to results on knots in solid tori due to Gabai
+(and also Berge), which we indicate below.
+@
+The method in practice is quite simple. We first
+do some sanity checks. In particular, if we are
+so fortunate to have a presentation of the fundamental
+group that Regina recognises [sic] as $\mathbf{Z}^2$,
+then the manifold is certainly $T^2\times I$ (by
+Rolfsen 10.6 and the fact that we have two boundary
+components). After the sanity checks,
+we at least know the manifold has two boundary components,
+both tori. Change the triangulation until the
+induced triangulation $T$ on some boundary torus has one vertex.
+(Here we assume Regina will take care of this
+for us in its simplification routines. It makes
+no guarantees like this, so we check that it
+works. If it fails, we fail. This shouldn't ever happen
+for our simple examples. A more general approach
+is ongoing work with Neil Hoffman and William
+Pettersson, implementing \emph{inflations} due
+to Jaco and Rubinstein.) 
+@
+Closing the book along any edge $e$ in $T$ accomplishes
+a Dehn filling along the slope dual to $e$ in $T$.
+If $M$ is $T^2 \times I$, then every such filling
+must be a solid torus. (We can think of a Dehn filling
+of $T^2\times I$ as an attachment of $T^2 \times I$
+to $D^2\times S^1$ instead of the other way round. Then
+the $T^2\times I$ is clearly just a boundary collar.)
+Conversely, if any such filling is not a solid torus,
+then $M$ is demonstrably not $T^2 \times I$.
+As mentioned above, we can check this with Regina.
+@
+If we fold along one edge and get a solid torus, then
+we know $M$ is the exterior of a knot in a solid torus.
+Folding along two other edges and getting a solid torus
+puts $M$ in a very special class of manifolds by Gabai's
+work. Finally, the actual slopes we fill along when
+closing the book have intersection number $3$ with each
+other. No such manifold, apart from $T^2 \times I$, admits
+three such fillings. So if we get three solid tori from
+the above Dehn fillings, then in fact $M$ must be $T^2\times I$.
+(Regina's simplification procedures are so effective
+that we suspect this point in the procedure will not be
+reached for the manifolds we encounter. Nevertheless we
+may as well add it for posterity.)
+
+<<is T2xI>>=
+def isT2xI(mfld):
+    if not (linkComplement(mfld) and \
+        len(mfld.boundaryComponents()) == 2):
+        return False
+    if not mfld.homologyH1().detail() == '2 Z\n':
+        return False
+    if mfld.fundamentalGroup().recogniseGroup() == '2 Z':
+        return True
+    M = Triangulation3(mfld)
+    M.idealToFinite()
+    M.intelligentSimplify()
+    t = M.boundaryComponents()[0]
+    if t.countFaces(0) != 1:
+        raise Exception("weird boundary component")
+    edges = t.faces(1)
+    for e in edges:
+        i = e.index()
+        Mp = Triangulation3(M)
+        ep = Mp.face(1,i)
+        Mp.closeBook(ep,False,True)
+        if not Mp.isSolidTorus():
+            return False
+    else:
+        return True
+	
+<<unhyp.py>>=
+<<is T2xI>>
+
+@ 
+Now we look for essential tori.
+<<essential T2>>=
+def essentialT2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
+        x = s.eulerChar()
+        if x != 0:
+            continue
+        if not s.isCompact():
+            continue
+        if not s.isOrientable():
+            continue
+        if triviallyInessential(s):
+            continue
 @
 Having located a fundamental normal torus,
 we should test whether or not it is essential.
-This boils down to whether or not it (co)bounds
-either a solid torus (implying it is compressible)
+This boils down to whether or not it cobounds
+a $\partial$-reducible 3-manifold (implying it is compressible),
 or a $T^2 \times S^1$ (implying it is boundary-parallel).
 @
-Of course, we should first ensure that
-$s$ is not a vertex link; these are never essential.
-<<cut along essential tori>>=
-        if s.isVertexLinking():
-            continue
+(The reader should particularly note
+that testing $\partial$-reducibility for the exterior
+of a torus in an irreducible nontrivial link complement
+is not the same as testing
+whether or not that exterior has a solid torus component.
+The exterior's components are not necessarily irreducible,
+even though the original 3-manifold is irreducible.
+If one of the components is reducible, the torus is called
+a \emph{convolutube}.)
 @
-Of next concern to us, as above,
-is whether or not it separates. It ought to!
-So if it doesn't, we raise an exception.
-<<cut along essential tori>>=
+Of first concern to us
+is whether or not it separates. If it doesn't,
+then it is a non-separating torus and hence essential.
+<<essential T2>>=
         m = s.cutAlong()
+	m.intelligentSimplify()
         if m.isConnected():
-            raise Exception("Non-separating T^2!")
+            return(s,"non-separating $T^2$")
 @
 Having found a separating torus, we can
 now test whether or not it is essential,
 by testing whether the components of
-$m$ are either $D^2 \times S^1$ or
-$T^2 \times I$.
-<<cut along essential tori>>=
-        m.finiteToIdeal()
+$m$ are either $\partial$-compressible or
+$T^2 \times I$. 
+<<essential T2>>=
+        m.idealToFinite()
         m.intelligentSimplify()
         m.splitIntoComponents()
-        m0 = m.getFirstTreeChild()
-        m1 = m0.getNextTreeSibling()
-        print "Left solid torus?"
-        if m0.isSolidTorus():
-            continue
-        print "Right solid torus?"
-        if m1.isSolidTorus():
-            continue
-        print "Left T2 x I?"
-        if isT2xI(m0):
-            continue
-        print "Right T2 x I?"
-        if isT2xI(m1):
+        m0 = m.firstChild()
+        m1 = m0.nextSibling()
+        if m0.hasCompressingDisc() \
+           or m1.hasCompressingDisc() \
+           or isT2xI(m0) \
+           or isT2xI(m1):
             continue
 @
 If they are not, then the torus is
-essential. So we look for other tori
-in the components. I'm not sure how
-to locate the boundary tori along which
-[[m0]] and [[m1]] glue up to $M$, let
-alone what the gluing map is. It would
-be very nice to remember such information
-in a tree-like structure, which we could
-implement at this juncture. So instead
-of just shoving the components in a list,
-we provide scaffolding for such an improvement
-by returning a pair if there's an essential torus.
-<<cut along essential tori>>=
-        return (cut_essential_tori(m0, loc+"L"), \
-                        cut_essential_tori(m1, loc+"R"))
+essential. 
+<<essential T2>>=
+        return (s,"essential $T^2$")
 @
 Otherwise, if there is no essential torus,
-then we've ended our cutting, and just return
-$M$ itself. Again, for scaffolding purposes,
-we put it in a uniple.
-<<cut along essential tori>>=
+then return nothing. (This else is outside the [[for]] loop.)
+<<essential T2>>=
     else:
-        return (M,)
+        return None
+	
+<<unhyp.py>>=
+<<essential K2>>
+<<essential T2>>
 @
-Now we make a function which culls through a list or irreducibles,
-throwing out anything with a "bad" surface (e.g.
-like a $K^2$).
-<<vetting manifolds>>=
-def vet_tor(idx_irreds):
-    cut_mflds = []
-    bad_mflds = []
-    for p in idx_irreds:
-        (i,m) = p
-        print str(i)
-        try:
-             cut_up = cut_essential_tori(m,".")
-             cut_mflds = [(i,cut_up)] + cut_mflds
-        except Exception as uh_oh:
-            s = ["P^2!", "K^2!"]
-            s = s + ["Non-separating S^2!"]
-            s = s + ["Non-separating T^2!"]
-            if uh_oh.message in s:
-                bad_mflds = [(i,m,uh_oh.message)] + bad_mflds
-            else:
-                raise Exception(uh_oh.message)
-    return (cut_mflds, bad_mflds) 
-<<neckl.py>>=
-<<vetting manifolds>>
-@
-By inspection, all but one 4-bead 
-gluing are atoroidal. Conveniently,
-the same is true of 5-bead gluings. We explain the
-toroidal ones after dealing with the 6-beads.
-@
-All but 20 6-bead gluings are
-atoroidal, and among these, 6 have an embedded $K^2$.
-Each of the remaining 14 splits along a torus into
-two atoroidal pieces. The fundamental
-groups of 10 of these pieces manifestly admit only elementary
-embeddings into $PSL_2 \mathbf{C}$. These
-manifolds are in Table \ref{tab:obv6}. We give them as both
-their necklace gluing and their Regina isomorphism
-signature, and their ``children'' just as
-isomorphism signatures.
-\begin{table}
-  \begin{center}
-    \begin{tabular}{ | c | c | c | c | c | } \hline
-      IsoSig & Gluing &  $\pi_1$ Presentation\\ \hline
-      [[gLLAQbcdefffhbbhabb]] &
-      $(11\ 10) (9\ 1) (8\ 5) (7\ 0) (6\ 2) (4\ 3)$ &
-      $\langle a,b\ |\ a^{-2} b^2 a^2 b^{-2}\rangle$ \\ \hline
-   
-      [[gLLAQbeddfffaabgabg]] &
-      $(11\ 10) (9\ 4) (8\ 1) (7\ 3) (6\ 2) (5\ 0)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2\rangle$ \\ \hline
-
-      [[gLLAQbeddfffhhbghgg]] &
-      $(11\ 10) (9\ 4) (8\ 3) (7\ 0) (6\ 2) (5\ 1)$ &
-      $\langle a,b\ |\ a^2 b^{-2} a^{-2} b^2\rangle$ \\ \hline
-
-      [[gLLMQbcdfeffagbaabg]] &
-      $(11\ 10) (9\ 1) (8\ 4) (7\ 0) (6\ 2) (5\ 3)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2 \rangle$ \\ 
-       &
-      $(11\ 10) (9\ 5) (8\ 0) (7\ 2) (6\ 3) (4\ 1)$ & \\ \hline
-      
-      [[gLLPQccdfeffabghhbg]] &
-      $(11\ 10) (9\ 5) (8\ 1) (7\ 3) (6\ 2) (4\ 0)$ &
-      $\langle a,b\ |\ a^{-2} b^{-2} a^2 b^2\rangle$ \\ \hline
-      
-      
-      [[gLLPQcdeffefafqqaqo]] &
-      $(11\ 10) (9\ 1) (8\ 0) (7\ 4) (6\ 3) (5\ 2)$ &
-      $\langle a,b\ |\ a^2 b^2 a^{-2} b^{-2} \rangle$ \\
-       &
-      $(11\ 10) (9\ 1) (8\ 0) (7\ 5) (6\ 3) (4\ 2)$ & \\ \hline
-
-      [[gLLPQcdeffefqfaqaqo]] &
-      $(11\ 4) (10\ 1) (9\ 0) (8\ 5) (7\ 3) (6\ 2)$ & 
-      $\langle a,b\ |\ a^{-2} b^3 a^2 b^{-3}\rangle$\\
-       &
-      $(11\ 4) (10\ 2) (9\ 1) (8\ 0) (7\ 5) (6\ 3)$ & \\ \hline
-    \end{tabular}
-  \caption{The obviously elementary 6-bead irreducible toroidal necklace gluings.}\label{tab:obv6}
-  \end{center}
-\end{table}
-The remaining 4 manifolds have only three isomorphism types, as given in Table \ref{tab:nobv}.
-\begin{table}
-  \begin{center}
-  \begin{tabular}{ | c | c | } \hline
-  IsoSig & Gluing \\ \hline
-  [[gLLMQbeeffefxxxxxax]] & 
-  $(11\ 10) (9\ 4) (8\ 5) (7\ 2) (6\ 1) (3\ 0)$ \\ \hline
-  [[gLLPQcdfeeffafaaaaf]] &
-  $(11\ 10) (9\ 1) (8\ 4) (7\ 5) (6\ 2) (3\ 0)$ \\
-   &
-  $(11\ 10) (9\ 7) (8\ 6) (5\ 2) (4\ 1) (3\ 0)$ \\ \hline
-  [[gLLMQcecefffhabaahb]] &
-  $(11\ 10) (9\ 2) (8\ 4) (7\ 5) (6\ 1) (3\ 0)$ \\ \hline
-  \end{tabular}
-  \end{center}
-  \caption{The non-trivial 6-bead irreducible toroidal necklace gluings.}\label{tab:nobv}
-\end{table}
-@
-To deal with the remaining three 6-bead manifolds (four gluings), we
-examine their fundamental groups, and more importantly the
-fundamental groups of their atoroidal pieces, as follows.
-@
-\begin{table}
-\begin{center}
-  \begin{tabular}{ | c | c | c | } \hline
-    Parent IsoSig & Child $\pi_1$ Presentations \\ \hline
-    [[gLLMQbeeffefxxxxxax]] & $\langle a,b\ |\ a^{-1} b^{-1} a^{-1} b^3\rangle$, \\
-                            & $\langle a,b,c\ |\ a^{-1} b a b^{-1},\ b^{1} c^{-1} b c\rangle$\\ \hline
-    [[gLLPQcdfeeffafaaaaf]] & $\langle a,b,c\ |\ a b^{-1} a^{-1} b, a b^{-1} c a^{-1} b c^{-1}\rangle$\\
-                            & $\langle a,b\ |\ a^{-2} b^{-1} a^2 b\rangle$\\ \hline
-    [[gLLMQcecefffhabaahb]] & $\langle a,b,c\ |\ b^{-1} c b c^{-1}, a^{-1} b c^{-1} a b^{-1} c\rangle$\\ 
-                            & $\langle a,b\ |\ a^{-3} b^3\rangle$\\ \hline
-  \end{tabular}
-\end{center}
-\end{table}
-Except for the first group presentation,
-these presentations show that these groups
-do not admit discrete, torsion-free, nonabelian
-representations into $PSL_2\mathbf{C}$, because hyperbolic and parabolic
-elements of $PSL_2\mathbf{C}$ commute if and only if
-they share an axis, and a power of such an element
-has the same axis as the element. 
-
-For the first group, $G_0 = \langle a,b\ |\ a^{-1} b^{-1} a^{-1} b^3 \rangle$,
-we can introduce $c = a^{-1} b^{-1}$ to get
-$G_0 = \langle a,b,c\ |\ a b c, c^2 b^4\rangle$. But $a b c$ is
-a defining relator for $a$, so we can remove it and get
-$G_0 = \langle b,c\ |\ c^2 b^4\rangle$, which now plainly
-doesn't admit such a representation into $PSL_2 \mathbf{C}$.
-
-So, for each of the three remaining 6-bead 3-manifolds $M$,
-$\pi_1(M)$ is a pushout of groups $H_0,H_1$ along 
-a common subgroup $H = \mathbf{Z}^2$,
-and the only discrete torsion-free representations of
-$H_0,H_1$ into $PSL_2\mathbf{C}$ are abelian. But then
-for any representation $\rho: \pi_1(M) \to PSL_2\mathbf{C}$,
-$\rho(H_0),\rho(H_1)$ are abelian subgroups
-of $PSL_2\mathbf{C}$ with a common abelian subgroup.
-Thus all $\rho(\pi_1(M))$ is abelian. Therefore,
-none of the remaining 3-manifolds $M$
-embed nonelementarily in a hyperbolic $N$.
-
-@
-The unique irreducible toroidal 4-bead
-manifold, gluing $(7\ 2) (6\ 0) (5\ 3) (4\ 1)$
-has isomorphism signature
-[[eLPkbdcddhbbbg]] and fundamental group
-presentation $\langle a,b\ |\ a^2 b^{-2} a^{-2} b^2\rangle$.
-So it does not embed nonelementarily.
-@
-Finally, the unique irreducible toroidal 5-bead
-manifold, gluing $(9\ 8) (7\ 3) (6\ 4) (5\ 1) (2\ 0)$,
-has isomorphism signature [[fLLQcbeddeeahbgah]].
-Its atoroidal pieces have fundamental groups
-$\langle a,b,c\ |\ a c a^{-1} c^{-1}, b c^{-1} b^{-1} c\rangle$
-and $\langle a,b\ |\ a^3 b^{-2}\rangle$. By the pushout
-argument above, this manifold doesn't embed nonelementarily
-in a hyperbolic $N$. 
-
+\subsubsection{Essential annuli and M\"obius strips}
 Now, as for the atoroidal remainder, there
 will be hyperbolic and Seifert-fibered manifolds.
 We can distinguish the Seifert-fibered manifolds by
-finding essential annuli in them, in fact by finding
-non-separating annuli in them. Hyperbolic manifolds
-have no such surface. Those manifolds which do not
-have a non-separating annulus will be hyperbolic.
-We identify these with entries from the SnapPea census.
+finding essential annuli and M\"{o}bius strips in them.
+Hyperbolic manifolds have no such surface.
 
-We only look for vertex normal annuli, as you may
-check in the [[findNonSeparatingAnnulus]] routine.
-If anything, this will only accidentally put
-some SFS in with the hyperbolics---not the other
-way round.
-<<hyperbolic and Seifert-fibered>>=
-from new_unhyp import findNonSeparatingAnnulus
-from snappy import *
-def hyp_or_SFS(atoroidals):
-    hyps = []
-    sfss = []
-    for p in atoroidals:
-        (i,(m,)) = p
-        print "Working on " + str(i)
-        if m.hasStrictAngleStructure():
-            hyps = [p] + hyps
+As we are finally treating bounded surfaces,
+we can no longer use ideal triangulations; the
+theory of spun-normal surfaces is not yet well-enough
+developed. However, we can just look among the
+Q-vertex surfaces.
+\begin{proposition}
+  Let $T$ be a material triangulation of
+  an irreducible $\partial$-irreducible
+  atoroidal link complement $M$. If $M$
+  admits an essential annulus, then $T$
+  admits a Q-vertex essential annulus.
+\end{proposition}
+\begin{proof}
+  Since $M$ admits an essential annulus,
+  by Corollary 6.8 of Jaco-Tollefson $T$
+  admits a vertex essential annulus $A$ or
+  torus---but it must be an annulus, as
+  $M$ is atoroidal.
+  By the proof of Theorem 2 in Tollefson,
+  $A$ is isotopic to a Q-vertex surface.
+\end{proof}
+
+We don't use this just yet, though, to keep
+parallelism among all the fault-finding routines.
+We will plug Q-vertex lists into the following
+functions instead of standard fundamental lists.
+
+<<essential M2>>=
+def essentialM2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
+        if not s.hasRealBoundary():
             continue
-        m.idealToFinite()
-        m.intelligentSimplify()
-        a = findNonSeparatingAnnulus(m)
-        if a == None:
-            hyps = [p] + hyps
+        x = s.eulerChar()
+        if x != 0:
             continue
+@
+At this point we know [[s]] is either
+an annulus or a M\"{o}bius band. If it's
+not orientable, it's the latter, and is
+a witness against hyperbolicity.
+<<essential M2>>=
+        if not s.isOrientable():
+            return (i,"$M^2$")
+@
+After the [[for]] loop, there were no
+M\"{o}bius bands. So there isn't one in the list.
+<<essential M2>>=
+    else:
+        return None
+
+@
+Now we look for essential annuli.
+<<essential A2>>=
+def essentialA2In(nsl):
+    l = nsl
+    n = l.size()
+    for i in range(n):
+        s = l.surface(i)
+        if not s.hasRealBoundary():
+            continue
+        x = s.eulerChar()
+        if x != 0:
+            continue
+        if not s.isOrientable():
+            continue
+        if triviallyInessential(s):
+            continue
+@ 
+At this point we know [[s]] is an annulus. To determine
+whether or not it is essential, cut along it.
+If the complement is connected, then the
+annulus is nonseparating, and is thus essential.
+<<essential A2>>=
+        m = s.cutAlong()
+        if m.isConnected():
+            return (i,"non-separating $A^2$")
+@
+Otherwise, [[m]] is disconnected. Split it
+into its components. The annulus [[s]] is
+essential when neither of these components
+is a ball or is a solid torus. (That is, when
+[[s]] is not compressible; by the irreducibility
+and $\partial$-irreducibility of our given
+manifold, we can just do ball and solid torus tests.)
+<<essential A2>>=
+        m.splitIntoComponents()
+        m0 = m.firstChild()
+        m1 = m0.nextSibling()
+        if m0.isBall() \
+           or m0.isSolidTorus() \
+           or m1.isBall() \
+           or m1.isSolidTorus():
+           continue
         else:
-            sfss = [(a,p)] + sfss
-            continue
-    return (hyps, sfss)
-<<neckl.py>>=
-<<hyperbolic and Seifert-fibered>>
+	    return (i,"essential $A^2$")   
 @
-This leaves us with a list of 17 potential
-hyperbolic manifolds, which Regina verifies
-as hyperbolic (it can find strict angle
-structures on them), and 51 Seifert-fibered
-spaces with their associated non-separating annuli.
+Finally, if we have gone through all quad-vertex
+surfaces and found no essential annulus (or M\"{o}bius band),
+then there is no such surface by Q-normal surface theory.
+<<essential A2>>=
+    else:
+        return None
+<<unhyp.py>>=
+<<essential M2>>
+<<essential A2>>
+
+@        
+\subsection{Determining hyperbolicity}
+With all the fault-finding routines done,
+we can now put them all together into a
+hyperbolicity test for nontrivial link complements.
 @
-We would like to identify the 17 hyperbolic 6-bead manifolds,
-which, by the above, are the only 6-bead necklace
-gluings which embed nonelementarily in a hyperbolic $N$.
-This is relatively straightforward using [[SnapPy]]'s
-[[identify]] procedure. You may check that there are
-6 [[m129]]s, 2 [[s776]]s, 1 [[s780]], 1 [[s443]],
-1 [[s647]], 2 [[s785]]s, 1 [[s782]], 1 [[m292]],
-1 [[s596]], and 1 [[s774]].
+The following is a little optimized; Regina
+can already recognise [sic] some fundamental
+groups. Those groups that it knows are not
+fundamental groups of finite-volume hyperbolic
+3-manifolds. (This may change with later
+versions of Regina, in which case to update
+this one would have to specify the nonhyperbolic
+groups Regina recognises.)
 @
-Finally, for the lower bead numbers. There are three
-hyperbolic 5-bead necklace gluings, which, again, are
-the only 5-bead necklace gluings which embed nonelementarily
-in a hyperbolic $N$. They are [[m295]], [[m203]], and [[m125]].
-And there is a unique 4-bead hyperbolic necklace gluing,
-the unique 4-bead necklace gluing which embeds nonelementarily
-in a hyperbolic $N$. It is [[m129]], the Whitehead link.
+Also, several of the manifolds that took the longest
+time to find faults for had fundamental
+group presentation with a single relator that was a commutator
+of the form $[a^p,b^q]$. These groups are also not
+fundamental groups of finite-volume hyperbolic
+3-manifolds.
 @
-In summary, the following are the unique $d$-bead necklace
-gluings which embed nonelementarily into a hyperbolic $N$;
-they are all hyperbolic census manifolds.
-\begin{table}
-    \begin{center}
-        \begin{tabular} { | c | c | } \hline
-        Bead number & Necklace embeddables \\ \hline
-        4 & [[m129]] \\ \hline
-        5 & [[m125]], [[m203]], [[m295]] \\ \hline
-        6 & [[m129]], [[m292]], \\
-          & [[s443]], [[s596]], [[s647]], \\
-          & [[s774]], [[s776]], \\
-          & [[s780]], [[s782]], [[s785]] \\ \hline
-        \end{tabular}
-    \end{center}
-\end{table}
+We suspect that more optimization is possible
+by minimizing the associated Heegaard diagram
+and then checking whether or not the associated
+minimized handle decomposition based on $T^2$ is full.
+But as it stands, the code runs in under 10 minutes
+on a Raspberry Pi, and that suffices for our purposes.
 @
+<<hyperbolicity>>=
+def findFault(mfld):
+    assert linkComplement(mfld)
+    M = Triangulation3(mfld)
+    M.finiteToIdeal()
+    M.intelligentSimplify()
+    l = enumerate(M,NSS,NSF)
+    p2 = essentialP2In(l)
+    if p2 != None:
+        return p2
+    s2 = essentialS2In(l)
+    if s2 != None:
+        return s2
+    if mfld.isSolidTorus():
+        return ([], "D2")
+    k2 = essentialK2In(l)
+    if k2 != None:
+        return k2
+    t2 = essentialT2In(l)
+    if t2 != None:
+        return t2
+    M = Triangulation3(mfld)
+    M.idealToFinite()
+    M.intelligentSimplify()
+    l = enumerate(M,NSQ,NSV)
+    m2 = essentialM2In(l)
+    if m2 != None:
+        return m2
+    a2 = essentialA2In(l)
+    if a2 != None:
+        return a2
+    return None
+@
+<<hyperbolicity>>=    
+def isCommutator(expr):
+    l = expr.terms()
+    if len(l) != 4 or \
+       l[0] != l[2].inverse() or \
+       l[1] != l[3].inverse():
+        return False
+    else:
+        return True
+@ 
+<<hyperbolicity>>=
+def hyperbolicity(mfld):
+    if mfld.hasStrictAngleStructure():
+        return (True, "strict angle structure")
+    G = mfld.fundamentalGroup()
+    G.intelligentSimplify()
+    name = G.recogniseGroup()
+    if name != '':
+        return (False, "$\\pi_1 =" + name + "$")
+    if G.countRelations() == 1:
+        if isCommutator(G.relation(0)):
+	    return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q]\\rangle$")
+    s = findFault(mfld)
+    if s != None:
+        return (False, s)
+    else:
+        return (True, "no faults")
+
+<<unhyp.py>>=
+<<hyperbolicity>>
+@
+\section{Going through the manifolds}
+\subsection{Automating enumeration}
+Now it's quite simple to go through the
+manifolds. First we make a file
+which just automates the enumeration
+from the command line. It is fairly kludgy,
+but perhaps that is to be expected; it makes
+\LaTeX\ files. The file [[enumSummary.tex]] is
+a summary of the enumeration, and the file
+[[allData.tex]] is the whole set of data.
+For later purposes, we also output a
+file [[hyperbolics.py]] which defines
+a list, the $i$th entry of which is the
+list of hyperbolic $i$-bead necklace gluings
+(up to isomorphism). We use this later.
+<<vetting.py>>=
+from neckl import forallOrbitReps
+from neckl import makeNecklace
+from unhyp import linkComplement
+from unhyp import hyperbolicity
+from time import clock
+@ 
+First we define a procedure [[vetNecklaces]] that goes
+through the $n$-bead necklaces, and
+returns a pair of lists, one hyperbolic
+pair and one unhyperbolic pair. Each
+entry of each list is a triple of
+a gluing, a reason why that gluing
+is in the lis, and a number representing
+how long it took to investigate this gluing.
+It also takes a debugging flag [[wstat]] to
+tell whether or not we want it to display
+its progress by printing out all the involutions
+it investigates as it goes through them.
+
+<<vetting.py>>=
+from sys import stdout
+def vetNecklaces(n,wstat=False):
+    hyp = []
+    unh = []
+    def vetInv(inv,h,u):
+        if wstat:
+	    print str(inv)
+        mfld = makeNecklace(inv)
+        if not linkComplement(mfld):
+           if wstat:
+               print "invalid\n"
+           return None
+        before = clock()
+	mfld.intelligentSimplify()
+        s = hyperbolicity(mfld)
+	elapsed = clock() - before
+        if s[0]:
+            h.append((inv,s,elapsed))
+            status = " hyp\n"
+        else:
+            u.append((inv,s,elapsed))
+            status = " unh\n"
+        if wstat:
+            print status
+	stdout.flush()
+    vi = lambda inv: vetInv(inv,hyp,unh)
+    forallOrbitReps(n,vi)
+    return (hyp, unh)
+@ 
+Now for the severely kludgy part. We define
+some functions that write \LaTeX\ to a given file.
+<<vetting.py>>=
+def invToString(inv):
+    s = "$"
+    for p in inv:
+        s = s + "(" + str(p[0]) + "\ " + str(p[1]) + ")"
+    s = s + "$"
+    return s
+    
+def fullDisplay(f,l):
+    if len(l) == 0:
+        return None
+    f.write("\\begin{itemize}\n")
+    for x in l:
+        ln0 = "\\item \\begin{itemize}"
+        ln1 = "      \\item " + invToString(x[0])
+        if type(x[1][1]) == str:
+            ln2 =  "      \\item " + x[1][1]
+        else:
+            ln2 =  "      \\item " + x[1][1][1]
+	ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
+        ln4 = "\\end{itemize}"
+	f.writelines([ln0,ln1,ln2,ln3,ln4])
+    f.write("\\end{itemize}\n")
+
+def summaryPreamble(f,l,tp):
+    if len(l) == 0:
+        return None
+    f.write("\\subsection{")
+    f.write("{0} manifolds with bead number {1}".format(tp[0],tp[1]))
+    f.write("}\n")
+    
+def recognitionTypes(f,l):
+    if len(l) == 0:
+        return None
+    if len(l) == 1:
+        x = l[0]
+        ln0 = "There was one such manifold, with {0},".format(x[1][1])
+	ln1 =  "namely, " + invToString(x[0]) + "."
+        f.writelines([ln0,ln1])
+	return None
+    ln0 = "There were {0} such manifolds.".format(len(l))
+    ln1 =  "Their recognition types were as follows."
+    ln2 =  "\\begin{itemize}"
+    f.writelines([ln0,ln1,ln2])
+    recTypes = {}
+    for tup in l:
+        rct = tup[1][1]
+        if not rct.__class__ is str:
+            assert rct.__class__ is tuple
+            rct = rct[1]
+        if not rct in recTypes:
+            recTypes[rct] = 1
+        else:
+            recTypes[rct] = recTypes[rct] + 1
+    for rct in recTypes:
+        f.write("\\item With {0}, there were {1} manifolds.\n".format(rct,recTypes[rct]))
+
+from numpy import log2
+def timesTaken(f,l,tp):
+    if len(l) == 0:
+        return None
+    if len(l) == 1:
+        f.write("It took {0} seconds to vet.".format(l[0][2]))
+	return None
+    ln0 = "\\end{itemize}"
+    ln1 = "The times they took were approximately as follows."
+    ln2 = "\\begin{itemize}"
+    f.writelines([ln0,ln1,ln2])
+    times = {}
+    for x in l:
+        timeTaken = x[2]
+	approxLogTimeTaken = int(log2(timeTaken))
+	altt = approxLogTimeTaken
+	if not altt in times:
+            times[altt] = [x[0]]
+        else:
+            times[altt].append(x[0])
+    for altt in times:
+        f.write("\\item Of manifolds vetted in about $2^{")
+	f.write(str(altt)+"}")
+	f.write("$ seconds, there were {0}.\n".format(len(times[altt])))
+    f.write("\\end{itemize}\n")
+
+    longTime = False
+    for altt in times:
+        if altt > 0:
+	    longTime = True
+    if longTime == True:
+        f.write("Those that took an unusual amount of time are as follows.\n")
+        f.write("\\begin{itemize}\n")
+        for altt in times:
+            if altt > 0:
+                f.write("\item The manifolds that took about $2^{")
+		f.write(str(altt) + "}$ seconds were as follows.\n")
+	        f.write("\\begin{itemize}\n")
+                for inv in times[altt]:
+	            f.write("\\item " + invToString(inv) + "\n")
+	        f.write("\\end{itemize}\n")
+        f.write("\\end{itemize}\n")
+
+    if tp[0] == "Hyperbolic":
+        f.write("In summary, the associated involutions were as follows:\n")
+	f.write("\\begin{itemize}\n")
+	for x in l:
+	    f.write("\\item " + invToString(x[0]) + "\n")
+	f.write("\\end{itemize}\n")
+
+def summaryOfResults(f,l,tp):
+    summaryPreamble(f,l,tp)
+    recognitionTypes(f,l)
+    timesTaken(f,l,tp)
+@     
+And finally (and still kludgily), we have
+the [[main]] function for [[vetting.py]].
+<<vetting.py>>=
+import sys
+if __name__ == "__main__":
+    if not len(sys.argv) == 2:
+        raise(Exception("Only one argument"))
+    x = int(sys.argv[1])
+    texH = open("hyperbolics.py",'w')
+    hyp = []
+    unh = []
+    for i in range(x+1):
+        (h, u) = vetNecklaces(i)
+        hyp.append(h)
+	unh.append(u)
+    hypInvs = map(lambda l: map(lambda trp: trp[0],l),hyp)
+    texH.write("hypInvs = " + str(hypInvs))
+    texH.close()
+    texS = open("enumSummary.tex",'w')
+    texD = open("allData.tex",'w')
+    preamble = ["\\documentclass{article}", \
+                "\\begin{document}"]
+    texS.writelines(preamble)
+    texD.writelines(preamble)
+    texS.write("\\section{Summary of results}\n")
+    for i in range(x+1):
+	summaryOfResults(texS,hyp[i],("Hyperbolic",i))
+	summaryOfResults(texS,unh[i],("Unhyperbolic",i))
+    texS.write("\\end{document}\n")
+    texS.close()
+    texD.write("\\section{All data}\n")
+    for i in range(x+1):
+        texD.write("\\subsection{" + "Hyperbolics of bead number {0}".format(i) + "}\n")
+        fullDisplay(texD,hyp[i])
+	texD.write("\\subsection{" + "Non-hyperbolics of bead number {0}".format(i) + "}\n")
+	fullDisplay(texD,unh[i])
+    texD.write("\\end{document}\n")
+    texD.close()
+@
+\subsection{Naming the hyperbolics}
+That took care of the classification as such. However, we would also
+like to identify the hyperbolic manifolds in the SnapPea census; they
+have such identifications since they have at most 7 tetrahedra.
+We do this separately from vetting the manifolds, as SnapPy does not
+compile yet on ARM chips, due to the [[ManifoldHP]] class.
+<<naming.py>>=
+from hyperbolics import hypInvs
+from snappy import Manifold
+from neckl import makeNecklace
+from vetting import invToString
+
+def giveName(inv):
+    reginaM = makeNecklace(inv)
+    snapM = Manifold(reginaM.snapPea())
+    l = snapM.identify()
+    if l == []:
+        raise(Exception("No name!"))
+    else:
+        return (l[0].name(),snapM.num_cusps())
+
+def giveNames(invL):
+    named = {}
+    for inv in invL:
+        name = giveName(inv)
+	if not name in named:
+	    named[name] = [inv]
+	else:
+	    named[name].append(inv)
+    return named
+
+if __name__ == "__main__":
+    f = open("hypNames.tex","w")
+    f.write("\\documentclass{article}\n")
+    f.write("\\begin{document}")
+    for hL in hypInvs:
+        if hL == []:
+	    continue
+	n = len(hL[0])
+        f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
+	f.write("\\begin{itemize}\n")
+	named = giveNames(hL)
+	for nmc in named:
+	    (name, num_cusps) = nmc
+	    f.write("\\item \\textbf{" + name + "}, ")
+	    if len(named[nmc]) > 1:
+	        f.write("{0} gluings; ".format(len(named[nmc])))
+            f.write("{0} cusps\n".format(num_cusps))
+	    f.write("\\begin{itemize}\n")
+	    for inv in named[nmc]:
+	        f.write("\\item " + invToString(inv) + "\n")
+	    f.write("\\end{itemize}\n")
+	f.write("\\end{itemize}\n")    
+    f.write("\\end{document}\n")
+    f.close()
+@
+\section{Compiling everything}
+To compile everything, run the following script.
+<<compile.sh>>=
+#!/bin/sh
+noweave -delay neckl.nw > neckl.tex
+pdflatex neckl.tex; pdflatex neckl.tex; pdflatex neckl.tex
+notangle -Rneckl.py neckl.nw > neckl.py
+notangle -Runhyp.py neckl.nw > unhyp.py
+notangle -Rvetting.py neckl.nw > vetting.py
+notangle -Rnaming.py neckl.nw > naming.py
+touch enumSummary.tex
+touch allData.tex
+touch hyperbolics.py
+python vetting.py 7
+pdflatex enumSummary.tex; pdflatex allData.tex
+touch hypNames.tex
+python naming.py
+pdflatex hypNames.tex
+@ 
 \end{document}
