@@ -47,15 +47,15 @@ The following is our implementation of this
 definition in Regina.
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
-	"""Returns an n-dipyr."""
-	newt = Triangulation3()
-	for i in range(0,n):
-		newt.newTetrahedron()
-	for i in range(0,n):
-		me = newt.simplex(i)
-		you = newt.simplex((i+1)%n)
-		me.join(2,you,Perm4(2,3))
-	return newt
+        """Returns an n-dipyr."""
+        newt = Triangulation3()
+        for i in range(0,n):
+                newt.newTetrahedron()
+        for i in range(0,n):
+                me = newt.simplex(i)
+                you = newt.simplex((i+1)%n)
+                me.join(2,you,Perm4(2,3))
+        return newt
 <<neckl.py>>=
 <<how to make an n-dipyr>>
 @
@@ -147,7 +147,7 @@ def makeNecklace(fpfinv):
         (i,j) = local.pop()
         me = ndipyr.simplex(whichTet(i))
         you = ndipyr.simplex(whichTet(j))
-	
+        
 @
 The face of [[me]] getting glued is
 either 0 or 1, respectively, according
@@ -529,7 +529,7 @@ def forallOrbitReps(n,f):
         lorb = orbitWithRepeats(n,l)
         for lp in lorb:
              pt = removeInvolution(lp,pt)
-	f(l)
+        f(l)
 
 <<neckl.py>>=
 <<how to do stuff with orbit representatives>>
@@ -547,7 +547,7 @@ is that the links of all the vertices must be tori. This
 is known in the literature as a "(generalized) link complement,"
 i.e. the complement of a nontrivial link in some closed orientable 3-manifold.
 <<link complement>>=
-def linkComplement(mfld):
+def linkComplement(mfld,allowInteriorVertices):
     if not mfld.isOrientable():
         return False
     if not mfld.isConnected():
@@ -558,7 +558,7 @@ def linkComplement(mfld):
         return False
     vs = mfld.vertices()
     for v in vs:
-        if not (v.link() == v.TORUS):
+        if not (v.link() == v.TORUS or (allowInteriorVertices and v.link() == v.SPHERE)):
             return False
     else:
         return True
@@ -674,8 +674,8 @@ def essentialS2In(nsl):
         x = s.eulerChar()
         if x != 2:
             continue
-	if triviallyInessential(s):
-	    continue
+        if triviallyInessential(s):
+            continue
 @
 If the Euler characteristic is 2, then
 $s$ is a sphere.
@@ -765,7 +765,7 @@ def essentialK2In(nsl):
         if not s.isCompact():
             continue
         if not s.isOrientable():
-            return (s,"$K^2$")
+            return (i,"$K^2$")
 @
 If the [[for]] loop has concluded, then
 there is no Klein bottle.
@@ -835,7 +835,11 @@ may as well add it for posterity.)
 
 <<is T2xI>>=
 def isT2xI(mfld):
-    if not (linkComplement(mfld) and \
+    idl = Triangulation3(mfld)
+    idl.intelligentSimplify()
+    idl.finiteToIdeal()
+    idl.intelligentSimplify()
+    if not (linkComplement(idl,True) and \
         len(mfld.boundaryComponents()) == 2):
         return False
     if not mfld.homologyH1().detail() == '2 Z\n':
@@ -858,7 +862,7 @@ def isT2xI(mfld):
             return False
     else:
         return True
-	
+        
 <<unhyp.py>>=
 <<is T2xI>>
 
@@ -901,9 +905,9 @@ is whether or not it separates. If it doesn't,
 then it is a non-separating torus and hence essential.
 <<essential T2>>=
         m = s.cutAlong()
-	m.intelligentSimplify()
+        m.intelligentSimplify()
         if m.isConnected():
-            return(s,"non-separating $T^2$")
+            return(i,"non-separating $T^2$")
 @
 Having found a separating torus, we can
 now test whether or not it is essential,
@@ -916,23 +920,20 @@ $T^2 \times I$.
         m.splitIntoComponents()
         m0 = m.firstChild()
         m1 = m0.nextSibling()
-        if m0.hasCompressingDisc() \
-           or m1.hasCompressingDisc() \
-           or isT2xI(m0) \
-           or isT2xI(m1):
+        if m0.hasCompressingDisc() or m1.hasCompressingDisc() or isT2xI(m0) or isT2xI(m1):
             continue
 @
 If they are not, then the torus is
 essential. 
 <<essential T2>>=
-        return (s,"essential $T^2$")
+        return (i,"essential $T^2$")
 @
 Otherwise, if there is no essential torus,
 then return nothing. (This else is outside the [[for]] loop.)
 <<essential T2>>=
     else:
         return None
-	
+        
 <<unhyp.py>>=
 <<essential K2>>
 <<essential T2>>
@@ -1041,7 +1042,7 @@ manifold, we can just do ball and solid torus tests.)
            or m1.isSolidTorus():
            continue
         else:
-	    return (i,"essential $A^2$")   
+            return (i,"essential $A^2$")   
 @
 Finally, if we have gone through all quad-vertex
 surfaces and found no essential annulus (or M\"{o}bius band),
@@ -1084,7 +1085,7 @@ on a Raspberry Pi, and that suffices for our purposes.
 @
 <<hyperbolicity>>=
 def findFault(mfld):
-    assert linkComplement(mfld)
+    assert linkComplement(mfld,True)
     M = Triangulation3(mfld)
     M.finiteToIdeal()
     M.intelligentSimplify()
@@ -1116,7 +1117,7 @@ def findFault(mfld):
     return None
 @
 <<hyperbolicity>>=    
-def isCommutator(expr):
+def isBasicCommutator(expr):
     l = expr.terms()
     if len(l) != 4 or \
        l[0] != l[2].inverse() or \
@@ -1124,6 +1125,10 @@ def isCommutator(expr):
         return False
     else:
         return True
+
+def isCommonAxisRelator(expr):
+    l = expr.terms()
+    return len(l) == 2
 @ 
 <<hyperbolicity>>=
 def hyperbolicity(mfld):
@@ -1131,12 +1136,14 @@ def hyperbolicity(mfld):
         return (True, "strict angle structure")
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
+    if G.countRelations() == 1:
+        if isBasicCommutator(G.relation(0)):
+            return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q]\\rangle$")
+        if isCommonAxisRelator(G.relation(0)):
+            return (False, "$\\pi_1 = \\langle a,b\\ |\\ a^p b^q\\rangle$")
     name = G.recogniseGroup()
     if name != '':
         return (False, "$\\pi_1 =" + name + "$")
-    if G.countRelations() == 1:
-        if isCommutator(G.relation(0)):
-	    return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q]\\rangle$")
     s = findFault(mfld)
     if s != None:
         return (False, s)
@@ -1188,16 +1195,16 @@ def vetNecklaces(n,wstat=False):
     unh = []
     def vetInv(inv,h,u):
         if wstat:
-	    print str(inv)
+            print str(inv)
         mfld = makeNecklace(inv)
-        if not linkComplement(mfld):
+        if not linkComplement(mfld,False):
            if wstat:
                print "invalid\n"
            return None
         before = clock()
-	mfld.intelligentSimplify()
+        mfld.intelligentSimplify()
         s = hyperbolicity(mfld)
-	elapsed = clock() - before
+        elapsed = clock() - before
         if s[0]:
             h.append((inv,s,elapsed))
             status = " hyp\n"
@@ -1206,7 +1213,7 @@ def vetNecklaces(n,wstat=False):
             status = " unh\n"
         if wstat:
             print status
-	stdout.flush()
+        stdout.flush()
     vi = lambda inv: vetInv(inv,hyp,unh)
     forallOrbitReps(n,vi)
     return (hyp, unh)
@@ -1232,9 +1239,9 @@ def fullDisplay(f,l):
             ln2 =  "      \\item " + x[1][1]
         else:
             ln2 =  "      \\item " + x[1][1][1]
-	ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
+        ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
         ln4 = "\\end{itemize}"
-	f.writelines([ln0,ln1,ln2,ln3,ln4])
+        f.writelines([ln0,ln1,ln2,ln3,ln4])
     f.write("\\end{itemize}\n")
 
 def summaryPreamble(f,l,tp):
@@ -1250,10 +1257,10 @@ def recognitionTypes(f,l):
     if len(l) == 1:
         x = l[0]
         ln0 = "There was one such manifold, with {0},".format(x[1][1])
-	ln1 =  "namely, " + invToString(x[0]) + "."
+        ln1 =  "namely, " + invToString(x[0]) + "."
         f.writelines([ln0,ln1])
-	return None
-    ln0 = "There were {0} such manifolds.".format(len(l))
+        return None
+    ln0 = "There were {0} such manifolds. ".format(len(l))
     ln1 =  "Their recognition types were as follows."
     ln2 =  "\\begin{itemize}"
     f.writelines([ln0,ln1,ln2])
@@ -1276,7 +1283,7 @@ def timesTaken(f,l,tp):
         return None
     if len(l) == 1:
         f.write("It took {0} seconds to vet.".format(l[0][2]))
-	return None
+        return None
     ln0 = "\\end{itemize}"
     ln1 = "The times they took were approximately as follows."
     ln2 = "\\begin{itemize}"
@@ -1284,41 +1291,42 @@ def timesTaken(f,l,tp):
     times = {}
     for x in l:
         timeTaken = x[2]
-	approxLogTimeTaken = int(log2(timeTaken))
-	altt = approxLogTimeTaken
-	if not altt in times:
+        approxLogTimeTaken = int(log2(timeTaken))
+        altt = approxLogTimeTaken
+        if not altt in times:
             times[altt] = [x[0]]
         else:
             times[altt].append(x[0])
     for altt in times:
         f.write("\\item Of manifolds vetted in about $2^{")
-	f.write(str(altt)+"}")
-	f.write("$ seconds, there were {0}.\n".format(len(times[altt])))
+        f.write(str(altt)+"}")
+        f.write("$ seconds, there were {0}.\n".format(len(times[altt])))
     f.write("\\end{itemize}\n")
 
-    longTime = False
+    longTime = -2
+    wasLongTime = False
     for altt in times:
-        if altt > 0:
-	    longTime = True
-    if longTime == True:
+        if altt > longTime:
+            wasLongTime = True
+    if wasLongTime == True:
         f.write("Those that took an unusual amount of time are as follows.\n")
         f.write("\\begin{itemize}\n")
         for altt in times:
-            if altt > 0:
+            if altt > longTime:
                 f.write("\item The manifolds that took about $2^{")
-		f.write(str(altt) + "}$ seconds were as follows.\n")
-	        f.write("\\begin{itemize}\n")
+                f.write(str(altt) + "}$ seconds were as follows.\n")
+                f.write("\\begin{itemize}\n")
                 for inv in times[altt]:
-	            f.write("\\item " + invToString(inv) + "\n")
-	        f.write("\\end{itemize}\n")
+                    f.write("\\item " + invToString(inv) + "\n")
+                f.write("\\end{itemize}\n")
         f.write("\\end{itemize}\n")
 
     if tp[0] == "Hyperbolic":
         f.write("In summary, the associated involutions were as follows:\n")
-	f.write("\\begin{itemize}\n")
-	for x in l:
-	    f.write("\\item " + invToString(x[0]) + "\n")
-	f.write("\\end{itemize}\n")
+        f.write("\\begin{itemize}\n")
+        for x in l:
+            f.write("\\item " + invToString(x[0]) + "\n")
+        f.write("\\end{itemize}\n")
 
 def summaryOfResults(f,l,tp):
     summaryPreamble(f,l,tp)
@@ -1339,7 +1347,7 @@ if __name__ == "__main__":
     for i in range(x+1):
         (h, u) = vetNecklaces(i)
         hyp.append(h)
-	unh.append(u)
+        unh.append(u)
     hypInvs = map(lambda l: map(lambda trp: trp[0],l),hyp)
     texH.write("hypInvs = " + str(hypInvs))
     texH.close()
@@ -1351,16 +1359,16 @@ if __name__ == "__main__":
     texD.writelines(preamble)
     texS.write("\\section{Summary of results}\n")
     for i in range(x+1):
-	summaryOfResults(texS,hyp[i],("Hyperbolic",i))
-	summaryOfResults(texS,unh[i],("Unhyperbolic",i))
+        summaryOfResults(texS,hyp[i],("Hyperbolic",i))
+        summaryOfResults(texS,unh[i],("Unhyperbolic",i))
     texS.write("\\end{document}\n")
     texS.close()
     texD.write("\\section{All data}\n")
     for i in range(x+1):
         texD.write("\\subsection{" + "Hyperbolics of bead number {0}".format(i) + "}\n")
         fullDisplay(texD,hyp[i])
-	texD.write("\\subsection{" + "Non-hyperbolics of bead number {0}".format(i) + "}\n")
-	fullDisplay(texD,unh[i])
+        texD.write("\\subsection{" + "Non-hyperbolics of bead number {0}".format(i) + "}\n")
+        fullDisplay(texD,unh[i])
     texD.write("\\end{document}\n")
     texD.close()
 @
@@ -1389,10 +1397,10 @@ def giveNames(invL):
     named = {}
     for inv in invL:
         name = giveName(inv)
-	if not name in named:
-	    named[name] = [inv]
-	else:
-	    named[name].append(inv)
+        if not name in named:
+            named[name] = [inv]
+        else:
+            named[name].append(inv)
     return named
 
 if __name__ == "__main__":
@@ -1401,22 +1409,22 @@ if __name__ == "__main__":
     f.write("\\begin{document}")
     for hL in hypInvs:
         if hL == []:
-	    continue
-	n = len(hL[0])
+            continue
+        n = len(hL[0])
         f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
-	f.write("\\begin{itemize}\n")
-	named = giveNames(hL)
-	for nmc in named:
-	    (name, num_cusps) = nmc
-	    f.write("\\item \\textbf{" + name + "}, ")
-	    if len(named[nmc]) > 1:
-	        f.write("{0} gluings; ".format(len(named[nmc])))
+        f.write("\\begin{itemize}\n")
+        named = giveNames(hL)
+        for nmc in named:
+            (name, num_cusps) = nmc
+            f.write("\\item \\textbf{" + name + "}, ")
+            if len(named[nmc]) > 1:
+                f.write("{0} gluings; ".format(len(named[nmc])))
             f.write("{0} cusps\n".format(num_cusps))
-	    f.write("\\begin{itemize}\n")
-	    for inv in named[nmc]:
-	        f.write("\\item " + invToString(inv) + "\n")
-	    f.write("\\end{itemize}\n")
-	f.write("\\end{itemize}\n")    
+            f.write("\\begin{itemize}\n")
+            for inv in named[nmc]:
+                f.write("\\item " + invToString(inv) + "\n")
+            f.write("\\end{itemize}\n")
+        f.write("\\end{itemize}\n")    
     f.write("\\end{document}\n")
     f.close()
 @
