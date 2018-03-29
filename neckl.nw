@@ -1241,7 +1241,9 @@ def fullDisplay(f,l):
             ln2 =  "      \\item " + x[1][1][1]
         ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
         ln4 = "\\end{itemize}"
-        f.writelines([ln0,ln1,ln2,ln3,ln4])
+        lns = [ln0,ln1,ln2,ln3,ln4]
+	lns = map(lambda s:s + "\n", lns)
+	f.writelines(lns)
     f.write("\\end{itemize}\n")
 
 def summaryPreamble(f,l,tp):
@@ -1256,8 +1258,8 @@ def recognitionTypes(f,l):
         return None
     if len(l) == 1:
         x = l[0]
-        ln0 = "There was one such manifold, with {0},".format(x[1][1])
-        ln1 =  "namely, " + invToString(x[0]) + "."
+        ln0 = "There was one such manifold, with {0}, ".format(x[1][1])
+        ln1 =  "namely, " + invToString(x[0]) + ". "
         f.writelines([ln0,ln1])
         return None
     ln0 = "There were {0} such manifolds. ".format(len(l))

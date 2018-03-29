@@ -3,12 +3,12 @@ Generating necklace manifolds and testing them for hyperbolic Dehn filling
 
 This software accompanies an upcoming paper with several coauthors.
 
+To compile the documentation and extract the software, you need Noweb, available
+[here](https://www.cs.tufts.edu/~nr/noweb/), and Python.
+
 To run the software, you need Regina, version 5.1 or higher, available
 [here](https://regina-normal.github.io); and you need SnapPy, version
 2.6 or higher, available [here](https://snappy.computop.org/).
-
-To compile the documentation, you need Noweb, available
-[here](https://www.cs.tufts.edu/~nr/noweb/), and Python.
 
 To do everything in one fell swoop, run the following:
 
