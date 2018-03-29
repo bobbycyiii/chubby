@@ -1350,8 +1350,17 @@ if __name__ == "__main__":
         (h, u) = vetNecklaces(i)
         hyp.append(h)
         unh.append(u)
+    texH.write("hypInvs = [\\\n")
     hypInvs = map(lambda l: map(lambda trp: trp[0],l),hyp)
-    texH.write("hypInvs = " + str(hypInvs))
+    for hypInvL in hypInvs:
+        if hypInvL == []:
+	    texH.write("[],\\\n")
+	    continue
+        texH.write("[\\\n")
+	for inv in hypInvL:
+	    texH.write(str(inv) + ",\\\n")
+        texH.write("],\\\n")
+    texH.write("]\n")
     texH.close()
     texS = open("enumSummary.tex",'w')
     texD = open("allData.tex",'w')
@@ -1415,10 +1424,24 @@ if __name__ == "__main__":
             continue
         n = len(hL[0])
         f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
-        f.write("\\begin{itemize}\n")
+	f.write("Their names are as follows, along with\n")
+	f.write("the number of associated gluings\n")
+	f.write("of bead number " + str(n) + ".\n")
+	f.write("\\begin{quotation}\n")
         named = giveNames(hL)
-        for nmc in named:
-            (name, num_cusps) = nmc
+	namel = list(named)
+	namel.sort()
+	for (name, num_cusps) in namel[:-1]:
+	    nmc = (name, num_cusps)
+	    f.write("\\textbf{" + name + "}: ")
+	    f.write(str(len(named[nmc])) + ";\n")
+	f.write("\\textbf{" + namel[-1][0] + "}: ")
+	f.write(str(len(named[namel[-1]])) + ".\n")
+	f.write("\\end{quotation}\n")
+	f.write("Here are their corresponding gluings.\n")
+        f.write("\\begin{itemize}\n")
+        for (name, num_cusps) in namel:
+	    nmc = (name, num_cusps)
             f.write("\\item \\textbf{" + name + "}, ")
             if len(named[nmc]) > 1:
                 f.write("{0} gluings; ".format(len(named[nmc])))
