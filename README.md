@@ -21,7 +21,4 @@ and compiles the LaTeX into PDF files.
 
 This is a destructive process; it overwrites previous files.
 
-On a five-year old quad-core laptop this compiles in under a minute.
-On a Raspberry Pi it doesn't quite compile, since SnapPy doesn't yet
-compile on ARM chips, due to the ManifoldHP class. But you can do
-the enumeration in about eight minutes on a Raspberry Pi.
+On a five-year old x86-64 quad-core laptop, this compiles in under ten minutes.

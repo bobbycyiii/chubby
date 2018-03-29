@@ -1375,7 +1375,7 @@ if __name__ == "__main__":
 \subsection{Naming the hyperbolics}
 That took care of the classification as such. However, we would also
 like to identify the hyperbolic manifolds in the SnapPea census; they
-have such identifications since they have at most 7 tetrahedra.
+have such identifications since they have at most 8 tetrahedra.
 We do this separately from vetting the manifolds, as SnapPy does not
 compile yet on ARM chips, due to the [[ManifoldHP]] class.
 <<naming.py>>=
@@ -1386,10 +1386,11 @@ from vetting import invToString
 
 def giveName(inv):
     reginaM = makeNecklace(inv)
+    reginaM.intelligentSimplify()
     snapM = Manifold(reginaM.snapPea())
     l = snapM.identify()
     if l == []:
-        raise(Exception("No name!"))
+        return (snapM.isometry_signature(),snapM.num_cusps())
     else:
         return (l[0].name(),snapM.num_cusps())
 
@@ -1441,7 +1442,7 @@ notangle -Rnaming.py neckl.nw > naming.py
 touch enumSummary.tex
 touch allData.tex
 touch hyperbolics.py
-python vetting.py 7
+python vetting.py 8
 pdflatex enumSummary.tex; pdflatex allData.tex
 touch hypNames.tex
 python naming.py
