@@ -1419,38 +1419,71 @@ if __name__ == "__main__":
     f = open("hypNames.tex","w")
     f.write("\\documentclass{article}\n")
     f.write("\\begin{document}")
+    namesSoFar = set()
     for hL in hypInvs:
+    	newNames = set()
+        repeatNames = set()
         if hL == []:
             continue
         n = len(hL[0])
         f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
+        named = giveNames(hL)
+	for nm in named:
+	    if nm in namesSoFar:
+	        repeatNames.add(nm)
+	    else:
+	        newNames.add(nm)
+		namesSoFar.add(nm)
+	f.write("There were " + str(len(named)) + " gluings,\n")
+	f.write("and " + str(len(newNames)) + " new gluings.\n")
 	f.write("Their names are as follows, along with\n")
 	f.write("the number of associated gluings\n")
 	f.write("of bead number " + str(n) + ".\n")
-	f.write("\\begin{quotation}\n")
-        named = giveNames(hL)
-	namel = list(named)
-	namel.sort()
-	for (name, num_cusps) in namel[:-1]:
-	    nmc = (name, num_cusps)
-	    f.write("\\textbf{" + name + "}: ")
-	    f.write(str(len(named[nmc])) + ";\n")
-	f.write("\\textbf{" + namel[-1][0] + "}: ")
-	f.write(str(len(named[namel[-1]])) + ".\n")
-	f.write("\\end{quotation}\n")
-	f.write("Here are their corresponding gluings.\n")
+	def writeNames(s):
+            if s == set():
+	        return None
+	    f.write("\\begin{quotation}\n")
+	    namel = list(s)
+            namel.sort()
+            for (name, num_cusps) in namel[:-1]:
+                nmc = (name, num_cusps)
+                f.write("\\textbf{" + name + "}: ")
+	        f.write(str(len(named[nmc])) + ";\n")
+	    f.write("\\textbf{" + namel[-1][0] + "}: ")
+	    f.write(str(len(named[namel[-1]])) + ".\n")
+	    f.write("\\end{quotation}\n")
+	f.write("\\subsection{New names}\n")
+	writeNames(newNames)
+	f.write("\\subsection{Old names}\n")
+	writeNames(repeatNames)
+	f.write("\\subsection{Gluings' names}\n")
         f.write("\\begin{itemize}\n")
-        for (name, num_cusps) in namel:
-	    nmc = (name, num_cusps)
-            f.write("\\item \\textbf{" + name + "}, ")
-            if len(named[nmc]) > 1:
-                f.write("{0} gluings; ".format(len(named[nmc])))
-            f.write("{0} cusps\n".format(num_cusps))
-            f.write("\\begin{itemize}\n")
-            for inv in named[nmc]:
-                f.write("\\item " + invToString(inv) + "\n")
-            f.write("\\end{itemize}\n")
-        f.write("\\end{itemize}\n")    
+	def writeGluings(s):
+	    namel = list(s)
+	    namel.sort()
+	    for (name, num_cusps) in namel:
+		nmc = (name, num_cusps)
+		f.write("\\item \\textbf{" + name + "}, ")
+		if len(named[nmc]) > 1:
+		    f.write("{0} gluings; ".format(len(named[nmc])))
+		f.write("{0} cusps\n".format(num_cusps))
+		f.write("\\begin{itemize}\n")
+		for inv in named[nmc]:
+		    f.write("\\item " + invToString(inv) + "\n")
+		f.write("\\end{itemize}\n")
+        writeGluings(newNames)
+	writeGluings(repeatNames)
+        f.write("\\end{itemize}\n")
+    f.write("\\section{All the names together}\n")
+    f.write("There were " + str(len(namesSoFar)) + " manifolds in all.\n")
+    f.write("Their names are as follows.\n")
+    f.write("\\begin{quotation}\n")
+    namel = list(namesSoFar)
+    namel.sort()
+    for (name, num_cusps) in namel[:-1]:
+        f.write("\\textbf{" + name + "},\n")
+    f.write("\\textbf{" + namel[-1][0] + "}.\n")
+    f.write("\\end{quotation}\n")
     f.write("\\end{document}\n")
     f.close()
 @
