@@ -32,7 +32,7 @@
 \maketitle
 \section*{Conventions}
 We use camel-case naming, following Regina.
-<<nonelem.py>>=
+<<neckl.py>>=
 from regina import Triangulation3, Perm4
 @ 
 \section{Necklace gluings with $n$ beads}
@@ -56,7 +56,7 @@ def makeDipyr(n):
                 you = newt.simplex((i+1)%n)
                 me.join(2,you,Perm4(2,3))
         return newt
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to make an n-dipyr>>
 @
 As you can verify, we have glued up the $n$-dipyramid so
@@ -124,7 +124,7 @@ $S_{2\cdot n}$ in cycle notation,
 assuming Regina maintains the indexing of tetrahedra.
 
 First, it is easy to match a face label with a tetrahedron index.
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to make a necklace gluing>>
 
 <<how to make a necklace gluing>>=
@@ -258,7 +258,7 @@ def pFlip(face):
 def vFlip(n,face):
     return 2*(n-1 + face%2) - face
 
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to act>>
 @
 You may check that a symmetry of the dipyramid
@@ -342,7 +342,7 @@ def orbitWithRepeats(n,gluing):
         for t in nums:
             out = [ag(n,(s,t),l)] + out
     return out
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to orbit>>
 @
 Our tree will be a pretty standard binary tree on
@@ -437,7 +437,7 @@ def originalTree(n):
     nums = range(2*n)
     nums.reverse()
     return fpf(nums, [])
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to make a prefix tree>>
 @
 It's pretty simple to extract at least one involution
@@ -451,7 +451,7 @@ def leftInvolution(pt):
         (str, p, lt, rt) = pt
         assert str == "PTBranch"
         return [p] + leftInvolution(lt)
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to get an involution if there is one>>
 @
 It's also fairly straightforward to remove
@@ -507,7 +507,7 @@ def removeInvolution(l,pt):
         return rt
     else:
         return ("PTBranch", pp, ltp, rt)
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to remove an involution>>
 @
 This takes time proportional to at most the number of face-pairs.
@@ -531,7 +531,7 @@ def forallOrbitReps(n,f):
              pt = removeInvolution(lp,pt)
         f(l)
 
-<<nonelem.py>>=
+<<neckl.py>>=
 <<how to do stuff with orbit representatives>>
 @
 \section{Vetting the manifolds}
@@ -836,7 +836,6 @@ may as well add it for posterity.)
 <<is T2xI>>=
 def isT2xI(mfld):
     idl = Triangulation3(mfld)
-    idl.intelligentSimplify()
     idl.finiteToIdeal()
     idl.intelligentSimplify()
     if not (linkComplement(idl,True) and \
@@ -1350,6 +1349,7 @@ NE(M,S):
     else:
         return [M]
 \end{verbatim}
+@
 \subsection{Obvious non-link-complements}
 First, we should define what it means to be
 obviously not a ------ link complement with
@@ -1376,8 +1376,84 @@ carries with it memoized answers to whether its entries
 are or are not various kinds of link complements. We can
 also try to identify the fundamental group of the manifold;
 this is itself an identification in a census (of presentations).
-
+<<easy link complement tests>>=
+from unhyp import isT2xI
+def easy_isLinkIn(M,amb):
+    s3 = "S^3"
+    d2s1 = "D^2 x S^1"
+    t2i = "T^2 x I"
+    try:
+        assert amb in [s3, d2s1, t2i]
+    except AssertionError:
+        raise Exception("Only S^3, D^2 x S^1, and T^2 x I allowed as second argument")
+    if not linkComplement(M,True):
+        return False
+@        
+After the above sanity check (really, a type-check),
+we do the boundary-component tests.
+<<easy link complement tests>>=
+    nbc = M.countBoundaryComponents()    
+    if amb == s3:
+        if nbc == 0:
+            if not M.isThreeSphere():
+                return False
+            else:
+                return True
+    if amb == d2s1:
+        if nbc == 0:
+            return False
+        if nbc == 1:
+            if not M.isSolidTorus():
+                return False
+            else:
+                return True
+    if amb == t2i:
+        if nbc in [0,1]:
+            return False
+        if nbc == 2:
+            if not isT2xI(M):
+                return False
+            else:
+                return True
+@ 
+Now having checked the boundary components
+are appropriate, we make sure the manifold's
+homology agrees with Alexander duality. Recall
+that by Alexander duality, if $M$ is an $S^3$-link 
+complement (which includes $D^2\times S^1$-
+and $T^2\times I$-link complements), then
+\[
+H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
+\mbox{ and } H_2(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|-1}.
+\]
+<<easy link complement tests>>=
+    h1 = M.homologyH1()
+    if h1.countInvariantFactors() > 0 \
+       or h1.rank() != nbc:
+       return False
+    h2 = M.homologyH2()
+    if h2.countInvariantFactors() > 0 \
+       or h2.rank() != nbc-1:
+       return False
+@ 
+If at this point we haven't determined
+whether or not the manifold is a link
+complement, then we give up. (We will
+improve upon this later.)
+<<easy link complement tests>>=
+    else:
+        return None
+<<nonelem.py>>=
+<<easy link complement tests>>
 @
+We will improve upon this by adding
+census checks later. The author had
+to use the above as scaffolding, as
+the naming conventions used in the 
+censuses are not discussed in Regina's 
+documentation.
+@
+\subsection{
 \section{Going through the manifolds}
 \subsection{Automating enumeration}
 Now it's quite simple to go through the
@@ -1718,7 +1794,7 @@ To compile everything, run the following script.
 #!/bin/sh
 noweave -delay nonelem.nw > nonelem.tex
 pdflatex nonelem.tex; pdflatex nonelem.tex; pdflatex nonelem.tex
-notangle -Rnonelem.py nonelem.nw > nonelem.py
+notangle -Rneckl.py nonelem.nw > neckl.py
 notangle -Runhyp.py nonelem.nw > unhyp.py
 notangle -Rvetting.py nonelem.nw > vetting.py
 notangle -Rnaming.py nonelem.nw > naming.py
