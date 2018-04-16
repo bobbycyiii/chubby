@@ -1128,11 +1128,8 @@ def isBasicCommutator(expr):
 def isCommonAxisRelator(expr):
     l = expr.terms()
     return len(l) == 2
-@ 
-<<hyperbolicity>>=
-def hyperbolicity(mfld):
-    if mfld.hasStrictAngleStructure():
-        return (True, "strict angle structure")
+
+def possiblyHyperbolicPi1(mfld):
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
     if G.countRelations() == 1:
@@ -1143,6 +1140,16 @@ def hyperbolicity(mfld):
     name = G.recogniseGroup()
     if name != '':
         return (False, "$\\pi_1 =" + name + "$")
+    return (True,'')
+
+@ 
+<<hyperbolicity>>=
+def hyperbolicity(mfld):
+    if mfld.hasStrictAngleStructure():
+        return (True, "strict angle structure")
+    x = possiblyHyperbolicPi1(mfld)
+    if not x[0]:
+        return x
     s = findFault(mfld)
     if s != None:
         return (False, s)
@@ -1300,7 +1307,7 @@ Naive(M,S):
         return [M]
 \end{verbatim}
 @
-\subsection{The actual pseudocode}
+\subsection{Less naive pseudocode}
 Unfortunately we don't have a nice implementation
 of determining whether or not $M''$ is a certain
 kind of link complement. Instead, we will have
@@ -1376,9 +1383,9 @@ carries with it memoized answers to whether its entries
 are or are not various kinds of link complements. We can
 also try to identify the fundamental group of the manifold;
 this is itself an identification in a census (of presentations).
-<<easy link complement tests>>=
+<<obvious link complement tests>>=
 from unhyp import isT2xI
-def easy_isLinkIn(M,amb):
+def obvious_isLinkIn(M,amb):
     s3 = "S^3"
     d2s1 = "D^2 x S^1"
     t2i = "T^2 x I"
@@ -1391,7 +1398,7 @@ def easy_isLinkIn(M,amb):
 @        
 After the above sanity check (really, a type-check),
 we do the boundary-component tests.
-<<easy link complement tests>>=
+<<obvious link complement tests>>=
     nbc = M.countBoundaryComponents()    
     if amb == s3:
         if nbc == 0:
@@ -1426,7 +1433,7 @@ and $T^2\times I$-link complements), then
 H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 \mbox{ and } H_2(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|-1}.
 \]
-<<easy link complement tests>>=
+<<obvious link complement tests>>=
     h1 = M.homologyH1()
     if h1.countInvariantFactors() > 0 \
        or h1.rank() != nbc:
@@ -1438,25 +1445,189 @@ H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 @ 
 If at this point we haven't determined
 whether or not the manifold is a link
-complement, then we give up. (We will
-improve upon this later.)
-<<easy link complement tests>>=
+complement, then we give up. (We do not
+now implement the census checks proposed above.)
+<<obvious link complement tests>>=
     else:
         return None
 <<nonelem.py>>=
-<<easy link complement tests>>
+<<obvious link complement tests>>
 @
-We will improve upon this by adding
-census checks later. The author had
-to use the above as scaffolding, as
-the naming conventions used in the 
-censuses are not discussed in Regina's 
-documentation.
+\subsection{Actually implementing [[NE]]}
+The code for [[NE]] is much the same
+as for the hyperbolicity algorithm, except
+that instead of terminating when we find
+a fault, we cut along the fault and examine
+the components recursively.
+
+We also note that the following implementation
+is significantly different from the above
+``less naive'' pseudocode, as this implementation
+does not account for which boundary component
+of $M$ is $S$. This could possibly include
+extraneous manifolds in the resulting list---but
+it is still a superset of Dehn parents as desired.
+(We don't account for $S$ as Regina's surface cutting
+methods complicate the boundary.)
 @
-\subsection{
+<<NE>>=
+import regina as rg
+from unhyp import *
+nsl = rg.NormalSurfaces.enumerate
+def NE(mfld):
+    Mi = rg.Triangulation3(mfld)
+    Mi.intelligentSimplify()
+    Mi.finiteToIdeal()
+    Mi.intelligentSimplify()
+@ 
+Before doing anything else, we check to see
+whether or not $M$ admits a strict angle
+structure. If it does, then $M$ is hyperbolic,
+and every $N$ into which $M$ embeds nonelementarily
+is a Dehn filling of $M$. This is a relatively
+quick check.
+<<NE>>=
+    if Mi.hasStrictAngleStructure():
+        return [mfld]
+@
+Next, before any normal surface enumeration,
+we check to see if $M$'s fundamental group
+is recognizable as above in the hyperbolicity
+section. If so, then not only is $M$ not hyperbolic,
+but also $M$ does not even embed nonelementarily
+into any hyperbolic link complement.
+<<NE>>=
+    x = possiblyHyperbolicPi1(mfld)
+    if not x[0]:
+        return []
+@ 
+We set up two normal surface collections:
+first, the fundamental-standard collection for an ideal
+triangulation of $M$, or the FSI collection; and, much 
+later, the quad-vertex collection for a material 
+triangulation of $M$ (which Regina
+calls a ``finite'' triangulation). We call that the
+QVM collection. We can find all
+essential surfaces we need in the QVM collection;
+however, we suspect the FSI collection is smaller,
+and it contains all the essential \emph{closed}
+surfaces that we need.
+<<NE>>=
+    Li = nsl(Mi,rg.NS_STANDARD,rg.NS_FUNDAMENTAL)
+@ 
+Next, we look for obviously bad surfaces.
+Assuming $M$ is orientable, we can lump these
+bad surfaces all together as closed non-separating
+surfaces of nonnegative Euler characteristic.
+<<NE>>=
+    assert mfld.isOrientable()
+    for i in range(Li.size()):
+        s = Li.surface(i)
+        x = s.eulerChar()
+        if (not s.hasRealBoundary()) and x >= 0 \
+          and s.cutAlong().isConnected():
+            return []
+@ 
+Next, we look for an essential, connect-sum sphere.
+But we already know how to do this. Then we cut along
+it and test the components for being link complements
+as in the above pseudocode.
+@
+<<NE>>=
+    s2 = essentialS2In(Li)
+    if not s2 == None:
+        s2 = Li.surface(s2[0])
+        MM = s2.cutAlong()
+        MM.intelligentSimplify()
+        MM.splitIntoComponents()
+        mp = MM.firstChild()
+        mpp = mp.nextSibling()
+        Xp = obvious_isLinkIn(mp,"S^3")
+        Xpp = obvious_isLinkIn(mpp,"S^3")
+        Lp, Lpp = [],[]
+        if Xp != False:
+            Lpp = NE(mpp)
+        if Xpp != False: 
+            Lp = NE(mp)
+        return Lp + Lpp
+@
+We follow this up with a boundary irreducibility
+test. If we finish the above $S^2$ search with no
+essential $S^2$, then $M$ is irreducible. So
+it is $\partial$-irreducible if and only if
+it is a solid torus.
+<<NE>>=
+    if mfld.isSolidTorus():
+        return []
+@
+Next, we look for an essential separating $T^2$.
+We already found no non-separating $T^2$. So all
+the tori in our list are separating. It remains
+to find an essential torus among these. But we
+already know how to do this. If we find such
+a torus, then we cut along it, and test the
+components for being link-complements. This
+implementation differs from the above pseudocode
+in that no $T^2\times I$-link complement test
+is performed. That is because we cannot yet keep
+track of boundary components in Regina under cutting.
+<<NE>>=
+    t2 = essentialT2In(Li)
+    if t2 != None:
+        t2 = Li.surface(t2[0])
+        MM = t2.cutAlong()
+        MM.intelligentSimplify()
+        MM.splitIntoComponents()
+        mp = MM.firstChild()
+        mpp = mp.nextSibling()
+        Xp = obvious_isLinkIn(mp,"D^2 x S^1")
+        Xpp = obvious_isLinkIn(mpp,"D^2 x S^1")
+        Lp, Lpp = [],[]
+        if Xp != False:
+            Lpp = NE(mpp)
+        if Xpp != False: 
+            Lp = NE(mp)
+        return Lp + Lpp
+@
+Finally, if there are no obviously bad surfaces,
+nor essential separating $S^2$s nor $T^2$s nor
+essential discs, then $M$ is irreducible,
+$\partial$-irreducible, and (geometrically) atoroidal.
+Thus $M$ is either hyperbolic or atoroidal Seifert-fibered. 
+We can distinguish these two cases, with our assumptions
+on $M$, using surfaces: it is Seifert-fibered if and only 
+if it admits an essential annulus or M\"{o}bius band. By
+Q-normal surface theory we can always find such a surface
+among quad-vertex surfaces, under our assumptions on $M$.
+
+Most importantly, a Seifert-fibered manifold admits
+no nonelementary embeddings into a hyperbolic link complement.
+<<NE>>=
+    Mf = rg.Triangulation3(mfld)
+    Mf.intelligentSimplify()
+    Mf.idealToFinite()
+    Mf.intelligentSimplify()
+    Lf = nsl(Mf, rg.NS_QUAD, rg.NS_VERTEX)
+    m2 = essentialM2In(Lf)
+    if m2 != None:
+        return []
+    a2 = essentialA2In(Lf)
+    if a2 != None:
+        return []
+@ 
+If we have found no ``faulty'' surfaces,
+then $M$ is hyperbolic.
+<<NE>>=
+    return [mfld]
+
+@
+That concludes the procedure [[NE]].
+<<nonelem.py>>=
+<<NE>>
+@
 \section{Going through the manifolds}
 \subsection{Automating enumeration}
-Now it's quite simple to go through the
+Now it's straightforward to go through the
 manifolds. First we make a file
 which just automates the enumeration
 from the command line. It is fairly kludgy,
@@ -1465,24 +1636,28 @@ but perhaps that is to be expected; it makes
 a summary of the enumeration, and the file
 [[allData.tex]] is the whole set of data.
 For later purposes, we also output a
-file [[hyperbolics.py]] which defines
+file [[parents.py]] which defines
 a list, the $i$th entry of which is the
-list of hyperbolic $i$-bead necklace gluings
-(up to isomorphism). We use this later.
+list of (potential) parents for hyperbolic
+link complements admitting bead-$i$ necklace
+structures (up to isomorphism). We use this later.
 <<vetting.py>>=
 from neckl import forallOrbitReps
 from neckl import makeNecklace
 from unhyp import linkComplement
 from unhyp import hyperbolicity
+from nonelem import NE
 from time import clock
 @ 
 First we define a procedure [[vetNecklaces]] that goes
 through the $n$-bead necklaces, and
-returns a pair of lists, one hyperbolic
-pair and one unhyperbolic pair. Each
+returns a pair of lists, one of hyperbolic parents
+(not necessarily necklace manifolds)
+and one of unhyperbolic, ``barren'' necklaces
+that do not embed nonelementarily. Each
 entry of each list is a triple of
 a gluing, a reason why that gluing
-is in the lis, and a number representing
+is in the list, and a number representing
 how long it took to investigate this gluing.
 It also takes a debugging flag [[wstat]] to
 tell whether or not we want it to display
@@ -1492,9 +1667,9 @@ it investigates as it goes through them.
 <<vetting.py>>=
 from sys import stdout
 def vetNecklaces(n,wstat=False):
-    hyp = []
-    unh = []
-    def vetInv(inv,h,u):
+    parents = []
+    barren = []
+    def vetInv(inv,p,b):
         if wstat:
             print str(inv)
         mfld = makeNecklace(inv)
@@ -1504,20 +1679,20 @@ def vetNecklaces(n,wstat=False):
            return None
         before = clock()
         mfld.intelligentSimplify()
-        s = hyperbolicity(mfld)
+        ps = NE(mfld)
         elapsed = clock() - before
-        if s[0]:
-            h.append((inv,s,elapsed))
-            status = " hyp\n"
+        if ps != []:
+            p.append((inv,ps,elapsed))
+            status = " parent\n"
         else:
-            u.append((inv,s,elapsed))
-            status = " unh\n"
+            b.append((inv,ps,elapsed))
+            status = " barren\n"
         if wstat:
             print status
         stdout.flush()
-    vi = lambda inv: vetInv(inv,hyp,unh)
+    vi = lambda inv: vetInv(inv,parents,barren)
     forallOrbitReps(n,vi)
-    return (hyp, unh)
+    return (parents,barren)
 @ 
 Now for the severely kludgy part. We define
 some functions that write \LaTeX\ to a given file.
