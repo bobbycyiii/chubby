@@ -1749,44 +1749,105 @@ M = \begin{pmatrix}
 \]
 Then $ad - bc = 1$, so $a/c = b/d + 1/(cd) > b/d$.
 The \emph{interval of $M$} is the open interval
-$I(M) = (b/d, a/c)$. Furthermore, again since $ad - bc = 1$,
-$b/d < (a+b)/(c+d) < a/c$.
-The \emph{right child of $M$} is the matrix
-\[R(M) = \begin{pmatrix}
+$I(M) = (c/a, d/b)$. Furthermore, again since $ad - bc = 1$,
+$c/a < (c+d)/(a+b) < d/b$.
+The \emph{left child of $M$} is the matrix
+\[L(M) = \begin{pmatrix}
   a & a+b \\
   c & c+d
 \end{pmatrix}
 \]
-and the \emph{left child of $M$} is the matrix
-\[L(M) = \begin{pmatrix}
+and the \emph{right child of $M$} is the matrix
+\[R(M) = \begin{pmatrix}
   a+b & b \\
   c+d & d
 \end{pmatrix}
 \]
 By the above considerations, $L(M) \cap R(M) = \emptyset$
-and $L(M) \cup \{(a+b)/(c+d)\} \cup R(M) = I(M)$.
+and $L(M) \cup \{(c+d)/(a+b)\} \cup R(M) = I(M)$.
 In particular, $L(M)$ and $R(M)$ are strict subsets of
-$I(M)$.
+$I(M)$. The \emph{slope} of $M$ is $(c+d)/(a+b)$.
+
+Clearly we may also define the inverse maps
+\[L^{-1}(M) = \begin{pmatrix}
+  a & b-a \\
+  c & d-c
+\end{pmatrix} \]
+and
+\[R^{-1}(M) = \begin{pmatrix}
+  a-b & b \\
+  c-d & d
+\end{pmatrix} \]
+as maps from $SL_2\mathbf{Z}$ to itself; however,
+neither inverse map takes $T$ into itself.
 
 We regard $T$ as a digraph whose vertices are elements
 of $T$ and with edges from a vertex to its left child
 and right child.
 \begin{lemma}
-  $T$ is an infinite binary (search) tree whose root is
+  $T$ is an infinite binary (search) tree whose source (i.e. root) is
   the identity matrix.
 \end{lemma}
 \begin{proof}
   Note that the interval of the identity matrix
   is $(0,\infty)$, and every nonidentity matrix
   has interval being a strict subset of this interval.
-  So the identity is a child of no vertex.
+  So the identity is a child of no vertex, i. e. it is a source.
 
-  Suppose $M$ is as above. Since $M$ has
-  determinant 1, its columns are not equal.
-  Furthermore, either $a > b$ or $b \geq a$.
-  If $a > b$,             
+  Conversely, suppose $v$ is a child of no vertex.
+  Let
+  \[ v = \begin{pmatrix} a & b // c & d \end{pmatrix}. \]
+  Then neither $L^{-1}(v)$ nor $R^{-1}(v)$ lies in $T$.
+  Thus one of $b-a,d-c$ is negative, and one of
+  $a-b,c-d$ is negative---i.e., $a-b,c-d$ are of opposite sign.
+  If $a-b > 0$, then $a > b$ and $d > c$. So $a \geq b + 1$
+  and $d \geq c + 1$; hence $a\cdot d \geq b\cdot c + b + c + 1$,
+  and $a\cdot d - b\cdot c = 1 \geq b + c + 1$, i. e.
+  $0 \geq b + c$. So $b = c = 0$ and $a = d = 1$. The case
+  $a-b < 0$ leads similarly to $a\cdot d - b\cdot c = 1 \leq -a -d -1$,
+  which is impossible. So the identity is the unique source of this
+  digraph.
+  
+  On the other hand, suppose $v$ is a child of some vertex $w$.
+  If $v = L(w)$, then $v_{0,0} < v_{0,1}$ and $v_{1,0} < v_{1,1}$,
+  so $R^{-1}(v) \notin T$, and thus $v$ is not the right child
+  of any vertex. So $v$ is the child of the unique vertex $L^{-1}(v) = w$.
+  A similar result holds if $v = R(w)$. Thus vertices that are
+  children have unique ``parents.'' That is, each vertex
+  has a unique in-edge. Each vertex also has exactly two out-edges.
+  Thus $T$ is 3-regular apart from the source.
 
-  \end{proof}
+  Finally, every vertex has a unique backtrack-free path from the
+  source: simply apply $L^{-1}$ and $R^{-1}$ repeatedly until one
+  can do so no longer. This terminates since both maps strictly reduce
+  $L_1$ norm on $T$, and $L_1$ norm takes values in $\mathbf{N}$ on $T$.
+  So $T$ is a tree.
+
+  Therefore, $T$ is an infinite binary search tree.
+\end{proof}
+
+Now, suppose $Q$ is a positive-definite
+real quadratic form on $\mathbf{Z}^2$.
+We can find the shortest and second-shortest
+values of $Q$ if need be (see \cite{ConwayFung});
+luckily, SnapPea already does this for us.
+Suppose then that $Q$ takes its smallest and
+second-smallest values respectively on
+$(1\ 0)^t$ and $(0\ 1)^t$. Unfortunately,
+$Q$ is not determined by its values on these
+vectors; however, it is determined by these
+values together with its value on $(1\ 1)^t$.
+
+Given a maximal cusp $C$ in some hyperbolic 3-manifold
+$M$, we can have SnapPea calculate the length $\ell$ of the shortest
+nontrivial translation $m$ on the cusp, and
+calculate the shape of the cusp $z$. Identifying
+$H_1(C; \mathbf{R}) = \mathbf{C}$
+by the orientation-preserving isometry $\phi$ taking $m$ to $\ell$,
+we can calculate a second-shortest translation
+$n = \phi^{-1}(z\cdot \ell)$. Its length is $|z|\cdot \ell$.
+Finally, if $Re(z) > 0$ we can calculate
+
 
 <<excFill.py>>=
 def 
