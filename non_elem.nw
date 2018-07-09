@@ -1075,6 +1075,13 @@ of the form $[a^p,b^q]$. These groups are also not
 fundamental groups of finite-volume hyperbolic
 3-manifolds.
 @
+Later on, we will need to recognize small Seifert spaces.
+As far as the author knows, hoping for the best with
+census searches, as below, is the state of the art in implementations
+of this recognition problem, though there are algorithms
+solving it. And since we need this anyhow, we go ahead
+and implement it now in the hyperbolicity test.
+@
 We suspect that more optimization is possible
 by minimizing the associated Heegaard diagram
 and then checking whether or not the associated
@@ -1132,24 +1139,51 @@ def isCommonAxisRelator(expr):
 def possiblyHyperbolicPi1(mfld):
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
-    if G.countRelations() == 1:
-        if isBasicCommutator(G.relation(0)):
-            return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q]\\rangle$")
-        if isCommonAxisRelator(G.relation(0)):
-            return (False, "$\\pi_1 = \\langle a,b\\ |\\ a^p b^q\\rangle$")
+    if G.countGenerators() == 2:
+        for i in range(G.countRelations()):
+            if isBasicCommutator(G.relation(i)):
+                return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q], \ldots \\rangle$")
+            if isCommonAxisRelator(G.relation(i)):
+                return (False, "$\\pi_1 = \\langle a,b\\ |\\ a^p b^q, \ldots \\rangle$")
     name = G.recogniseGroup()
     if name != '':
         return (False, "$\\pi_1 =" + name + "$")
     return (True,'')
 
-@ 
-<<hyperbolicity>>=
 def hyperbolicity(mfld):
     if mfld.hasStrictAngleStructure():
         return (True, "strict angle structure")
     x = possiblyHyperbolicPi1(mfld)
     if not x[0]:
         return x
+@
+We don't know of a specification of the outputs
+of the censuses in Regina, but a cursory inspection in the Regina GUI
+reveals that orientable hyperbolic manifolds occur in four censuses:
+the SnapPea census of cusped hyperbolic manifolds, the census of hyperbolic
+knot and link complements in $S^3$, the census of closed hyperbolic
+3-manifolds by Hodgson and Weeks, and the closed orientable census.
+The names of the first census entries
+have the usual SnapPea form. These will never occur in this routine,
+as these triangulations have positive solutions to Thurston's gluing
+equations, and so they certainly admit strict angle structures. The
+second census has the same issue. Entries of the third census all have
+the form ``number:id'' where ``number'' is a decimal approximation
+of a real number (the volume), and ``ID'' is a SnapPea census manifold
+with an indicated Dehn filling. Hyperbolic entries of the fourth census begin with
+the string ``Hyp''. Conversely, entries for nonhyperbolic manifolds
+do not have these forms.
+<<hyperbolicity>>=
+    ch = regina.Census.lookup(mfld)
+    if ch.first() != None:
+        nm = ch.first().name()
+        if nm.find('Hyp') != -1:
+       	    return (True, nm)
+        try:
+            vol = float(nm[:nm.index(':')])
+            return (True, nm)
+        except:
+            return (False, nm)
     s = findFault(mfld)
     if s != None:
         return (False, s)
@@ -1174,7 +1208,7 @@ a triangulation $T$ of a link-complement $M$, will
 return a finite list $L$ of finite-volume hyperbolic
 3-manifolds such that the hyperbolic 3-manifolds
 into which $M$ embeds nonelementarily are exactly
-the Dehn fillings of elements of $L$. However, this
+the hyperbolic Dehn fillings of elements of $L$. However, this
 algorithm is quite complicated, due to its dependence
 upon a $S^3$-link complement algorithm whose foundations
 were laid by R. Budney.
@@ -1376,11 +1410,7 @@ Likewise, we should check that the homology of the manifold agrees
 appropriately with Alexander duality. ($D^2\times S^1$- and
 $T^2\times I$-link complements are themselves $S^3$-link complements.)
 
-Finally, and most helpfully, we can just try to
-identify $M$ in a census (of triangulations),
-which we may assume already
-carries with it memoized answers to whether its entries
-are or are not various kinds of link complements. We can
+Finally, we can
 also try to identify the fundamental group of the manifold;
 this is itself an identification in a census (of presentations).
 <<obvious link complement tests>>=
@@ -1445,8 +1475,9 @@ H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 @ 
 If at this point we haven't determined
 whether or not the manifold is a link
-complement, then we give up. (We do not
-now implement the census checks proposed above.)
+complement in whichever ambient manifold,
+then we give up. (Later on, if need be,
+one could implement census lookups here.)
 <<obvious link complement tests>>=
     else:
         return None
@@ -1468,23 +1499,77 @@ of $M$ is $S$. This could possibly include
 extraneous manifolds in the resulting list---but
 it is still a superset of Dehn parents as desired.
 (We don't account for $S$ as Regina's surface cutting
-methods complicate the boundary.)
+methods complicate the boundary. With more work one
+could keep track of which surface is which.)
 @
 <<NE>>=
 import regina as rg
 from unhyp import *
 nsl = rg.NormalSurfaces.enumerate
+@ 
+First we will do a census check, as follows.
+<<census check>>=
+def censusNE(mfld):
+    if rg.versionString() != "5.1":
+        raise Exception("Censuses not vetted for Regina versions not equal to 5.1")
+    ch = rg.Census.lookup(mfld)
+    if ch.first() == None:
+        return None
+    name = ch.first().name()
+@  
+There is no documentation of the types of names
+in Regina's censuses. As of version 5.1, an inspection
+of their names in the Regina GUI reveals that all the
+names of census manifolds are of the following types.
+From the closed orientable census, the names are
+\begin{enumerate}
+\item $S^3$;
+\item $L(p,q)$ for some $p,q \in \mathbf{N}$;
+\item $RP^3$;
+\item $SFS(S: (a_0, b_0), \ldots, (a_n, b_n))$ for some number $n+1$ of singular fibers and some
+  compact surface $S$;
+\item $T \times S^1$;
+\item $K \tilde{\times} S^1$;
+\item $T \times [0,1] / \phi$ for some $\phi: T \times \{0\} \to T \times \{1\}$;
+\item $X \cup_\phi Y$ for bounded manifolds $X,Y$
+  and $\phi: \partial X \to \overline{\partial Y}$; and
+\item Hyp\textunderscore$\rho$ for some real number $\rho$, the hyperbolic volume of the manifold.
+\end{enumerate}
+All the other orientable censuses are of hyperbolic 3-manifolds. The Hodgson-Weeks census has
+entries $\rho:N$ where $\rho$ is a decimal approximation of the hyperbolic volume and $N$ is
+an expression of the manifold as a Dehn filling of some SnapPea census manifold. The cusped
+census has the usual SnapPea census names. The link census has the usual link names. The latter
+is the only difficulty for us; we must make sure to distinguish the two types of name beginning
+with $L$, viz. lens spaces and hyperbolic link complements with more than one boundary component.
+Apart from that, with the current censuses in Regina 5.1, we see that the only census manifolds
+that embed nonelementarily in a hyperbolic link complement are themselves hyperbolic.
+<<censuscheck>>=
+    if name.find("Hyp") != -1:
+        return (True, name)
+    try:
+        vol = float(name[:name.find(':')])
+        return (True, name)
+    except:
+        pass
+    if name[0] == "L" and name[1] != "(":
+        return (True, name)
+    return (False, name)
+    
+<<NE>>=
 def NE(mfld):
     Mi = rg.Triangulation3(mfld)
     Mi.intelligentSimplify()
     Mi.finiteToIdeal()
     Mi.intelligentSimplify()
+    x = censusNE(Mi)
+    if x != None:
+        return x[0]
 @ 
-Before doing anything else, we check to see
+Next, we check to see
 whether or not $M$ admits a strict angle
 structure. If it does, then $M$ is hyperbolic,
-and every $N$ into which $M$ embeds nonelementarily
-is a Dehn filling of $M$. This is a relatively
+and every hyperbolic $N$ into which $M$ embeds nonelementarily
+is a hyperbolic Dehn filling of $M$. This is a relatively
 quick check.
 <<NE>>=
     if Mi.hasStrictAngleStructure():
@@ -1625,6 +1710,88 @@ That concludes the procedure [[NE]].
 <<nonelem.py>>=
 <<NE>>
 @
+\section{Exceptional fillings}
+We wish to determine the one-cusped
+hyperbolic Dehn fillings $N$ of some
+two-cusped hyperbolic 3-manifolds $M$
+with more than 8 exceptional slopes.
+
+Fix $M$. If $s$ is a slope on a boundary
+torus $t$ of $M$ with length
+greater than 6, then $M(s)$ is hyperbolic
+by the 6 Theorem. The exceptional
+slopes $s'$ of $M(s)$ we may identify
+with exceptional Dehn filling
+coefficients $s+s'$ on $M$. There are at
+most as many of these as there are
+short slopes $s'$ on the other boundary
+torus $t'$ of $M$. So first we
+will examine how many short slopes are
+on each boundary torus. For every
+two-cusped manifold we inspect and
+for each of its boundary tori, this
+number is always at most 8.
+
+We now describe a simple, efficient
+approach to enumerating short slopes
+inspired by the first chapter of \cite{ConwayFung},
+where the reader can find a more geometric
+intuition for the following.
+
+Let $T$ be the subset of $M_{2\times 2}\mathbf{N}$ consisting
+of determinant one matrices. Suppose $M \in T$.
+Let
+\[
+M = \begin{pmatrix}
+  a & b \\
+  c & d
+\end{pmatrix}.
+\]
+Then $ad - bc = 1$, so $a/c = b/d + 1/(cd) > b/d$.
+The \emph{interval of $M$} is the open interval
+$I(M) = (b/d, a/c)$. Furthermore, again since $ad - bc = 1$,
+$b/d < (a+b)/(c+d) < a/c$.
+The \emph{right child of $M$} is the matrix
+\[R(M) = \begin{pmatrix}
+  a & a+b \\
+  c & c+d
+\end{pmatrix}
+\]
+and the \emph{left child of $M$} is the matrix
+\[L(M) = \begin{pmatrix}
+  a+b & b \\
+  c+d & d
+\end{pmatrix}
+\]
+By the above considerations, $L(M) \cap R(M) = \emptyset$
+and $L(M) \cup \{(a+b)/(c+d)\} \cup R(M) = I(M)$.
+In particular, $L(M)$ and $R(M)$ are strict subsets of
+$I(M)$.
+
+We regard $T$ as a digraph whose vertices are elements
+of $T$ and with edges from a vertex to its left child
+and right child.
+\begin{lemma}
+  $T$ is an infinite binary (search) tree whose root is
+  the identity matrix.
+\end{lemma}
+\begin{proof}
+  Note that the interval of the identity matrix
+  is $(0,\infty)$, and every nonidentity matrix
+  has interval being a strict subset of this interval.
+  So the identity is a child of no vertex.
+
+  Suppose $M$ is as above. Since $M$ has
+  determinant 1, its columns are not equal.
+  Furthermore, either $a > b$ or $b \geq a$.
+  If $a > b$,             
+
+  \end{proof}
+
+<<excFill.py>>=
+def 
+
+@
 \section{Going through the manifolds}
 \subsection{Automating enumeration}
 Now it's straightforward to go through the
@@ -1704,7 +1871,8 @@ def invToString(inv):
     s = s + "$"
     return s
     
-def fullDisplay(f,l):
+def fullDisplay(outfile,vettedlist):
+    f,l = outfile, vettedlist
     if len(l) == 0:
         return None
     f.write("\\begin{itemize}\n")
@@ -1806,7 +1974,7 @@ def timesTaken(f,l,tp):
             f.write("\\item " + invToString(x[0]) + "\n")
         f.write("\\end{itemize}\n")
 
-def summaryOfResults(f,l,tp):
+def vettingResultsSummary(f,l,tp):
     summaryPreamble(f,l,tp)
     recognitionTypes(f,l)
     timesTaken(f,l,tp)
@@ -1846,8 +2014,8 @@ if __name__ == "__main__":
     texD.writelines(preamble)
     texS.write("\\section{Summary of results}\n")
     for i in range(x+1):
-        summaryOfResults(texS,hyp[i],("Hyperbolic",i))
-        summaryOfResults(texS,unh[i],("Unhyperbolic",i))
+        vettingResultsSummary(texS,hyp[i],("Hyperbolic",i))
+        vettingResultsSummary(texS,unh[i],("Unhyperbolic",i))
     texS.write("\\end{document}\n")
     texS.close()
     texD.write("\\section{All data}\n")
