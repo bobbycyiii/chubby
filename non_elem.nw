@@ -1711,10 +1711,10 @@ That concludes the procedure [[NE]].
 <<NE>>
 @
 \section{Exceptional fillings}
-We wish to determine the one-cusped
+We wish to determine those one-cusped
 hyperbolic Dehn fillings $N$ of some
 two-cusped hyperbolic 3-manifolds $M$
-with more than 8 exceptional slopes.
+that might have more than 8 exceptional slopes.
 
 Fix $M$. If $s$ is a slope on a boundary
 torus $t$ of $M$ with length
@@ -1738,6 +1738,54 @@ inspired by the first chapter of \cite{ConwayFung},
 where the reader can find a more geometric
 intuition for the following.
 
+Given a maximal cusp $C$ in some hyperbolic 3-manifold
+$M$, we can have SnapPea calculate
+the length $\ell$ of the shortest
+nontrivial translation $m$ on the cusp, and
+calculate the shape $z$ of the cusp. Identifying
+$H_1(C; \mathbf{R}) = \mathbf{C}$
+by the orientation-preserving isometry $\varphi$
+taking $m$ to $\ell$,
+we can calculate a second-shortest translation
+$n = \varphi^{-1}(z\cdot \ell)$. Its length is
+$|z|\cdot \ell$. Finally, we calculate that
+the length of $p\cdot m + q\cdot n$ is
+$|p\cdot \ell + q \cdot \ell \cdot z|^2
+=\ell^2 \cdot |p + q \cdot z|^2$. Thus
+we get a positive-definite real quadratic form
+$Q(p,q) = \ell^2 \cdot |p + q \cdot z|^2$,
+taking its smallest and second-smallest values
+at $(1,0)$ and $(0,1)$ respectively.
+
+\begin{lemma}
+  Suppose $Q(v) \leq Q(w) \leq Q(v+w)$ and $1\leq p, 1 \leq q$ with $p,q \in \mathbf{N}$.
+  Then $Q(p\cdot v + q \cdot w) \geq Q(v+w)$.
+\end{lemma}
+\begin{proof}
+  \begin{align*}
+    Q(v+w) &= Q(v) + Q(w) + 2\cdot \langle v,w \rangle \\
+    Q(v+w) - Q(w) &= Q(v) + 2\cdot \langle v,w \rangle \geq 0 \\
+    \langle v,w \rangle &\geq -Q(v)/2 \\
+    Q(p\cdot v + q \cdot w) &= p^2 \cdot Q(v) + q^2 \cdot Q(w) + 2\cdot p \cdot q \cdot \langle v,w \rangle \\
+    Q(p\cdot v + q \cdot w) - Q(v+w)
+    &= (p^2 - 1) \cdot Q(v) + (q^2 - 1) \cdot Q(w)
+    + 2 \cdot (p\cdot q - 1) \cdot \langle v,w \rangle \\
+    &\geq (p^2 -1) \cdot Q(v) + (q^2 - 1) \cdot Q(w) - (p\cdot q - 1) \cdot Q(v) \\
+    &= (p^2 - p\cdot q) \cdot Q(v) + (q^2 - 1) \cdot Q(w)\\
+    &\geq (p^2 + q^2 - p\cdot q - 1) \cdot Q(v)
+  \end{align*}
+  (We used the conditions on $p,q$ to show
+  $2\cdot (p\cdot q - 1) \cdot \langle v,w \rangle \geq -(p\cdot q - 1)\cdot Q(v)$.)
+  Now, $q(p,q) = p^2 - p \cdot q + q^2$ is itself a positive-definite binary
+  quadratic form whose smallest value on $\mathbf{Z}^2 \setminus \{\vec{0}\}$
+  is 1. The result follows.
+\end{proof}
+
+From the above lemma we get a way to show that infinitely many slopes are long.
+However, the preconditions of the lemma do not use a single vector, but two vectors.
+We therefore find it useful to put some structure not on $\mathbf{Z}^2$ but on
+(a certain subset of) $M_{2\times 2}\mathbf{Z}$.
+
 Let $T$ be the subset of $M_{2\times 2}\mathbf{N}$ consisting
 of determinant one matrices. Suppose $M \in T$.
 Let
@@ -1747,26 +1795,37 @@ M = \begin{pmatrix}
   c & d
 \end{pmatrix}.
 \]
-Then $ad - bc = 1$, so $a/c = b/d + 1/(cd) > b/d$.
+Then $a\cdot d - b\cdot c = 1$, so $d/b = c/a + 1/(ab) \geq c/a$,
+assuming $a\cdot b > 0$. On the other hand, if $a = 0$,
+then $-b\cdot c = 1$, which is impossible; and if $b = 0$,
+then $a\cdot d = 1$, in which case $a = d = 1$ and $d/b = \infty$.
+Regarding $\infty > x$ for all $x \in \mathbf{Q}$, in any case, $d/b > c/a$.
+\begin{definition}
 The \emph{interval of $M$} is the open interval
-$I(M) = (c/a, d/b)$. Furthermore, again since $ad - bc = 1$,
+$I(M) = (c/a, d/b)$. Furthermore, again since $a \cdot d - b \cdot c = 1$,
 $c/a < (c+d)/(a+b) < d/b$.
 The \emph{left child of $M$} is the matrix
 \[L(M) = \begin{pmatrix}
   a & a+b \\
   c & c+d
 \end{pmatrix}
+= M.\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix},
 \]
 and the \emph{right child of $M$} is the matrix
 \[R(M) = \begin{pmatrix}
   a+b & b \\
   c+d & d
 \end{pmatrix}
+= M.\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
 \]
-By the above considerations, $L(M) \cap R(M) = \emptyset$
-and $L(M) \cup \{(c+d)/(a+b)\} \cup R(M) = I(M)$.
-In particular, $L(M)$ and $R(M)$ are strict subsets of
-$I(M)$. The \emph{slope} of $M$ is $(c+d)/(a+b)$.
+The \emph{slope} of $M$ is $s(M) = (a+b\ \ c+d)^t = M.(1\ 1)^t$.
+The \emph{number} of $M$ is $r(M) = (c+d)/(a+b)$.
+\end{definition}
+We see that $L(M), R(M) \in T$ if $M \in T$.
+By the above considerations, $I(L(M)) \cap I(R(M)) = \emptyset$
+and $I(L(M)) \cup \{r(m)\} \cup I(R(M)) = I(M)$.
+In particular, $I(L(M))$ and $I(R(M))$ are strict subsets of
+$I(M)$, and $r(M) \in I(M)$.
 
 Clearly we may also define the inverse maps
 \[L^{-1}(M) = \begin{pmatrix}
@@ -1781,22 +1840,25 @@ and
 as maps from $SL_2\mathbf{Z}$ to itself; however,
 neither inverse map takes $T$ into itself.
 
-We regard $T$ as a digraph whose vertices are elements
-of $T$ and with edges from a vertex to its left child
-and right child.
+\begin{definition}
+  By abuse of notation, we will regard $T$ as a digraph
+  that has its elements for vertices
+  and that has edges from each vertex to its left child
+  and right child.
+\end{definition}
 \begin{lemma}
-  $T$ is an infinite binary (search) tree whose source (i.e. root) is
+  $T$ is an infinite binary tree whose source (i.e. root) is
   the identity matrix.
 \end{lemma}
 \begin{proof}
   Note that the interval of the identity matrix
   is $(0,\infty)$, and every nonidentity matrix
   has interval being a strict subset of this interval.
-  So the identity is a child of no vertex, i. e. it is a source.
+  So the identity is a child of no vertex---that is, it is a source.
 
   Conversely, suppose $v$ is a child of no vertex.
   Let
-  \[ v = \begin{pmatrix} a & b // c & d \end{pmatrix}. \]
+  \[ v = \begin{pmatrix} a & b \\ c & d \end{pmatrix}. \]
   Then neither $L^{-1}(v)$ nor $R^{-1}(v)$ lies in $T$.
   Thus one of $b-a,d-c$ is negative, and one of
   $a-b,c-d$ is negative---i.e., $a-b,c-d$ are of opposite sign.
@@ -1813,7 +1875,7 @@ and right child.
   so $R^{-1}(v) \notin T$, and thus $v$ is not the right child
   of any vertex. So $v$ is the child of the unique vertex $L^{-1}(v) = w$.
   A similar result holds if $v = R(w)$. Thus vertices that are
-  children have unique ``parents.'' That is, each vertex
+  children have unique ``parents.'' That is, each non-identity vertex
   has a unique in-edge. Each vertex also has exactly two out-edges.
   Thus $T$ is 3-regular apart from the source.
 
@@ -1826,27 +1888,58 @@ and right child.
   Therefore, $T$ is an infinite binary search tree.
 \end{proof}
 
-Now, suppose $Q$ is a positive-definite
-real quadratic form on $\mathbf{Z}^2$.
-We can find the shortest and second-shortest
-values of $Q$ if need be (see \cite{ConwayFung});
-luckily, SnapPea already does this for us.
-Suppose then that $Q$ takes its smallest and
-second-smallest values respectively on
-$(1\ 0)^t$ and $(0\ 1)^t$. Unfortunately,
-$Q$ is not determined by its values on these
-vectors; however, it is determined by these
-values together with its value on $(1\ 1)^t$.
+\begin{definition}
+  The \emph{descendant relation} is the reflexive
+  transitive closure of the child relation.
+  That is, ``is a descendant of'' is the
+  smallest relation such that $N$ is a descendant of $M$ if and only if
+  either $N = M$ or $N$ is a child of a descendant of $M$.
+  We write $M \to N$ for ``$N$ is a descendant of $M$''.
+\end{definition}
+\begin{lemma}
+  All rows and columns of elements of $T$ are primitive. (In particular,
+  all slopes of elements are primitive.)
+\end{lemma}
+\begin{proof}
+  Suppose $M \in T$; let
+  \[ M = \begin{pmatrix} a & b \\ c & d \end{pmatrix} \].
+  Suppose, say, $(a\ c) = k \cdot (A\ C)$. Then
+  \[ 1 = \det M = k \cdot \left | \begin{matrix} A & b \\ C & d \end{matrix} \right |. \]
+  Hence $k = \pm 1$, and $(a\ c)$ is primitive. The result
+  follows from symmetries of $\det$.
+\end{proof}
+\begin{lemma}
+  Every primitive $(p\ q)^t \in \mathbf{Z}^2$ with $1\leq p$, $1\leq q$
+  is the slope of a unique element of $T$.
+\end{lemma}
+\begin{proof}
+  Suppose $(p\ q)^t$ is as above. 
+  \end{proof}
+\begin{lemma}
+  Suppose $M \in T$ and $v,w$ are the columns of $M$.
+  The descendants of $M$ are precisely those $N \in T$ whose
+  slopes are of the form $p\cdot v + q\cdot w$ with
+  $1 \leq p$, $1 \leq q$.
+\end{lemma}
+\begin{proof}
+  Suppose $N$ is a descendant of $M$. By induction,
+  the slope of $N$ is of the form $p\cdot v + q \cdot w$
+  with $1\leq p$, $1\leq q$, $p,q \in \mathbf{N}$.
 
-Given a maximal cusp $C$ in some hyperbolic 3-manifold
-$M$, we can have SnapPea calculate the length $\ell$ of the shortest
-nontrivial translation $m$ on the cusp, and
-calculate the shape of the cusp $z$. Identifying
-$H_1(C; \mathbf{R}) = \mathbf{C}$
-by the orientation-preserving isometry $\phi$ taking $m$ to $\ell$,
-we can calculate a second-shortest translation
-$n = \phi^{-1}(z\cdot \ell)$. Its length is $|z|\cdot \ell$.
-Finally, if $Re(z) > 0$ we can calculate
+  Conversely, suppose the slope of $N$ is of that form
+  $p\cdot v + q \cdot w$. Then $(p\ q)^t$ is a primitive;
+  otherwise, the slope of $N$ would not be a primitive.
+
+  Suppose $(p\ q)^t$ were a slope of $X \in T$.
+  
+  \end{proof}
+
+
+
+
+
+
+
 
 
 <<excFill.py>>=
