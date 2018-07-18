@@ -26,7 +26,7 @@
 \newcommand{\MOM}{\textsc{Mom}}
 \begin{document}
 \pagestyle{noweb}
-\title{[[neckl2]]}
+\title{[[neckl]]}
 \author{Robert C. Haraway III}
 \date{\today}
 \maketitle
