@@ -1715,7 +1715,9 @@ We wish to determine those one-cusped
 hyperbolic Dehn fillings $N$ of some
 two-cusped hyperbolic 3-manifolds $M$
 that might have more than 8 exceptional slopes.
-
+Then we wish to determine among these
+which do in fact have more than 8 exceptional slopes.
+@
 Fix $M$. If $s$ is a slope on a boundary
 torus $t$ of $M$ with length
 greater than 6, then $M(s)$ is hyperbolic
@@ -1730,14 +1732,18 @@ will examine how many short slopes are
 on each boundary torus. For every
 two-cusped manifold we inspect and
 for each of its boundary tori, this
-number is always at most 8.
-
+number is always at most 8. After
+this we simply count for each one-cusped
+manifold how many exceptional short
+fillings it has.
+@
+\subsection{Short slopes}
 We now describe a simple, efficient
 approach to enumerating short slopes
 inspired by the first chapter of \cite{ConwayFung},
 where the reader can find a more geometric
 intuition for the following.
-
+@
 Given a maximal cusp $C$ in some hyperbolic 3-manifold
 $M$, we can have SnapPea calculate
 the length $\ell$ of the shortest
@@ -1756,38 +1762,52 @@ we get a positive-definite real quadratic form
 $Q(p,q) = \ell^2 \cdot |p + q \cdot z|^2$,
 taking its smallest and second-smallest values
 at $(1,0)$ and $(0,1)$ respectively.
-
-\begin{lemma}
-  Suppose $Q(v) \leq Q(w) \leq Q(v+w)$ and $1\leq p, 1 \leq q$ with $p,q \in \mathbf{N}$.
+@
+\begin{lemma}\label{lem:longslopes}
+  Suppose $Q(v) \leq Q(w) \leq Q(v+w)$ and
+  $1\leq p, 1 \leq q$ with $p,q \in \mathbf{N}$.
   Then $Q(p\cdot v + q \cdot w) \geq Q(v+w)$.
 \end{lemma}
+@
 \begin{proof}
   \begin{align*}
     Q(v+w) &= Q(v) + Q(w) + 2\cdot \langle v,w \rangle \\
     Q(v+w) - Q(w) &= Q(v) + 2\cdot \langle v,w \rangle \geq 0 \\
     \langle v,w \rangle &\geq -Q(v)/2 \\
-    Q(p\cdot v + q \cdot w) &= p^2 \cdot Q(v) + q^2 \cdot Q(w) + 2\cdot p \cdot q \cdot \langle v,w \rangle \\
+    Q(p\cdot v + q \cdot w)
+    &= p^2 \cdot Q(v) + q^2 \cdot Q(w)
+    + 2\cdot p \cdot q \cdot \langle v,w \rangle \\
     Q(p\cdot v + q \cdot w) - Q(v+w)
     &= (p^2 - 1) \cdot Q(v) + (q^2 - 1) \cdot Q(w)
     + 2 \cdot (p\cdot q - 1) \cdot \langle v,w \rangle \\
-    &\geq (p^2 -1) \cdot Q(v) + (q^2 - 1) \cdot Q(w) - (p\cdot q - 1) \cdot Q(v) \\
+    &\geq (p^2 -1) \cdot Q(v) + (q^2 - 1) \cdot Q(w)
+    - (p\cdot q - 1) \cdot Q(v) \\
     &= (p^2 - p\cdot q) \cdot Q(v) + (q^2 - 1) \cdot Q(w)\\
     &\geq (p^2 + q^2 - p\cdot q - 1) \cdot Q(v)
   \end{align*}
+@
   (We used the conditions on $p,q$ to show
-  $2\cdot (p\cdot q - 1) \cdot \langle v,w \rangle \geq -(p\cdot q - 1)\cdot Q(v)$.)
-  Now, $q(p,q) = p^2 - p \cdot q + q^2$ is itself a positive-definite binary
-  quadratic form whose smallest value on $\mathbf{Z}^2 \setminus \{\vec{0}\}$
+  $2\cdot (p\cdot q - 1) \cdot \langle v,w
+  \rangle \geq -(p\cdot q - 1)\cdot Q(v)$.)
+  Now, $q(p,q) = p^2 - p \cdot q + q^2$ is
+  itself a positive-definite binary
+  quadratic form whose smallest value on
+  $\mathbf{Z}^2 \setminus \{\vec{0}\}$
   is 1. The result follows.
 \end{proof}
-
-From the above lemma we get a way to show that infinitely many slopes are long.
-However, the preconditions of the lemma do not use a single vector, but two vectors.
-We therefore find it useful to put some structure not on $\mathbf{Z}^2$ but on
+@
+\subsubsection{The tree in the background}
+From the above lemma we get a way to show
+that infinitely many slopes are long.
+However, the preconditions of the lemma do
+not use a single vector, but two vectors.
+We therefore find it useful to put some
+structure not on $\mathbf{Z}^2$ but on
 (a certain subset of) $M_{2\times 2}\mathbf{Z}$.
-
+@
 Let $T$ be the subset of $M_{2\times 2}\mathbf{N}$ consisting
 of determinant one matrices. Suppose $M \in T$.
+@
 Let
 \[
 M = \begin{pmatrix}
@@ -1795,14 +1815,20 @@ M = \begin{pmatrix}
   c & d
 \end{pmatrix}.
 \]
+@
 Then $a\cdot d - b\cdot c = 1$, so $d/b = c/a + 1/(ab) \geq c/a$,
 assuming $a\cdot b > 0$. On the other hand, if $a = 0$,
 then $-b\cdot c = 1$, which is impossible; and if $b = 0$,
 then $a\cdot d = 1$, in which case $a = d = 1$ and $d/b = \infty$.
-Regarding $\infty > x$ for all $x \in \mathbf{Q}$, in any case, $d/b > c/a$.
+Regarding $\infty > x$ for all $x \in \mathbf{Q}$,
+in any case, $d/b > c/a$.
+@
 \begin{definition}
 The \emph{interval of $M$} is the open interval
-$I(M) = (c/a, d/b)$. Furthermore, again since $a \cdot d - b \cdot c = 1$,
+$I(M) = (c/a, d/b)$.
+@
+Furthermore, again since
+$a \cdot d - b \cdot c = 1$,
 $c/a < (c+d)/(a+b) < d/b$.
 The \emph{left child of $M$} is the matrix
 \[L(M) = \begin{pmatrix}
@@ -1818,15 +1844,18 @@ and the \emph{right child of $M$} is the matrix
 \end{pmatrix}
 = M.\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
 \]
+@
 The \emph{slope} of $M$ is $s(M) = (a+b\ \ c+d)^t = M.(1\ 1)^t$.
+@
 The \emph{number} of $M$ is $r(M) = (c+d)/(a+b)$.
 \end{definition}
+@
 We see that $L(M), R(M) \in T$ if $M \in T$.
 By the above considerations, $I(L(M)) \cap I(R(M)) = \emptyset$
 and $I(L(M)) \cup \{r(m)\} \cup I(R(M)) = I(M)$.
 In particular, $I(L(M))$ and $I(R(M))$ are strict subsets of
 $I(M)$, and $r(M) \in I(M)$.
-
+@
 Clearly we may also define the inverse maps
 \[L^{-1}(M) = \begin{pmatrix}
   a & b-a \\
@@ -1839,55 +1868,70 @@ and
 \end{pmatrix} \]
 as maps from $SL_2\mathbf{Z}$ to itself; however,
 neither inverse map takes $T$ into itself.
-
+@
 \begin{definition}
   By abuse of notation, we will regard $T$ as a digraph
   that has its elements for vertices
   and that has edges from each vertex to its left child
   and right child.
 \end{definition}
+@
 \begin{lemma}
   $T$ is an infinite binary tree whose source (i.e. root) is
   the identity matrix.
 \end{lemma}
+@
 \begin{proof}
   Note that the interval of the identity matrix
   is $(0,\infty)$, and every nonidentity matrix
   has interval being a strict subset of this interval.
   So the identity is a child of no vertex---that is, it is a source.
-
+@
   Conversely, suppose $v$ is a child of no vertex.
   Let
   \[ v = \begin{pmatrix} a & b \\ c & d \end{pmatrix}. \]
   Then neither $L^{-1}(v)$ nor $R^{-1}(v)$ lies in $T$.
   Thus one of $b-a,d-c$ is negative, and one of
-  $a-b,c-d$ is negative---i.e., $a-b,c-d$ are of opposite sign.
+  $a-b,c-d$ is negative---i.e., $a-b,c-d$ are
+  of opposite sign.
   If $a-b > 0$, then $a > b$ and $d > c$. So $a \geq b + 1$
-  and $d \geq c + 1$; hence $a\cdot d \geq b\cdot c + b + c + 1$,
+  and $d \geq c + 1$; hence
+  $a\cdot d \geq b\cdot c + b + c + 1$,
   and $a\cdot d - b\cdot c = 1 \geq b + c + 1$, i. e.
   $0 \geq b + c$. So $b = c = 0$ and $a = d = 1$. The case
-  $a-b < 0$ leads similarly to $a\cdot d - b\cdot c = 1 \leq -a -d -1$,
-  which is impossible. So the identity is the unique source of this
-  digraph.
-  
-  On the other hand, suppose $v$ is a child of some vertex $w$.
+  $a-b < 0$ leads similarly to
+  $a\cdot d - b\cdot c = 1 \leq -a -d -1$,
+  which is impossible. So the identity is the
+  unique source of this digraph.
+@ 
+On the other hand, suppose $v$ is a child
+of some vertex $w$.
   If $v = L(w)$, then $v_{0,0} < v_{0,1}$ and $v_{1,0} < v_{1,1}$,
   so $R^{-1}(v) \notin T$, and thus $v$ is not the right child
-  of any vertex. So $v$ is the child of the unique vertex $L^{-1}(v) = w$.
+  of any vertex. So $v$ is the child
+  of the unique vertex $L^{-1}(v) = w$.
   A similar result holds if $v = R(w)$. Thus vertices that are
   children have unique ``parents.'' That is, each non-identity vertex
   has a unique in-edge. Each vertex also has exactly two out-edges.
   Thus $T$ is 3-regular apart from the source.
-
+@
   Finally, every vertex has a unique backtrack-free path from the
   source: simply apply $L^{-1}$ and $R^{-1}$ repeatedly until one
   can do so no longer. This terminates since both maps strictly reduce
-  $L_1$ norm on $T$, and $L_1$ norm takes values in $\mathbf{N}$ on $T$.
+  $L_1$ norm on $T$, and $L_1$ norm takes
+  values in $\mathbf{N}$ on $T$.
   So $T$ is a tree.
 
   Therefore, $T$ is an infinite binary search tree.
 \end{proof}
-
+@
+\begin{remark}
+  We never actually construct this tree $T$ or even any
+  finite subtree of it in code. Instead we construct a function whose
+  call-structure is equivalent to finite subtrees of this
+  tree. We use $T$ to prove properties of the function.
+\end{remark}
+@
 \begin{definition}
   The \emph{descendant relation} is the reflexive
   transitive closure of the child relation.
@@ -1896,54 +1940,373 @@ neither inverse map takes $T$ into itself.
   either $N = M$ or $N$ is a child of a descendant of $M$.
   We write $M \to N$ for ``$N$ is a descendant of $M$''.
 \end{definition}
+@
 \begin{lemma}
-  All rows and columns of elements of $T$ are primitive. (In particular,
-  all slopes of elements are primitive.)
+  All rows and columns of elements of $T$ are primitive.
+  (In particular, all slopes of elements are primitive.)
 \end{lemma}
+@
 \begin{proof}
   Suppose $M \in T$; let
   \[ M = \begin{pmatrix} a & b \\ c & d \end{pmatrix} \].
   Suppose, say, $(a\ c) = k \cdot (A\ C)$. Then
-  \[ 1 = \det M = k \cdot \left | \begin{matrix} A & b \\ C & d \end{matrix} \right |. \]
+  \[ 1 = \det M = k \cdot
+  \left | \begin{matrix} A & b \\ C & d \end{matrix} \right |. \]
   Hence $k = \pm 1$, and $(a\ c)$ is primitive. The result
   follows from symmetries of $\det$.
 \end{proof}
-\begin{lemma}
-  Every primitive $(p\ q)^t \in \mathbf{Z}^2$ with $1\leq p$, $1\leq q$
+@
+\begin{lemma}\label{lem:slopeUniqueElement}
+  Every $(p\ q)^t \in \mathbf{N}^2$
+  with $gcd(p,q) = 1$
   is the slope of a unique element of $T$.
 \end{lemma}
+@
 \begin{proof}
-  Suppose $(p\ q)^t$ is as above. 
-  \end{proof}
+  We give an algorithm in Python that computes this element.
+<<T element from slope>>=
+ def T_element(slope):
+     (p,q) = slope
+     u,v,a,b,c,d = p,q,1,0,0,1
+     while u != v:
+         if u > v:
+            Q,R = u / v, u % v
+            u,a,b = R, a + Q*c, b + Q*d
+         elif v > u:
+            Q,R = v / u, v % u
+            v,c,d = R, c + Q*a, d + Q*b
+     return (a,b,c,d)
+@ 
+First, none of the code modifies $p$ or $q$.
+@
+Before the loop, we have set up the preconditions
+$u = a\cdot p - b \cdot q$, $v = -c \cdot p + d \cdot q$,
+and $a \cdot d - b \cdot c = 1$. The loop keeps these conditions
+invariant. For instance, if $u > v$, then we calculate
+$Q,R$ such that $0 \leq R < v$ and $u = Q\cdot v + R$,
+then reassign $u := R$, i.e. $u := u - Q \cdot v$. Now,
+@
+\begin{align*}
+  u - Q \cdot v 
+  &= a\cdot p - b \cdot q - (-Q\cdot c\cdot p + Q\cdot d \cdot q)\\
+  &= a\cdot p - b \cdot q + Q \cdot c \cdot p - Q \cdot d \cdot q\\
+  &= (a + Q\cdot c) \cdot p - (b + Q \cdot d)\cdot q
+\end{align*}
+@
+Moreover, the substitution $a,c := a + Q\cdot b, c + Q\cdot d$
+does not change the determinant $a\cdot d - b\cdot c = 1$.
+The other cases are similar.
+@
+Furthermore, the loop has $max(u,v)$
+as a variant, i.e. as a natural number
+that decreases with every loop. The reason
+for this is that $u,v \geq 1$; this follows
+since $gcd(u,v) = gcd(p,q) = 1$.
+So the loop terminates.
+@
+As usual, it terminates in the
+condition that is the conjunction of the above preconditions together
+with the negation $u = v$ of the loop condition.
+In this case, $u = v = gcd(u,v) = gcd(p,q) = 1$.
+Now $a\cdot p - b \cdot q = 1 = -c \cdot p + d\cdot q$
+implies $(c+d)/(a+b) = q/p$. Furthermore,
+the left- and right-hand sides of this equation are
+in reduced terms, since $gcd(p,q) = 1$ and
+$a\cdot d - b\cdot c = 1$. Since their numerators and denominators
+are at least 0, they must have equal numerators and denominators.
+This shows the existence of the element.
+@
+Uniqueness follows from considering intervals.
+Suppose $v = (p\ q)^t$ is the slope of $M$ and $M'$.
+Then the number of $v$ is in both $I(M)$ and $I(M')$.
+So $I(M) \cap I(M')$ is nonempty. Furthermore,
+no strict subintervals (of the form $I(Y)$ for some $Y \in T$)
+of $I(M)$ or $I(M')$ contain $v$. So $I(M) \cap I(M') = I(M) = I(M')$.
+That is, $M = M'$.
+\end{proof}
+@
 \begin{lemma}
+  As a monoid, $T$ acts on the left of its
+  associated digraph by monomorphisms.
+\end{lemma}
+@
+\begin{proof}
+  We just need to check that it acts by injections that preserve
+  the child relations. Of course multiplication acts by injections.
+  Suppose $X,M\in T$. We wish to show $L(X.M) = X.L(M)$
+  and $R(X.M) = X.R(M)$, so left-multiplication preserves
+  the child relations. But this is trivial by associativity,
+  since there are matrices $\ell,r$ such that
+  for all matrices $s$, $L(s) = s.\ell$ and $R(s) = s.r$
+  (see the definition of $L$ and $R$).
+\end{proof}
+@
+\begin{lemma}\label{lem:descendants}
   Suppose $M \in T$ and $v,w$ are the columns of $M$.
   The descendants of $M$ are precisely those $N \in T$ whose
   slopes are of the form $p\cdot v + q\cdot w$ with
   $1 \leq p$, $1 \leq q$.
 \end{lemma}
+@
 \begin{proof}
   Suppose $N$ is a descendant of $M$. By induction,
   the slope of $N$ is of the form $p\cdot v + q \cdot w$
   with $1\leq p$, $1\leq q$, $p,q \in \mathbf{N}$.
-
+@
   Conversely, suppose the slope of $N$ is of that form
-  $p\cdot v + q \cdot w$. Then $(p\ q)^t$ is a primitive;
-  otherwise, the slope of $N$ would not be a primitive.
+  $p\cdot v + q \cdot w$ with $1\leq p$, $1\leq q$.
+  Then, first of all, $v = (p\ q)^t$ is a primitive; otherwise,
+  the slope of $N$ would not be a primitive. Hence
+  $gcd(p,q) = 1$. Thus it is itself the slope of some
+  $X \in T$. Let $k = (1\ 1)^t$; then for all matrices $Y$,
+  $s(Y) = Y.k$. So $v = s(X) = X.k$; hence
+  $s(N) = M.v = M.X.k = s(M.X)$. So $N = M.X$ by
+  uniqueness. Since $T$ acts by monomorphisms,
+  and since $X$ is a descendant of the identity,
+  $N$ is a descendant of $M$.
+\end{proof}
+@
+\begin{proposition}\label{prop:longDescendants}
+  Suppose $M \in T$, and suppose $Q$ is a positive-definite
+  quadratic form on $\mathbf{Z}^2$
+  taking smallest and second-smallest
+  values on $(1\ 0)^t$ and $(0\ 1)^t$, respectively.
 
-  Suppose $(p\ q)^t$ were a slope of $X \in T$.
-  
-  \end{proof}
+  If $N$ is a descendant of $M$, then
+  $Q(s(N)) > Q(s(M))$.
+\end{proposition}
+@
+\begin{proof}
+  This follows directly from lemmas \ref{lem:longslopes}
+  and \ref{lem:descendants}.
+\end{proof}
+@
+\begin{theorem}\label{thm:fasd}
+Assuming $f$ does not change any symbols used in the
+following program (e.g. $M$, $f$, [[for_all_short_descendants]],
+[[+]], and so on), and assuming $Q$ takes values in a
+decidable field,
+the following program does $f(N)$ for all descendants $N$
+of $M$ such that $Q(s(N)) \leq B$, and
+for no other descendants of $M$.
+<<shortSlopes.py>>=
+def for_all_short_descendants(Q,B,M,f):
+    (v, w) = M
+    S = (v[0]+w[0],v[1]+w[1])
+    if Q(S) > B:
+        pass
+    else:
+        for_all_short_descendants(Q,B,(v,S),f)
+	f(M)
+	for_all_short_descendants(Q,B,(S,w),f)
+@
+\end{theorem}
+\begin{proof}
+  Let $D$ be the subgraph of $T$ whose vertices
+  are the descendants of $M$ whose slopes have
+  $Q$-value at most $B$ (and whose edges are
+  the edges among these vertices in $T$).
+  We will show $D$ is a finite binary search
+  tree on the $Q$-values of the slopes.
+@
+Suppose $N$ is a descendant of $M$ in $D$ with
+$Q(s(N)) < B$. Suppose $p: [0,n] \to T$
+is a backtrack-free path in $T$ from $p(0) = M$
+to $p(n) = N$. Then by Proposition \ref{prop:longDescendants},
+$Q(s(p(i))) < B$ for all $0 \leq i \leq n$. So $p$
+is a backtrack-free path in $D$ between $M$ and $N$.
+Hence $N$ is a descendant of $M$ in $D$. Thus
+$D$ is a sub-tree of $T$.
+@
+To show that $D$ is finite, it suffices to
+show it has finitely many vertices. Its vertices
+are, by Lemma \ref{lem:slopeUniqueElement},
+identified with the slopes in $\mathbf{N}^2$ lying in
+the set $E = \{v:\mathbf{R}^2\ |\ Q(v) \leq B\}$, an
+ellipse. In particular, $E$ is compact; since
+$\mathbf{N}^2$ is discrete in $\mathbf{R}^2$,
+$D$ is finite.
 
+The result follows by structural induction on $D$.
+\end{proof}
+@
+\begin{corollary}\label{cor:shortslopes}
+  Assuming $f$ changes none of the symbols of
+  the following program, and assuming $Q$
+  is a positive-definite binary quadratic
+  form taking values in a decidable field,
+  the following program does $f(v)$ for
+  all primitives $v \in \mathbf{Z}^2$ in
+  the right half-plane, and possibly also for $v = (0,1)$,
+  such that $Q(v) \leq B$.
+@
+<<shortSlopes.py>>=
+def for_all_short_slopes(Q,B,f):
+    s = lambda M : (M[0][0]+M[0][1],M[1][0]+M[1][1])
+    g = lambda M : f(s(M))
+    Qbar = lambda (p,q): Q((p,-q))
+    Lambda = lambda ((a,b),(c,d)): ((b,a),(-d,-c))
+    gbar = lambda M : g(Lambda(M))
+    for_all_short_descendants(Qbar,B,((1,0),(0,1)),gbar)
+    if not Q((1,0)) > B:
+        f((1,0))
+    for_all_short_descendants(Q,B,((1,0),(0,1)),g)
+    if not Q((0,1)) > B:
+        f((0,1))
+@ 
+\end{corollary}
+\begin{proof}
+  Let us abbreviate the name of the program
+  in Theorem \ref{thm:fasd} to [[fasd]].
+  By that theorem, $fasd(Q,B,I,g)$
+  does $g(M) = f(s(M))$ for all descendants
+  $M$ of $I$ with $Q(s(M)) \leq B$, which is
+  to say it does $f(v)$
+  for all primitives $v \in (\mathbf{N}+1)^2$
+  with $Q(v) \leq B$.
+  We also do $f((1,0))$ and $f((0,1))$ if need be.
 
+  It remains to show $fasd(\bar{Q},B,I,\bar{g})$
+  does $f(v)$ for all primitives
+  $v \in (\mathbf{N}+1) \times (-\mathbf{N}-1)$.
+  Let $\Lambda(M) = \sigma.M.\tau$ where
+  \[\sigma=\begin{pmatrix}1&0\\0&-1\end{pmatrix},
+  \qquad\tau=\begin{pmatrix}0&1\\1&0\end{pmatrix}.\]
+  We have defined $\bar{Q}((p,q)) = Q((p,-q))$
+  and $\bar{g}(M) = g(\Lambda(M))$.
+  Then by Theorem \ref{thm:fasd},
+  $fasd(\bar{Q},B,I,\bar{g})$ does
+  $\bar{g}(M)$ for all descendants $M$
+  of $I$ with $\bar{Q}(s(M)) \leq B$.
+  Suppose $v = (p,-q)$ with $1 \leq p,q \in \mathbf{N}$.
+  Suppose further that $Q(v) \leq B$.
+  Let $M$ be the unique descendant
+  of $I$ with slope $(p,q)$. Then
+  $\bar{Q}(s(M)) = Q(v)$, and
+  $\bar{g}(M) = g(\Lambda(M)) =
+  f(s(\Lambda(M))) = f(v)$.
+  The result follows.
+\end{proof}
+@
+\subsubsection{Reduction to rational arithmetic}
+The above theorem is true only assuming that
+the test $Q(S) > B$ acts as usual in an ordered field.
+That is not the case for interval arithmetic, in which
+$\lnot [a,b] > [c,d]$ could mean $a \leq d$ instead.
+So we do the following. There is probably a better
+way to do this, but this will suffice for now.
+\begin{proposition}\label{prop:ratApprox}
+  For all $\epsilon > 0$ and all
+  positive definite binary quadratic forms $Q$,
+  there exists a \emph{rational} positive-definite binary
+  quadratic form $Q'$ such that for all nonzero
+  $v$, $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
+\end{proposition}
+@
+\begin{proof}
+Let $\delta > 0$.
+We can pick $Q'$ so that it takes rational
+smallest and second-smallest values on
+$e_0 = (1\ 0)^t$ and $e_\infty = (0\ 1)^t$
+respectively, and such that
+$\delta < Q(v) - Q'(v) < \delta\cdot (1 + \xi)$
+for $v \in \{e_0,e_\infty,e_0+e_\infty\}$.
+Then $(Q - Q')/\delta$ is itself a binary quadratic
+form given by some matrix
+\[ X = \begin{pmatrix} a & b \\ b & d \end{pmatrix}.\]
+@
+The above conditions imply that
+$1 \leq x \leq 1+\xi$ for $x \in \{a,d,a+d+2\cdot b\}$.
+The eigenvalues of $X$ are the roots of the polynomial
+$\lambda^2 - (a+d) \cdot \lambda + a\cdot d - b^2$.
+By considering the graph of this polynomial,
+it is clear that its roots are both positive
+if and only if $a\cdot d - b^2 > 0$.
+@
+Now the conditions above imply $a\cdot d \geq 1$.
+So we wish to pick $\xi$ such that we can prove $b^2 < 1$.
+In fact the conditions imply that
+$-1-2\cdot \xi < 2\cdot b < -1 + \xi$.
+So it suffices to pick $\xi$ such that $0 < \xi < 1/2$.
+@
+Assuming $0 < \xi < 1/2$, we certainly can find rational
+positive-definite $Q'$ satisfying the above conditions,
+since rational positive-definite quadratic forms
+are dense in the space of positive-definite quadratic forms.
+The eigenvalues of the matrix $X$ of $(Q-Q')/\delta$
+are both positive, so $X$ is itself positive-definite,
+and hence $Q(v) - Q'(v) > 0$ for all nonzero $v$.
+Furthermore, the larger eigenvalue of $X$ is
+\begin{align*}
+  \rho_+ &= \frac{a+d}{2} + \frac{\sqrt{(a-d)^2 + (2\cdot b)^2}}{2}\\
+  &\leq 1 + 2\cdot \xi + (1/2)\cdot \sqrt{4\cdot (\xi^2 + b^2)}\\
+  &\leq 1 + 2\cdot \xi + \sqrt{\xi^2 + b^2}\\
+  &\leq 1 + 2\cdot \xi + \sqrt{1/4 - \xi + 2\cdot \xi^2}.
+\end{align*}
+The supremum of this on $\xi \in [0,1/2)$
+is the value of the expression
+at $\xi = 1/2$ where it is equal to $5/2$.
+Thus for all $v$, $X.v = (Q(v) - Q'(v))/\delta < 5/2 \cdot |v|^2$,
+i.e. $Q(v) - Q'(v) < 5/2\cdot\delta \cdot |v|^2$.
+@
+Therefore, let us pick $\delta = \epsilon/(5/2)$, $\xi = 1/3$.
+By the above, if we pick a rational positive-definite
+binary quadratic form $Q'$ such that
+for all $v \in \{e_0,e_\infty,e_0+e_\infty\}$,
+$\delta < Q(v) - Q'(v) < (4/3)\cdot \delta$,
+then for all nonzero $v$,
+$0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
+\end{proof}
+@
+\begin{corollary}\label{cor:fasdApprox}
+  Suppose $Q,R$ are positive-definite binary
+  quadratic forms with $R$ rational. Suppose
+  further that for all nonzero $v$,
+  $0 < Q(v) - R(v)$.
+  Then [[for_all_short_descendants(R,B,M,f)]]
+  does [[f(N)]] for all descendants $N$ of $M$
+  such that $Q(s(N))\leq B$ (and possibly
+  for finitely many other descendants of $M$).
+\end{corollary}
+@
+\begin{proof}
+  By Theorem \ref{thm:fasd}
+  [[for_all_short_descendants(R,B,M,f)]]
+  does [[f(N)]] for all descendants $N$ of $M$
+  such that $R(s(N))\leq B$. But if
+  $Q(s(N)) \leq B$, then certainly $R(s(N)) \leq Q(s(N)) \leq B$.
+  So it does [[f(N)]] for all $N$ such that
+  $Q(s(N)) \leq B$. Since $R$ is positive-definite,
+  it does [[f(N)]] for only finitely many
+  descendants of $M$.
+\end{proof}
+Fortunately this is automatically taken care of
+in the software we use.
 
-
-
-
-
-
-
-<<excFill.py>>=
-def 
+@
+\subsubsection{Extracting a quadratic form}
+It remains only to extract a positive-definite
+rational lower bound $R$ on the Riemannian form
+restricted to a maximal cusp of a given hyperbolic
+3-manifold $M$. Using [[SnapPy]] as a Sage module,
+this is quite easily done.
+<<cuspForm.py>>=
+def cusp_form(mfld,cusp):
+    X = mfld.cusp_translations(verified=True)
+    (z,w) = X[cusp]
+    nrm = lambda Z: (Z*Z.conjugate()).real()
+    q = lambda (p,q): nrm(p*z+q*w).lower()
+    return q
+@ 
+\subsection{Dehn filling hack}
+We will want to fill our manifolds along slopes
+and determine whether or not the results are
+hyperbolic. Unfortunately SnapPy's Dehn filling
+triangulation routines are not deterministic,
+which can lead to large variance in running times.
+So we define the following technical routine
+for trying to Dehn fill in a consistent way.
+<<consistentDehnFill>>=
 
 @
 \section{Going through the manifolds}
@@ -2304,4 +2667,4 @@ touch hypNames.tex
 python naming.py
 pdflatex hypNames.tex
 @ 
-\end{document}
+\end{document} 
