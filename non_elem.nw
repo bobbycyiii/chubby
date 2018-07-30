@@ -32,10 +32,10 @@
 \maketitle
 \section*{Conventions}
 We use camel-case naming, following Regina.
-<<neckl.py>>=
-from regina import Triangulation3, Perm4
-@ 
-\section{Necklace gluings with $n$ beads}
+We remind the reader that indexing begins at 0.
+@
+\section{Enumerating necklace gluings}
+\subsection{Necklace gluings with $n$ beads}
 \begin{definition}
 An $n$-dipyramid is a 3-ball with a cell structure
 whose boundary triangulation is the suspension
@@ -80,17 +80,17 @@ face labelling on the boundary faces of the dipyramid.
   of all the faces of an $n$-dipyramid
   such that every face-pair preserves the partition
   of the dipyramid's vertices
-  into suspension points '' points.
+  into suspension points.
 \end{definition}
 The set of necklace gluings
 of bead number $n$ on an $n$-dipyramid
 is naturally in bijection
-with the fixed-point-free involutions
+with the perfect matchings
 on the set of faces of that $n$-dipyramid.
 There are $2 \cdot n$ faces, so given any
 labelling of the faces by naturals less
 than $2 \cdot n$, we get an identification
-sending fixed-point-free involutions
+sending perfect matchings
 in $S_{2 \cdot n}$ to necklace gluings. 
 @
 The labelling we choose involves a choice
@@ -119,13 +119,11 @@ the marking on its base side. (Cf. Figure \ref{fig:bead5}.)
 %\end{figure}
 @
 Therefore, the following code accomplishes a necklace
-gluing, given a fixed-point-free involution in
+gluing, given a perfect matching in
 $S_{2\cdot n}$ in cycle notation,
 assuming Regina maintains the indexing of tetrahedra.
 
 First, it is easy to match a face label with a tetrahedron index.
-<<neckl.py>>=
-<<how to make a necklace gluing>>
 
 <<how to make a necklace gluing>>=
 def whichTet(face):
@@ -181,12 +179,12 @@ fixed so that the gluing is oriented.
     ndipyr.setLabel(str(fpfinv))
     return ndipyr
 @
-\section{Enumerating necklace gluings}
+\subsection{Enumerating necklace gluings}
 Our next goal is to get a list as small as
 possible which for every necklace gluing
 contains a manifold homeomorphic to that gluing. We
 could, of course, just enumerate all
-fixed-point-free involutions and put the
+perfect matchings and put the
 associated gluings in a list. But many of
 these, presumably, will be asymmetric, so
 that by applying elements of the symmetry
@@ -197,26 +195,26 @@ reasonably can.
 @
 A reasonable approach is to have our list
 contain one representative from each
-dipyr-symmetry group orbit of fixed-point-free
-involutions, and nothing else. Milley took
+dipyr-symmetry group orbit of perfect
+matchings, and nothing else. Milley took
 this approach, and it is the approach we take
 as well. However, we introduce a subtlety which
 makes the enumeration faster and leaner.
 @
 We do not begin by enumerating all
-fixed-point-free involutions as Milley does.
+perfect matchings as Milley does.
 Instead, we begin by constructing a tree
 with a face-pair at each internal node, such
-that there is an identification of fixed-point-free
-involutions in $S_{2\cdot n}$ with
+that there is an identification of perfect
+matchings in $S_{2\cdot n}$ with
 backtrack-free paths from the root of the tree to leaves.
 This takes much less space to store than the
-whole list of fixed-point-free involutions.
-We define what it means to remove an involution
+whole list of perfect matchings.
+We define what it means to remove a matching
 from the tree. This takes much less time
-than removing an involution from a list.
+than removing a matching from a list.
 Finally, we do the most natural thing after that:
-while the tree still contains an involution $\sigma$,
+while the tree still contains a matching $\sigma$,
 remove every element of $\sigma$'s orbit from the tree,
 and then do something with $\sigma$ (e.g. put $\sigma$
 in some list, or determine whether or not it represents
@@ -258,8 +256,6 @@ def pFlip(face):
 def vFlip(n,face):
     return 2*(n-1 + face%2) - face
 
-<<neckl.py>>=
-<<how to act>>
 @
 You may check that a symmetry of the dipyramid
 is a rotation followed possibly by the p-flip,
@@ -342,17 +338,18 @@ def orbitWithRepeats(n,gluing):
         for t in nums:
             out = [ag(n,(s,t),l)] + out
     return out
-<<neckl.py>>=
-<<how to orbit>>
+    
 @
 Our tree will be a pretty standard binary tree on
-pairs of natural numbers. Its type's definition in Haskell
+pairs of natural numbers. Its type's definition in Coq
 would be
-<<Haskell definition of the type of our tree>>=
-data PT = PTLeaf | PTBranch (Integer,Integer) PT PT
+<<Coq definition of the type of our tree>>=
+Inductive PairTree : Type :=
+| PTLeaf : PairTree
+| PTBranch : (nat*nat) -> PairTree -> PairTree -> PairTree.
 @
 That is to say, a pair-tree is either a leaf, or it's
-a branch, with an associated pair $(m,n)$ of integers and
+a branch, with an associated pair $(m,n)$ of numbers and
 two associated pair-trees, a left child and right child.
 We again go with a poor-man's implementation of this
 datatype in Python. A pair-tree will be a tuple,
@@ -363,50 +360,50 @@ its next entry will be a pair [[(m,n)]] of integers; and
 its final entries will be pair-trees.
 @
 The way we construct our tree follows from a more general
-construction of fixed-point-free involutions on arbitrary
-lists of even length. Suppose $fpf(l)$ were the set of
-fixed-point-free involutions on $l$. If $l$ is empty,
+construction of perfect matchings on arbitrary
+lists of even length. Suppose $pfm(l)$ were the set of
+perfect matchings on $l$. If $l$ is empty,
 then this set is empty; we thus represent it by a leaf.
 Otherwise, $l$ has at least two elements by evenness.
-We partition $fpf(l)$ according as an element does or
+We partition $pfm(l)$ according as an element does or
 does not flip the first two elements of $l$. Thus,
-$fpf(l) = (f\ f') \cdot fpf(l'')\ \cup\ X$, where
+$pfm(l) = (f\ f') \cdot pfm(l'')\ \cup\ X$, where
 $f,f'$ are the first elements of $l$; $l''$ is $l$
 without these elements; and $X$ is the subset of
-$fpf(l)$ sending $f$ to something apart from $f'$.
+$pfm(l)$ sending $f$ to something apart from $f'$.
 @
 At this point we end up with two options.
 Either we could use a non-binary tree, or we can
-introduce a sort of auxiliary stack parameter in $fpf$
+introduce a sort of auxiliary stack parameter in $pfm$
 to "remember" which face-pairs we've foregone so far.
 Because our proof assistant Coq did not agree with
 non-binary trees, we choose the latter option.
 @
 So we end up with a slightly more complicated
 decomposition. We have some set $m$, and
-$fpf(l,m)$ is going to be the set of
-fixed-point-free involutions on $l \cup m$ \emph{which
+$pfm(l,m)$ is going to be the set of
+perfect matchings on $l \cup m$ \emph{which
 sends the first element of l to some other element of l}.
-(Thus, our original definition of $fpf$ would
-now be $fpf(l,\emptyset)$.)
+(Thus, our original definition of $pfm$ would
+now be $pfm(l,\emptyset)$.)
 If $l$ is empty, this is $\emptyset$. We represent
 this situation by a leaf.
 Otherwise, by $l$'s evenness, it has two
 initial elements $f,f'$. Then we may decompose
-$fpf(l,m)$ into those involutions which flip
+$pfm(l,m)$ into those matchings which flip
 $f,f'$ and those which don't.
-We may write a fixed-point-free involution on $l\cup m$
+We may write a perfect matching on $l\cup m$
 which flips $f,f'$ as the composition of $(f\ f')$ and a
-fixed-point-free involution of $l'' \cup m$,
+perfect matching of $l'' \cup m$,
 where $l''$ is $l$ without $f,f'$. On the other
-hand, a fixed-point-free involution on $l \cup m$
+hand, a perfect matching on $l \cup m$
 which does not send $f$ to $f'$ but which does send
-$f$ into $l$ is a fixed-point-free involution on
+$f$ into $l$ is a perfect matching on
 $l' \cup (\{f'\} \cup m)$ which sends $f$ 
 into some other element of $l'$,
 where $l'$ is $l$ without $f'$. Thus we have 
 a particular pair $(f,f')$, and two similar, simpler
-$fpf$s to consider. We represent this situation by
+$pfm$s to consider. We represent this situation by
 a branch. (For convenience,
 we define an auxiliary ``smush'' function establishing union
 in the first part of the partition.)
@@ -418,7 +415,7 @@ def smush (l,m):
     else:
         return smush (([m[0]] + l), m[1:])
 
-def fpf(l,m):
+def pfm(l,m):
     if l == []:
         return ("PTLeaf",)
     # else
@@ -430,39 +427,39 @@ def fpf(l,m):
     lpp = l[2:]
     return ("PTBranch", \
             (f,fp), \
-            fpf(smush(lpp,m), []), \
-            fpf([f] + lpp, [fp] + m))
+            pfm(smush(lpp,m), []), \
+            pfm([f] + lpp, [fp] + m))
     
 def originalTree(n):
     nums = range(2*n)
     nums.reverse()
-    return fpf(nums, [])
+    return pfm(nums, [])
 <<neckl.py>>=
 <<how to make a prefix tree>>
 @
-It's pretty simple to extract at least one involution
+It's pretty simple to extract at least one matching
 from our tree if there is one. Just go left.
 @
-<<how to get an involution if there is one>>=
-def leftInvolution(pt):
+<<how to get a matching if there is one>>=
+def leftMatching(pt):
     if pt[0] == "PTLeaf":
         return []
     else:
         (str, p, lt, rt) = pt
         assert str == "PTBranch"
-        return [p] + leftInvolution(lt)
+        return [p] + leftMatching(lt)
 <<neckl.py>>=
-<<how to get an involution if there is one>>
+<<how to get a matching if there is one>>
 @
 It's also fairly straightforward to remove
-an involution from our tree. This, however,
+a matching from our tree. This, however,
 requires now that we spell out exactly what
 is the association between a path from root to
-leaf and fixed-point-free involution. By cycle
+leaf and perfect matching. By cycle
 notation it will suffice to describe how to
 extract from such a path a sequence of $n$
 face-pairs (in order to get a permutation in cycle notation).
-(The involutive and fixed-point-free properties
+(The involutive and perfect properties
 must be proved from our original tree's properties,
 which proof we delay. TODO)
 @
@@ -475,24 +472,24 @@ at which the path first turns left, and whose
 tail is the associated sequence of the path
 from the root of the child tree to the given leaf.
 @
-The application of this for removing an involution
-is as follows. One has given an involution in the
+The application of this for removing a matching
+is as follows. One has given a matching in the
 proper order, and a pair-tree again in proper order.
 (So if we were being thorough, we would need to
 define proper order and show the original tree
 is properly ordered, and show that removal preserves
 propriety.) If the tree is empty, you return the tree.
 Otherwise, compare the root with the head of the
-involution. If they differ, remove the whole involution 
+matching. If they differ, remove the whole matching 
 from the right child. If, instead, they agree, then
-remove the rest of the involution from the left child.
+remove the rest of the matching from the left child.
 If the result is just a leaf, then we can get rid of this
 root entirely, so the result should be the right child.
-Otherwise, it's just the tree with the rest of the involution
+Otherwise, it's just the tree with the rest of the matching
 removed from the left child.
 @
-<<how to remove an involution>>=
-def removeInvolution(l,pt):
+<<how to remove a matching>>=
+def removeMatching(l,pt):
     if l == []:
         return pt
     if pt[0] == "PTLeaf":
@@ -501,14 +498,14 @@ def removeInvolution(l,pt):
     assert str == "PTBranch"
     if p != pp:
         return ("PTBranch", pp, lt, \
-                removeInvolution(l,rt))
-    ltp = removeInvolution(ps,lt)
+                removeMatching(l,rt))
+    ltp = removeMatching(ps,lt)
     if ltp[0] == "PTLeaf":
         return rt
     else:
         return ("PTBranch", pp, ltp, rt)
 <<neckl.py>>=
-<<how to remove an involution>>
+<<how to remove a matching>>
 @
 This takes time proportional to at most the number of face-pairs.
 With a more sophisticated structure, we could possibly
@@ -525,29 +522,34 @@ in a function [[f]]), repeat.
 def forallOrbitReps(n,f):
     pt = originalTree(n)
     while pt[0] != "PTLeaf":
-        l = leftInvolution(pt)
+        l = leftMatching(pt)
         lorb = orbitWithRepeats(n,l)
         for lp in lorb:
-             pt = removeInvolution(lp,pt)
+             pt = removeMatching(lp,pt)
         f(l)
 
 <<neckl.py>>=
 <<how to do stuff with orbit representatives>>
 @
-\section{Vetting the manifolds}
+\section{Nonelementary embedding testing}
 We can now generate all the manifolds of interest to us.
-So now our task is to determine among these which are
-hyperbolic.
-\subsection{Sanity checks}
-We can first implement some basic sanity checks. All necklace
-gluings are orientable. Likewise, they are all connected.
+Our first task is to determine among these which embed
+nonelementarily into hyperbolic 3-manifolds.
+\subsection{Hyperbolicity}
+As a warmup we first describe how to determine
+whether or not a given nontrivial link complement is hyperbolic.
+\subsubsection{Sanity checks}
+As a very first step, we can implement some basic sanity checks.
+All necklace gluings are orientable. Likewise, they are all connected.
 (If we were testing arbitrary MOM gluings, then we would 
 add a connectedness test.) Our other requirement, though, 
 is that the links of all the vertices must be tori. This
 is known in the literature as a "(generalized) link complement,"
 i.e. the complement of a nontrivial link in some closed orientable 3-manifold.
+(Some authors require that the given closed 3-manifold be irreducible.
+We do not make this requirement.)
 <<link complement>>=
-def linkComplement(mfld,allowInteriorVertices):
+def isLinkComplement(mfld, allowInteriorVertices):
     if not mfld.isOrientable():
         return False
     if not mfld.isConnected():
@@ -558,38 +560,277 @@ def linkComplement(mfld,allowInteriorVertices):
         return False
     vs = mfld.vertices()
     for v in vs:
-        if not (v.link() == v.TORUS or (allowInteriorVertices and v.link() == v.SPHERE)):
+        if not (v.link() == v.TORUS or \
+	  (allowInteriorVertices and \
+	   v.link() == v.SPHERE)):
             return False
     else:
         return True
 
-<<unhyp.py>>=
-from regina import Triangulation3
-from regina import NormalSurfaces as NS
-enumerate = NS.enumerate
-from regina import NS_STANDARD as NSS
-from regina import NS_QUAD as NSQ
-from regina import NS_FUNDAMENTAL as NSF
-# This computation is partially supported by NSF
-from regina import NS_VERTEX as NSV
-<<link complement>>
+@
+\subsection{Simple obstructions to hyperbolicity}
+Next we describe some obstructions to
+the hyperbolicity of a 3-manifold $M$ that are
+often easy to detect using [[Regina]]. These
+obstructions fall into two classes.
+@
+\subsubsection{Fundamental group obstructions}
+The first class of obstructions are
+obstructions coming from presentations
+of $\pi_1(M)$. Regina is skillful in producing
+useful, small presentations of $\pi_1(M)$.
+Perhaps surprisingly, these are enough to disprove
+hyperbolicity in a majority of our calculations.
+
+First of all, in version 5.1 Regina can
+often recognise [sic] the following class of groups.
+
+\begin{definition}
+  A \emph{Regina-5.1} group is one of the following.
+  \begin{itemize}
+  \item an Abelian group
+  \item an extension of an Abelian group over $\mathbf{Z}$
+  \item a free product of Regina-5.1 groups
+  \end{itemize}
+\end{definition}
+\begin{lemma}
+  If $M$ is a link complement and
+  $\pi_1(M)$ is a Regina-5.1 group,
+  then $M$ is not hyperbolic.
+\end{lemma}
+\begin{proof}
+  All hyperbolic link complements
+  have nonabelian fundamental groups
+  that are not free products.
+  Moreover, every abelian subgroup of such
+  a group is either $\mathbf{Z}$ or
+  $\mathbf{Z}\oplus\mathbf{Z}$. But neither
+  are these groups extensions of $\mathbf{Z}$
+  or $\mathbf{Z}\oplus\mathbf{Z}$ over $\mathbf{Z}$.
+\end{proof}
+
+In addition to these obstructions,
+two other obstructions happen exceedingly often.
+These are presentations of the fundamental group
+of the forms $\langle a,b\ |\ \ldots, [a^p,b^q], \ldots \rangle$
+or $\langle a,b\ |\ \ldots, a^p b^q, \ldots \rangle$. We call these
+\emph{common axis relations}, the first being a
+common axis \emph{commutator}, and the latter a
+common axis \emph{equation}.
+\begin{lemma}
+  Presentations with common axis relators do not present
+  fundamental groups of hyperbolic link complements.
+\end{lemma}
+\begin{proof}
+  Suppose such a presentation presents $G$.
+  Suppose $G < PSL_2\mathbf{C}$.
+
+  If $P$ has a common axis commutator or equation,
+  then $a^p$ and $b^q$ commute. Since $G < PSL_2\mathbf{C}$,
+  $a$ and $b$ must commute as well, since commuting
+  elements have the same axis, and $a^p,b^q$ have the
+  same axes as $a,b$, respectively. Thus $p = \pm q = 1$.
+  So either $G$ is trivial or is $\mathbf{Z}\oplus\mathbf{Z}$,
+  and is not the fundamental group of a hyperbolic link complement.
+\end{proof}
+
+<<obvious obstructions>>=
+def isCommonAxisCommutator(expr):
+    l = expr.terms()
+    if len(l) != 4 or \
+       l[0] != l[2].inverse() or \
+       l[1] != l[3].inverse():
+        return False
+    else:
+        return True
+
+def isCommonAxisEquation(expr):
+    l = expr.terms()
+    return len(l) == 2
+
+def possiblyHyperbolicPi1(mfld):
+    G = mfld.fundamentalGroup()
+    G.intelligentSimplify()
+    if G.countGenerators() == 2:
+        for i in range(G.countRelations()):
+            if isCommonAxisCommutator(G.relation(i)):
+                return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, [a^p,b^q], \ldots \\rangle$")
+            if isCommonAxisRelator(G.relation(i)):
+                return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, a^p b^q, \ldots \\rangle$")
+    name = G.recogniseGroup()
+    if name != '':
+        return (False, "$\\pi_1 =" + name + "$")
+    return (True,'')
+@
+\subsection{Census check}
+@ 
+The second class of obstructions are census checks.
+
+@
+\begin{remark}
+  We would like to emphasize the following in a remark:
+  the following code depends critically
+  on using the censuses in Regina version \emph{5.1}.
+  We have incorporated this at the beginning
+  of the code; if run in a different version of
+  Regina, it will return no census hit name.
+\end{remark}
+<<census check>>=
+def censusNE(mfld):
+    if rg.versionString() != "5.1":
+        print "Censuses not vetted for Regina versions not equal to 5.1"
+        return None
+@
+Now, Regina contains several censuses of triangulations.
+Checking whether or not a triangulation lies in a
+census is a very fast check---it's essentially
+linear in the triangulation. Regina assigns
+``names'' to census ``hits,'' i.e. occurrences
+of a triangulation in a census.
+<<census check>>=
+    ch = rg.Census.lookup(mfld)
+    if ch.first() == None:
+        return None
+    name = ch.first().name()
+@  
+There is apparently no online documentation
+of the types of names in Regina's censuses.
+As of version 5.1, an inspection of their names in the Regina GUI
+reveals that all the names of census manifolds are of the following types.
+@
+From the closed orientable census, the names have the form
+[[ homeo : #x ]], where [[homeo]] is a string denoting the
+manifold's homeomorphism type, and [[x]] is some decimal place-value
+number used for distinguishing non-isomorphic triangulations of
+the same manifold. The homeomorphism type strings are as
+in Table \ref{tab:censuses}.
+\begin{table}[t]
+  \centering
+    \begin{tabular}[c]{|c|c|} \hline
+      [[Name]] & Homeomorphism type \\ \hline
+      [[S3]] & $S^3$ \\ \hline
+      [[L(p,q)]] & $L(p,q)$ \\ \hline
+      [[S2 x S1]] & $S^2 \times S^1$ \\ \hline
+      [[RP3]] & $\mathbf{R}P^3$ \\ \hline
+      [[SFS [surf: (a0,b0),...] ]] & $M(S; a_0/b_0,\ldots)$ \\ \hline
+      [[T x S1]] & $T^3$, the three-torus \\ \hline
+      [[KB\n2 x~ S1]] & $K^2 \tilde{\times} S^1$, the twisted I-bundle over $K^2$\\ \hline
+      [[T x I / [ a b | c d ] ]] & $T^2$ mapping torus with monodromy $\begin{pmatrix} a & b \\ c & d\end{pmatrix}$ \\ \hline
+      [[sfs0 U/m1 ... U/mx sfsx]] &
+      Seifert-fibered spaces $sfs_0,\ldots,sfs_x$ \\
+      & identified along their boundaries via \\
+      & homeomorphisms given by $m_i$ \\
+      & (usually $m_1 =$[[ m]] and $m_2=$[[ n]]) \\ \hline
+      [[Hyp_V]] & Hyperbolic manifold of volume $V$ \\ \hline
+    \end{tabular}
+    \caption{Names for homeomorphism types in Regina 5.1.}
+    \label{tab:censuses}
+\end{table}
+All the other orientable censuses are of hyperbolic 3-manifolds.
+The Hodgson-Weeks census has entries $\rho:N$ where
+$\rho$ is a decimal approximation of the hyperbolic volume
+and $N$ is an expression of the manifold
+as a Dehn filling of some SnapPea census manifold.
+The cusped census has the usual SnapPea census names.
+The link census has the usual link names.
+@
+The following fact follows from the above.
+\begin{remark}\label{rem:regcensus}
+  In \emph{Regina 5.1} the only census manifolds
+  that embed nonelementarily in hyperbolic link complements
+  are themselves hyperbolic.
+\end{remark}
+@
+Implementing a census check for hyperbolic
+manifolds, and indeed for nonelementary embedding,
+is almost completely straightforward. We just have
+to be careful to distinguish the two types of name beginning with $L$,
+viz. lens spaces and hyperbolic link complements
+with more than one boundary component.
+@ 
+<<censuscheck>>=
+    if name.find("Hyp") != -1:
+        return (True, name)
+    try:
+        vol = float(name[:name.find(':')])
+        return (True, name)
+    except:
+        pass
+    if name[0] == "L" and name[1] != "(":
+        return (True, name)
+    return (False, name)
+
 @
 \subsection{Finding faults}
-Now comes the real work. For a nontrivial
-link complement $M$, $M$ is hyperbolic if
-and only if it is irreducible, boundary
-irreducible, atoroidal, and anannular.
-(This is not true for closed orientable
-3-manifolds, as small Seifert-fibered
-spaces satisfy all these properties, yet
-are not hyperbolic.)
-
-All faults are topologically essential
-surfaces in some way. There are several
-interesting kinds of surfaces that are
-never essential. We incorporate this
-into the following easy check.
-
+Now comes the real work. We introduce some
+nonstandard terminology here.
+\begin{definition}
+  A \emph{fault} in a nontrivial link complement
+  $M$ is a properly embedded surface with nonnegative
+  Euler characteristic that is either
+  \begin{itemize}
+    \item nonorientable;
+    \item a sphere not bounding a ball;
+    \item a disc not cutting off a ball;
+    \item an incompressible torus not parallel
+      to $\partial M$; or
+    \item an incompressible, $\partial$-incompressible
+      annulus not parallel to $\partial M$.
+  \end{itemize}
+\end{definition}
+@
+The motivation behind the word ``fault'' is twofold.
+First, my background is in hyperbolic manifolds; I
+regard hyperbolic manifolds as better than others,
+and so obstructions to hyperbolicity are defects.
+But a better reason is that if one tries to solve Thurston's
+gluing equations using Jeff Weeks's methods in
+SnapPea for a triangulation $\mathcal{T}$ of a
+nonhyperbolic link complement, then the structure
+approaches a degenerate structure. I imagine the
+degenerating structures as stretching
+some tetrahedra into ever thinner, longer
+tetrahedra. If they were made of some physical,
+ductile material, eventually they would snap.
+Such snap points are called ``faults'' in materials science.
+The conglomeration of such faults in
+a triangulation often seem to ``follow along'' essential
+surfaces of high Euler characteristic---hence the name.
+(This is related to the duality between angle structures and normal
+surfaces given by the combinatorial area pairing.)
+@
+To find such surfaces, we can appeal to normal
+surface theories, of which there are several
+implemented in Regina. The spirit of normal surface
+theory is composed of the following two ideas:
+\begin{itemize}
+\item Normal surfaces are identified with solutions to an
+  integer linear programming problem defined using a triangulation.
+\item If there is an essential surface,
+  then there is an essential normal such surface
+  among a finite computable set of basic normal surfaces,
+  for some definition of \emph{basic}.
+\end{itemize}
+@
+Normal surface algorithms run as follows:
+enumerate the finite computable set, then
+check for essential surfaces of a given type
+in the finite set. If there is no essential
+surface in the set of given type, then there
+is no such essential surface in the manifold at all.
+@
+The essential surface checks themselves are
+implemented using normal surface algorithms.
+And all these algorithms take a relatively
+long time to run. So it behooves us to
+implement as many heuristics as possible to
+skip the enumerations for essential surface
+checks. This desire informs the following
+algorithms throughout. As a first step,
+we can perform the following basic
+checks to immediately show a surface is
+not essential. 
+@
 <<trivially inessential>>=
 def triviallyInessential(surf):
     if surf.isVertexLinking() or \
@@ -604,8 +845,8 @@ def triviallyInessential(surf):
 <<trivially inessential>>
 @ 
 \subsubsection{Spheres, projective planes, and discs}
-We first need to determine whether or
-not it is reducible. Regina already has
+We first need to determine whether or not the
+given 3-manifold is reducible. Regina already has
 a routine for this, but that routine is
 only guaranteed to work for closed 3-manifolds.
 So we roll our own, slow version here. It
@@ -617,26 +858,24 @@ determine this one way or the other.
 We have a choice of either using standard
 coordinates and fundamental surfaces, in
 which case we can use ideal triangulations
-(see Matveev); or we can use quad coordinates
+(see \cite{Matveev}); or we can use quad coordinates
 and vertex surfaces, but we can only use
 ``material'' triangulations. The latter
 have more tetrahedra. We use the more
 familiar standard and fundamental surfaces
 when we can.
-
+@
 The plan is simply to go through the
 standard fundamental surfaces and check if
 they are essential spheres or $P^2$s.
-
+@
 Since the construction of normal surface
 lists is costly, we do not write functions
 determining whether or not a 3-manifold
 has an essential surface of a given type,
 but rather whether a given normal surface
-list has a such a surface. (One could probably
-clean the following up using Regina's filter
-formalism. TODO)
-
+list has a such a surface. 
+@
 <<essential P2>>=
 def essentialP2In(nsl):
     l = nsl
@@ -653,7 +892,7 @@ def essentialP2In(nsl):
 At this point we know $s = P^2$. We return its index in the
 normal surface iterator [[l]],
 and indicate that it is $P^2$. If there is a projective
-plane, it is essential (Rolfsen, Lem. 5.1).
+plane, it is essential (\cite{Rolfsen}, Lem. 5.1).
 <<essential P2>>=
             return (i,"$P^2$")
 @ 
@@ -681,7 +920,7 @@ If the Euler characteristic is 2, then
 $s$ is a sphere.
 Cut $M$ along $s$ into $m$. (It is
   unfortunate here that we cut instead of crush.
-  We should probably be able to crush instead. TODO)
+  We should probably be able to crush instead.)
 Then $m$ has two sphere boundary components. 
 We cap them off by idealizing $m$.
 @
@@ -733,9 +972,8 @@ by normal surface theory, and the manifold is irreducible.
 <<essential P2>>
 <<essential S2>>
 @
-
 For our sakes, developing a method to find
-an essential disk is trivial,
+an essential disk \emph{in $M$} is trivial,
 for $M$ is assumed to be an irreducible nontrivial
 link complement. In that case, $M$ admits a compressing
 disc if and only if it is a solid torus, and this already
@@ -746,6 +984,21 @@ we use this instead of the more obvious
 irreducibility, the [[isSolidTorus]] test can yield [[False]]
 more quickly than [[hasCompressingDisc]] can,
 since, among other things, [[isSolidTorus]] does homology checks.
+\begin{remark}\label{rem:convol}
+We particularly urge the reader to note, however,
+that we must run [[hasCompressingDisc]] instead of
+[[isSolidTorus]] after cutting along a torus. A
+torus in an irreducible 3-manifold can cut it into
+pieces one of which is reducible. Such a torus is
+called a \emph{convolutube} in the literature; it
+is the boundary of a knot complement embedded in a
+3-ball in the manifold, as a ball with removed knotted arc.
+We urge the reader to alert or even castigate the author if he
+has mixed up these two routines in what follows;
+such confusion has happened multiple times in the past.
+
+You have been forewarned.
+\end{remark}
 @
 \subsubsection{Finding essential tori and Klein bottles}
 First, no hyperbolic nontrivial link complement has
@@ -753,6 +1006,7 @@ an embedded Klein bottle. Any Klein bottle whatever
 is a witness against hyperbolicity (for nontrivial
 link complements). We note that if we do return a $K^2$, then
 it may not necessarily be an essential $K^2$.
+@
 <<essential K2>>=
 def essentialK2In(nsl):
     l = nsl
@@ -779,10 +1033,10 @@ Compressibility is already implemented in Regina.
 In general, boundary parallelism can be determined
 using the methods of Jaco and Tollefson; however,
 these have not yet been implemented in Regina.
-Nevertheless, it only requires a test of homeomorphism
+Nevertheless, for tori, it only requires a test of homeomorphism
 to $T^2 \times I$.
 @
-Neil Hoffman, Will Pettersson and I have found
+Neil Hoffman and I have found
 the following faster method to test for homeomorphism
 to $T^2 \times I$, and it also only uses methods
 already implemented in Regina. The method works
@@ -804,12 +1058,12 @@ for us in its simplification routines. It makes
 no guarantees like this, so we check that it
 works. If it fails, we fail. This shouldn't ever happen
 for our simple examples. A more general approach
-is ongoing work with Neil Hoffman and William
-Pettersson, implementing \emph{inflations} due
+is ongoing work with Neil Hoffman
+implementing \emph{inflations} due
 to Jaco and Rubinstein.) 
 @
 Closing the book along any edge $e$ in $T$ accomplishes
-a Dehn filling along the slope dual to $e$ in $T$.
+a Dehn filling along the flip of $e$ in $T$.
 If $M$ is $T^2 \times I$, then every such filling
 must be a solid torus. (We can think of a Dehn filling
 of $T^2\times I$ as an attachment of $T^2 \times I$
@@ -832,7 +1086,7 @@ the above Dehn fillings, then in fact $M$ must be $T^2\times I$.
 that we suspect this point in the procedure will not be
 reached for the manifolds we encounter. Nevertheless we
 may as well add it for posterity.)
-
+@
 <<is T2xI>>=
 def isT2xI(mfld):
     idl = Triangulation3(mfld)
@@ -864,7 +1118,6 @@ def isT2xI(mfld):
         
 <<unhyp.py>>=
 <<is T2xI>>
-
 @ 
 Now we look for essential tori.
 <<essential T2>>=
@@ -889,16 +1142,6 @@ This boils down to whether or not it cobounds
 a $\partial$-reducible 3-manifold (implying it is compressible),
 or a $T^2 \times S^1$ (implying it is boundary-parallel).
 @
-(The reader should particularly note
-that testing $\partial$-reducibility for the exterior
-of a torus in an irreducible nontrivial link complement
-is not the same as testing
-whether or not that exterior has a solid torus component.
-The exterior's components are not necessarily irreducible,
-even though the original 3-manifold is irreducible.
-If one of the components is reducible, the torus is called
-a \emph{convolutube}.)
-@
 Of first concern to us
 is whether or not it separates. If it doesn't,
 then it is a non-separating torus and hence essential.
@@ -919,7 +1162,9 @@ $T^2 \times I$.
         m.splitIntoComponents()
         m0 = m.firstChild()
         m1 = m0.nextSibling()
-        if m0.hasCompressingDisc() or m1.hasCompressingDisc() or isT2xI(m0) or isT2xI(m1):
+        if m0.hasCompressingDisc() \
+	   or m1.hasCompressingDisc() \
+	   or isT2xI(m0) or isT2xI(m1):
             continue
 @
 If they are not, then the torus is
@@ -943,12 +1188,13 @@ will be hyperbolic and Seifert-fibered manifolds.
 We can distinguish the Seifert-fibered manifolds by
 finding essential annuli and M\"{o}bius strips in them.
 Hyperbolic manifolds have no such surface.
-
+@
 As we are finally treating bounded surfaces,
 we can no longer use ideal triangulations; the
 theory of spun-normal surfaces is not yet well-enough
 developed. However, we can just look among the
 Q-vertex surfaces.
+@
 \begin{proposition}
   Let $T$ be a material triangulation of
   an irreducible $\partial$-irreducible
@@ -956,6 +1202,7 @@ Q-vertex surfaces.
   admits an essential annulus, then $T$
   admits a Q-vertex essential annulus.
 \end{proposition}
+@
 \begin{proof}
   Since $M$ admits an essential annulus,
   by Corollary 6.8 of Jaco-Tollefson $T$
@@ -965,12 +1212,12 @@ Q-vertex surfaces.
   By the proof of Theorem 2 in Tollefson,
   $A$ is isotopic to a Q-vertex surface.
 \end{proof}
-
+@
 We don't use this just yet, though, to keep
 parallelism among all the fault-finding routines.
 We will plug Q-vertex lists into the following
 functions instead of standard fundamental lists.
-
+@
 <<essential M2>>=
 def essentialM2In(nsl):
     l = nsl
@@ -1030,7 +1277,9 @@ essential when neither of these components
 is a ball or is a solid torus. (That is, when
 [[s]] is not compressible; by the irreducibility
 and $\partial$-irreducibility of our given
-manifold, we can just do ball and solid torus tests.)
+manifold, we can just do ball and solid torus tests.
+If this is not the case, please take this opportunity
+to contact the author as in Remark \ref{rem:convol}.)
 <<essential A2>>=
         m.splitIntoComponents()
         m0 = m.firstChild()
@@ -1052,44 +1301,18 @@ then there is no such surface by Q-normal surface theory.
 <<unhyp.py>>=
 <<essential M2>>
 <<essential A2>>
-
 @        
-\subsection{Determining hyperbolicity}
+\subsection{Fault-finding}
 With all the fault-finding routines done,
 we can now put them all together into a
-hyperbolicity test for nontrivial link complements.
+fault-finding routine. Technically, the
+final routine is not a hyperbolicity routine,
+but a faultlessness routine. For nontrivial
+link complements this is no distinction, by
+Thurston's hyperbolization theorem. But we
+shall have occasion to run this on closed manifolds.
 @
-The following is a little optimized; Regina
-can already recognise [sic] some fundamental
-groups. Those groups that it knows are not
-fundamental groups of finite-volume hyperbolic
-3-manifolds. (This may change with later
-versions of Regina, in which case to update
-this one would have to specify the nonhyperbolic
-groups Regina recognises.)
-@
-Also, several of the manifolds that took the longest
-time to find faults for had fundamental
-group presentation with a single relator that was a commutator
-of the form $[a^p,b^q]$. These groups are also not
-fundamental groups of finite-volume hyperbolic
-3-manifolds.
-@
-Later on, we will need to recognize small Seifert spaces.
-As far as the author knows, hoping for the best with
-census searches, as below, is the state of the art in implementations
-of this recognition problem, though there are algorithms
-solving it. And since we need this anyhow, we go ahead
-and implement it now in the hyperbolicity test.
-@
-We suspect that more optimization is possible
-by minimizing the associated Heegaard diagram
-and then checking whether or not the associated
-minimized handle decomposition based on $T^2$ is full.
-But as it stands, the code runs in under 10 minutes
-on a Raspberry Pi, and that suffices for our purposes.
-@
-<<hyperbolicity>>=
+<<faultless>>=
 def findFault(mfld):
     assert linkComplement(mfld,True)
     M = Triangulation3(mfld)
@@ -1122,68 +1345,16 @@ def findFault(mfld):
         return a2
     return None
 @
-<<hyperbolicity>>=    
-def isBasicCommutator(expr):
-    l = expr.terms()
-    if len(l) != 4 or \
-       l[0] != l[2].inverse() or \
-       l[1] != l[3].inverse():
-        return False
-    else:
-        return True
-
-def isCommonAxisRelator(expr):
-    l = expr.terms()
-    return len(l) == 2
-
-def possiblyHyperbolicPi1(mfld):
-    G = mfld.fundamentalGroup()
-    G.intelligentSimplify()
-    if G.countGenerators() == 2:
-        for i in range(G.countRelations()):
-            if isBasicCommutator(G.relation(i)):
-                return (False, "$\\pi_1 = \\langle a,b\\ |\\ [a^p,b^q], \ldots \\rangle$")
-            if isCommonAxisRelator(G.relation(i)):
-                return (False, "$\\pi_1 = \\langle a,b\\ |\\ a^p b^q, \ldots \\rangle$")
-    name = G.recogniseGroup()
-    if name != '':
-        return (False, "$\\pi_1 =" + name + "$")
-    return (True,'')
-
-def hyperbolicity(mfld):
+<<faultless>>=    
+def isFaultless(mfld):
     if mfld.hasStrictAngleStructure():
         return (True, "strict angle structure")
     x = possiblyHyperbolicPi1(mfld)
     if not x[0]:
         return x
-@
-We don't know of a specification of the outputs
-of the censuses in Regina, but a cursory inspection in the Regina GUI
-reveals that orientable hyperbolic manifolds occur in four censuses:
-the SnapPea census of cusped hyperbolic manifolds, the census of hyperbolic
-knot and link complements in $S^3$, the census of closed hyperbolic
-3-manifolds by Hodgson and Weeks, and the closed orientable census.
-The names of the first census entries
-have the usual SnapPea form. These will never occur in this routine,
-as these triangulations have positive solutions to Thurston's gluing
-equations, and so they certainly admit strict angle structures. The
-second census has the same issue. Entries of the third census all have
-the form ``number:id'' where ``number'' is a decimal approximation
-of a real number (the volume), and ``ID'' is a SnapPea census manifold
-with an indicated Dehn filling. Hyperbolic entries of the fourth census begin with
-the string ``Hyp''. Conversely, entries for nonhyperbolic manifolds
-do not have these forms.
-<<hyperbolicity>>=
-    ch = regina.Census.lookup(mfld)
-    if ch.first() != None:
-        nm = ch.first().name()
-        if nm.find('Hyp') != -1:
-       	    return (True, nm)
-        try:
-            vol = float(nm[:nm.index(':')])
-            return (True, nm)
-        except:
-            return (False, nm)
+    x = censusNE(mfld)
+    if x != None:
+       return x[0]
     s = findFault(mfld)
     if s != None:
         return (False, s)
@@ -1191,15 +1362,16 @@ do not have these forms.
         return (True, "no faults")
 
 <<unhyp.py>>=
-<<hyperbolicity>>
+<<isFaultless>>
 @
 \section{Nonelementary embeddings}
 The above was a nice warmup. But for our problem,
 we don't need hyperbolic necklaces---we need necklaces
 that embed nonelementarily into hyperbolic manifolds.
-For Mom-$n$ anifolds with $n\leq 4$, Gabai, Meyerhoff, and Milley
+For Mom-$n$ manifolds with $n\leq 4$, Gabai, Meyerhoff, and Milley
 were able to show this is a trivial distinction, using
-normal surface theory and a notion of complexity due to
+normal surface theory (not Regina, but normal surface theory
+as such) and a notion of complexity due to
 Matveev. However, bead-number 7 structures are Mom-5s,
 and the distinction is nontrivial in general. 
 @
@@ -1299,7 +1471,7 @@ We do not go into this here and content ourselves with using
 the above lemma.
 @
 The proof comes more or less verbatim from the introductory
-lemmas of \cite{GMM11}.
+lemmas of \cite{GMM11}. We leave the details to the reader.
 @
 \subsection{The naive pseudocode}
 Here is a naive pseudocode sketch of an approach to
@@ -1307,12 +1479,12 @@ getting $NE$. Recall that $NE$ should return a list of
 hyperbolic manifolds whose Dehn fillings include
 all hyperbolic link complements into which the given manifold
 embeds nonelementarily. Happily, we also already know
-that torus boundary component that should get sent to
+the particular torus boundary component that should get sent to
 the small cusp, namely the polar cusp of a necklace manifold.
 So we can give that as input to the procedure, and implement
 it following the lemma without much thought.
 \begin{verbatim}
-Naive(M,S):
+NaiveNE(M,S):
     if there is P2 or K2 in M:
         return []
     else if there is nonseparating S2 or T2 in M:
@@ -1328,12 +1500,12 @@ Naive(M,S):
         return []
     else if there is essential T2 `t' in M:
         let M', M'' be components of M - t /
-            with M' that component containing t
+            with M' that component containing S
         X,Y = [],[]
         if M'' is D2 x S1 link complement:
-            X = Naive(M',S)
+            X = NaiveNE(M',S)
         if M' is T2 x I link complement:
-            Y = Naive(M'',t)
+            Y = NaiveNE(M'',t)
         return union(X,Y)
     else if there is essential M2 or A2 in M:
         return []
@@ -1398,21 +1570,18 @@ the blank filled variously by $S^3$, $D^2\times S^1$,
 and $T^2\times I$. We could just say that this
 is \emph{never} obvious and get a correct procedure,
 but we can do better than that.
-
+@
 First of all, if $M$ is closed and not $S^3$, then
 it is obviously not an $S^3$ link complement! Likewise,
 if it has at most one boundary torus and isn't $D^2\times S^1$,
 then it is obviously not a $D^2\times S^1$ link complement, and similarly
 if it has at most two boundary tori and isn't $T^2\times I$,
 then it is obviously not a $T^2\times I$ link complement.
-
+@
 Likewise, we should check that the homology of the manifold agrees
 appropriately with Alexander duality. ($D^2\times S^1$- and
 $T^2\times I$-link complements are themselves $S^3$-link complements.)
-
-Finally, we can
-also try to identify the fundamental group of the manifold;
-this is itself an identification in a census (of presentations).
+@
 <<obvious link complement tests>>=
 from unhyp import isT2xI
 def obvious_isLinkIn(M,amb):
@@ -1476,8 +1645,7 @@ H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 If at this point we haven't determined
 whether or not the manifold is a link
 complement in whichever ambient manifold,
-then we give up. (Later on, if need be,
-one could implement census lookups here.)
+then we give up.
 <<obvious link complement tests>>=
     else:
         return None
@@ -1490,7 +1658,7 @@ as for the hyperbolicity algorithm, except
 that instead of terminating when we find
 a fault, we cut along the fault and examine
 the components recursively.
-
+@
 We also note that the following implementation
 is significantly different from the above
 ``less naive'' pseudocode, as this implementation
@@ -1505,65 +1673,41 @@ could keep track of which surface is which.)
 <<NE>>=
 import regina as rg
 from unhyp import *
-nsl = rg.NormalSurfaces.enumerate
-@ 
-First we will do a census check, as follows.
-<<census check>>=
-def censusNE(mfld):
-    if rg.versionString() != "5.1":
-        raise Exception("Censuses not vetted for Regina versions not equal to 5.1")
-    ch = rg.Census.lookup(mfld)
-    if ch.first() == None:
-        return None
-    name = ch.first().name()
-@  
-There is no documentation of the types of names
-in Regina's censuses. As of version 5.1, an inspection
-of their names in the Regina GUI reveals that all the
-names of census manifolds are of the following types.
-From the closed orientable census, the names are
-\begin{enumerate}
-\item $S^3$;
-\item $L(p,q)$ for some $p,q \in \mathbf{N}$;
-\item $RP^3$;
-\item $SFS(S: (a_0, b_0), \ldots, (a_n, b_n))$ for some number $n+1$ of singular fibers and some
-  compact surface $S$;
-\item $T \times S^1$;
-\item $K \tilde{\times} S^1$;
-\item $T \times [0,1] / \phi$ for some $\phi: T \times \{0\} \to T \times \{1\}$;
-\item $X \cup_\phi Y$ for bounded manifolds $X,Y$
-  and $\phi: \partial X \to \overline{\partial Y}$; and
-\item Hyp\textunderscore$\rho$ for some real number $\rho$, the hyperbolic volume of the manifold.
-\end{enumerate}
-All the other orientable censuses are of hyperbolic 3-manifolds. The Hodgson-Weeks census has
-entries $\rho:N$ where $\rho$ is a decimal approximation of the hyperbolic volume and $N$ is
-an expression of the manifold as a Dehn filling of some SnapPea census manifold. The cusped
-census has the usual SnapPea census names. The link census has the usual link names. The latter
-is the only difficulty for us; we must make sure to distinguish the two types of name beginning
-with $L$, viz. lens spaces and hyperbolic link complements with more than one boundary component.
-Apart from that, with the current censuses in Regina 5.1, we see that the only census manifolds
-that embed nonelementarily in a hyperbolic link complement are themselves hyperbolic.
-<<censuscheck>>=
-    if name.find("Hyp") != -1:
-        return (True, name)
-    try:
-        vol = float(name[:name.find(':')])
-        return (True, name)
-    except:
-        pass
-    if name[0] == "L" and name[1] != "(":
-        return (True, name)
-    return (False, name)
-    
-<<NE>>=
+nsl = rg.NormalSurfaces.enumerate    
 def NE(mfld):
     Mi = rg.Triangulation3(mfld)
     Mi.intelligentSimplify()
     Mi.finiteToIdeal()
     Mi.intelligentSimplify()
+@
+Before any normal surface enumeration,
+we check to see if $M$'s fundamental group
+is recognizable as above in the hyperbolicity
+section. If so, then not only is $M$ not hyperbolic,
+but also $M$ does not even embed nonelementarily
+into any hyperbolic link complement.
+@
+<<NE>>=
+    x = possiblyHyperbolicPi1(mfld)
+    if not x[0]:
+        return []
+@ 
+Next, we do census checks on both the given
+triangulation, and its simplified idealization.
+@
+<<NE>>=
     x = censusNE(Mi)
     if x != None:
-        return x[0]
+       if x[0]:
+           return [Mi]
+       if not x[0]:
+           return []
+    x = censusNE(mfld)
+    if x != None:
+       if x[0]:
+           return [mfld]
+       if not x[0]:
+           return []
 @ 
 Next, we check to see
 whether or not $M$ admits a strict angle
@@ -1571,20 +1715,10 @@ structure. If it does, then $M$ is hyperbolic,
 and every hyperbolic $N$ into which $M$ embeds nonelementarily
 is a hyperbolic Dehn filling of $M$. This is a relatively
 quick check.
+@
 <<NE>>=
     if Mi.hasStrictAngleStructure():
-        return [mfld]
-@
-Next, before any normal surface enumeration,
-we check to see if $M$'s fundamental group
-is recognizable as above in the hyperbolicity
-section. If so, then not only is $M$ not hyperbolic,
-but also $M$ does not even embed nonelementarily
-into any hyperbolic link complement.
-<<NE>>=
-    x = possiblyHyperbolicPi1(mfld)
-    if not x[0]:
-        return []
+        return [Mi]
 @ 
 We set up two normal surface collections:
 first, the fundamental-standard collection for an ideal
@@ -1597,6 +1731,7 @@ essential surfaces we need in the QVM collection;
 however, we suspect the FSI collection is smaller,
 and it contains all the essential \emph{closed}
 surfaces that we need.
+@
 <<NE>>=
     Li = nsl(Mi,rg.NS_STANDARD,rg.NS_FUNDAMENTAL)
 @ 
@@ -1604,6 +1739,7 @@ Next, we look for obviously bad surfaces.
 Assuming $M$ is orientable, we can lump these
 bad surfaces all together as closed non-separating
 surfaces of nonnegative Euler characteristic.
+@
 <<NE>>=
     assert mfld.isOrientable()
     for i in range(Li.size()):
@@ -1641,6 +1777,7 @@ test. If we finish the above $S^2$ search with no
 essential $S^2$, then $M$ is irreducible. So
 it is $\partial$-irreducible if and only if
 it is a solid torus.
+@
 <<NE>>=
     if mfld.isSolidTorus():
         return []
@@ -1656,6 +1793,7 @@ implementation differs from the above pseudocode
 in that no $T^2\times I$-link complement test
 is performed. That is because we cannot yet keep
 track of boundary components in Regina under cutting.
+@
 <<NE>>=
     t2 = essentialT2In(Li)
     if t2 != None:
@@ -1684,9 +1822,10 @@ on $M$, using surfaces: it is Seifert-fibered if and only
 if it admits an essential annulus or M\"{o}bius band. By
 Q-normal surface theory we can always find such a surface
 among quad-vertex surfaces, under our assumptions on $M$.
-
+@
 Most importantly, a Seifert-fibered manifold admits
 no nonelementary embeddings into a hyperbolic link complement.
+@
 <<NE>>=
     Mf = rg.Triangulation3(mfld)
     Mf.intelligentSimplify()
@@ -1702,11 +1841,12 @@ no nonelementary embeddings into a hyperbolic link complement.
 @ 
 If we have found no ``faulty'' surfaces,
 then $M$ is hyperbolic.
+@
 <<NE>>=
     return [mfld]
-
 @
 That concludes the procedure [[NE]].
+@
 <<nonelem.py>>=
 <<NE>>
 @
@@ -1921,7 +2061,7 @@ of some vertex $w$.
   $L_1$ norm on $T$, and $L_1$ norm takes
   values in $\mathbf{N}$ on $T$.
   So $T$ is a tree.
-
+@
   Therefore, $T$ is an infinite binary search tree.
 \end{proof}
 @
@@ -2071,7 +2211,7 @@ That is, $M = M'$.
   quadratic form on $\mathbf{Z}^2$
   taking smallest and second-smallest
   values on $(1\ 0)^t$ and $(0\ 1)^t$, respectively.
-
+@
   If $N$ is a descendant of $M$, then
   $Q(s(N)) > Q(s(M))$.
 \end{proposition}
@@ -2090,15 +2230,15 @@ the following program does $f(N)$ for all descendants $N$
 of $M$ such that $Q(s(N)) \leq B$, and
 for no other descendants of $M$.
 <<shortSlopes.py>>=
-def for_all_short_descendants(Q,B,M,f):
+def forallShortDescendants(Q,B,M,f):
     (v, w) = M
     S = (v[0]+w[0],v[1]+w[1])
     if Q(S) > B:
         pass
     else:
-        for_all_short_descendants(Q,B,(v,S),f)
+        forallShortDescendants(Q,B,(v,S),f)
 	f(M)
-	for_all_short_descendants(Q,B,(S,w),f)
+	forallShortDescendants(Q,B,(S,w),f)
 @
 \end{theorem}
 \begin{proof}
@@ -2126,7 +2266,7 @@ the set $E = \{v:\mathbf{R}^2\ |\ Q(v) \leq B\}$, an
 ellipse. In particular, $E$ is compact; since
 $\mathbf{N}^2$ is discrete in $\mathbf{R}^2$,
 $D$ is finite.
-
+@
 The result follows by structural induction on $D$.
 \end{proof}
 @
@@ -2141,16 +2281,16 @@ The result follows by structural induction on $D$.
   such that $Q(v) \leq B$.
 @
 <<shortSlopes.py>>=
-def for_all_short_slopes(Q,B,f):
+def forallShortSlopes(Q,B,f):
     s = lambda M : (M[0][0]+M[0][1],M[1][0]+M[1][1])
     g = lambda M : f(s(M))
     Qbar = lambda (p,q): Q((p,-q))
     Lambda = lambda ((a,b),(c,d)): ((b,a),(-d,-c))
     gbar = lambda M : g(Lambda(M))
-    for_all_short_descendants(Qbar,B,((1,0),(0,1)),gbar)
+    forallShortDescendants(Qbar,B,((1,0),(0,1)),gbar)
     if not Q((1,0)) > B:
         f((1,0))
-    for_all_short_descendants(Q,B,((1,0),(0,1)),g)
+    forallShortDescendants(Q,B,((1,0),(0,1)),g)
     if not Q((0,1)) > B:
         f((0,1))
 @ 
@@ -2165,7 +2305,7 @@ def for_all_short_slopes(Q,B,f):
   for all primitives $v \in (\mathbf{N}+1)^2$
   with $Q(v) \leq B$.
   We also do $f((1,0))$ and $f((0,1))$ if need be.
-
+@
   It remains to show $fasd(\bar{Q},B,I,\bar{g})$
   does $f(v)$ for all primitives
   $v \in (\mathbf{N}+1) \times (-\mathbf{N}-1)$.
@@ -2263,7 +2403,7 @@ $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
   quadratic forms with $R$ rational. Suppose
   further that for all nonzero $v$,
   $0 < Q(v) - R(v)$.
-  Then [[for_all_short_descendants(R,B,M,f)]]
+  Then [[forallShortDescendants(R,B,M,f)]]
   does [[f(N)]] for all descendants $N$ of $M$
   such that $Q(s(N))\leq B$ (and possibly
   for finitely many other descendants of $M$).
@@ -2271,7 +2411,7 @@ $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
 @
 \begin{proof}
   By Theorem \ref{thm:fasd}
-  [[for_all_short_descendants(R,B,M,f)]]
+  [[forallShortDescendants(R,B,M,f)]]
   does [[f(N)]] for all descendants $N$ of $M$
   such that $R(s(N))\leq B$. But if
   $Q(s(N)) \leq B$, then certainly $R(s(N)) \leq Q(s(N)) \leq B$.
@@ -2282,7 +2422,6 @@ $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
 \end{proof}
 Fortunately this is automatically taken care of
 in the software we use.
-
 @
 \subsubsection{Extracting a quadratic form}
 It remains only to extract a positive-definite
@@ -2291,7 +2430,7 @@ restricted to a maximal cusp of a given hyperbolic
 3-manifold $M$. Using [[SnapPy]] as a Sage module,
 this is quite easily done.
 <<cuspForm.py>>=
-def cusp_form(mfld,cusp):
+def cuspForm(mfld,cusp):
     X = mfld.cusp_translations(verified=True)
     (z,w) = X[cusp]
     nrm = lambda Z: (Z*Z.conjugate()).real()
@@ -2306,11 +2445,181 @@ triangulation routines are not deterministic,
 which can lead to large variance in running times.
 So we define the following technical routine
 for trying to Dehn fill in a consistent way.
-<<consistentDehnFill>>=
-
+<<DehnFillHack.py>>=
+def minFill(snappyMfld,fuel):
+    # Returns regina.Triangulation3
+    N = snappyMfld.filled_triangulation()
+    x = N.triangulation_isosig()
+    x = x[: x.find("_")]
+    minimum = (N.num_tetrahedra(), x)
+    for i in range(fuel):
+        N = mfld.filled_triangulation()
+        x = N.triangulation_isosig()
+        x = x[: x.find("_")]
+        new = (N.num_tetrahedra(), x)
+        if new < minimum:
+            minimum = new
+    return regina.Triangulation3(minimum[1])
 @
-\section{Going through the manifolds}
-\subsection{Automating enumeration}
+\section{Results}
+We can now conclude with our computation.
+\subsection{The computation proper}
+We build our computation from the bottom up,
+memoizing the longer calculations.
+@
+<<main.py>>=
+from neckl import forallOrbitReps
+from unhyp import isFaultless
+from nonelem import NE
+from shortSlopes import forallShortSlopes
+from cuspForm import cuspForm
+from DehnFillHack import minFill
+from snappy import Manifold
+@
+\subsubsection{Checking a single filling}
+First, we will want to determine
+whether or not a slope on a cusp of a [[Snappy.Manifold]]
+is exceptional or not. We make a copy [[M]] of the manifold,
+so as not to disturb the manifold itself. We
+then clear any Dehn fillings [[M]] might have.
+Then we fill, and immediately see if we can verify
+its hyperbolicity in SAGE. 
+<<main.py>>=
+def fillingType(snappyMfld,cusp,slope,memo):
+    M = snappyMfld.copy()
+    for cusp in range(M.num_cusps()):
+        M.dehn_fill((0,0),cusp)
+    M.dehn_fill(slope,cusp)
+    if M.verify_hyperbolicity()[0]:
+        return ("Hyperbolic", "Immediate verification")
+@ 
+One is tempted to give up here and
+start triangulating the Dehn filling. But
+we try harder to verify hyperbolicity if the
+volume is large enough. We drill out along curves
+in the dual graph and try verifying associated
+triangulations, canonized and not canonized.
+<<main.py>>=
+    try:
+        if M.volume() > 0.9:
+	    sig = M.triangulation_isosig()
+            for curve in mfld.dual_curves():
+                for tryCanonize in [True, False]:
+                    A = M.drill(curve)
+                    if tryCanonize:
+                        try:
+                            A.canonize()
+                        except:
+                            pass
+                    A.dehn_fill((1,0),mfld.num_cusps())
+                    if tryCanonize:
+                        try:
+			    A.canonize()
+			except:
+			    pass
+		    if A.verify_hyperbolicity()[0]:
+		        reason = "Drill " + str(curve)[0] + " in " + sig
+		        return ("Hyperbolic", reason)
+    except ValueError:
+        pass
+@
+If that does not prove hyperbolicity, then
+we try to disprove its hyperbolicity. We
+now condescend to triangulating the Dehn
+filling and running Regina. Retriangulating
+ten times seems to be enough to get
+triangulations of consistently low size,
+if not isomorphic triangulations.
+<<main.py>>=
+    fuel = 10
+    N = minFill(M,fuel)
+@ 
+Naturally, we now immediately check if
+we have seen this triangulation before. If
+so, we return the previous computation's result.
+<<main.py>>=
+    sig = N.isoSig()
+    if sig in memo:
+        return memo[mfld.num_cusps()-1][sig]
+@ 
+Otherwise, after all this preliminary checking,
+we finally run the faultlessness routine in Regina.
+If the return value has first entry [[False]] then
+the manifold is certainly not hyperbolic, for the
+reason that is in the second entry.
+<<main.py>>=
+    x = isFaultless(N)
+    if x[0] == False:
+	result = ("Not hyperbolic", x[1])
+@
+Otherwise, all we know is that $N$ is faultless.
+It could possibly be small Seifert fibered, in
+which case the filling would be exceptional.
+We record what we know.
+<<main.py>>=
+    else:
+        result = ("Faultless", x[1])
+@ 
+Regardless of the result, we record it
+in [[closedSigs]] and return it.
+<<main.py>>=
+    memo[mfld.num_cusps()-1][sig] = result
+    return result
+@ 
+That concludes our method for checking whether
+or not a filling of a cusp of a manifold is exceptional.
+@
+\subsubsection{Classifying short slopes}
+At several points in our procedure we will
+need to classify the short slopes of a cusp
+of a hyperbolic link complement. So we
+implement that here, using a short local
+function definition to fit it into the
+[[forallShortSlopes]] framework. We don't
+need to do any memoization here.
+<<main.py>>=
+def classifyShortSlopes(snappyManifold, cusp):
+    mu = snappyManifold.copy()
+    q = cusp_form(mu,cusp)
+    hyp,nonhyp,unknown = [],[],[]
+    def checkSlope(s):
+        t = fillingType(mu,cusp,s)
+        if t[0] == "Hyperbolic":
+            hyp.append(s)
+        if t[0] == "Not hyperbolic":
+            nonhyp.append(s)
+        if t[0] == "Faultless":
+            unknown.append(s)
+    forallShortSlopes(q,6,checkSlope)
+    return (hyp,nonhyp,unknown)
+@
+\subsection{Running the calculations}
+<<main.py>>=
+if ___name___ == "___main___":
+    neckls = set()
+    threeCusped = set()
+    def checkNecklace(g):
+        m = makeNecklace(g)
+        sig = m.isoSig()
+        if sig in neckls:
+            return None
+        necklIsoSigs.add(sig)
+        if m.countBoundaryComponents() == 3:
+            threeCusped.add(sig)
+            return None
+        NEs = NE(m)
+        for ne in NEs:
+            checkNE(ne)
+    nonelems = set()
+    onecusped = set()
+    def checkNE(reginaMfld):
+        sig = reginaMfld.isoSig()
+	if sig in nonelems:
+	    return None
+	nonelems.add(sig)
+	if reginaMfld
+
+\subsection{Formatting the output}
 Now it's straightforward to go through the
 manifolds. First we make a file
 which just automates the enumeration
@@ -2329,8 +2638,11 @@ structures (up to isomorphism). We use this later.
 from neckl import forallOrbitReps
 from neckl import makeNecklace
 from unhyp import linkComplement
-from unhyp import hyperbolicity
+from unhyp import isFaultless
 from nonelem import NE
+from shortSlopes import forallShortSlopes
+from cuspForm import cuspForm
+from DehnFillHack import minFill
 from time import clock
 @ 
 First we define a procedure [[vetNecklaces]] that goes
@@ -2345,9 +2657,9 @@ is in the list, and a number representing
 how long it took to investigate this gluing.
 It also takes a debugging flag [[wstat]] to
 tell whether or not we want it to display
-its progress by printing out all the involutions
+its progress by printing out all the matchings
 it investigates as it goes through them.
-
+@
 <<vetting.py>>=
 from sys import stdout
 def vetNecklaces(n,wstat=False):
@@ -2386,8 +2698,7 @@ def invToString(inv):
     for p in inv:
         s = s + "(" + str(p[0]) + "\ " + str(p[1]) + ")"
     s = s + "$"
-    return s
-    
+    return s    
 def fullDisplay(outfile,vettedlist):
     f,l = outfile, vettedlist
     if len(l) == 0:
@@ -2485,7 +2796,7 @@ def timesTaken(f,l,tp):
         f.write("\\end{itemize}\n")
 
     if tp[0] == "Hyperbolic":
-        f.write("In summary, the associated involutions were as follows:\n")
+        f.write("In summary, the associated matchings were as follows:\n")
         f.write("\\begin{itemize}\n")
         for x in l:
             f.write("\\item " + invToString(x[0]) + "\n")
@@ -2668,3 +2979,13 @@ python naming.py
 pdflatex hypNames.tex
 @ 
 \end{document} 
+
+<<unhyp preamble>>=
+from regina import Triangulation3
+from regina import NormalSurfaces as NS
+enumerate = NS.enumerate
+from regina import NS_STANDARD as NSS
+from regina import NS_QUAD as NSQ
+from regina import NS_FUNDAMENTAL as NSF
+# This computation is partially supported by NSF
+from regina import NS_VERTEX as NSV
