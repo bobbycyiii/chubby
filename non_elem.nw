@@ -213,12 +213,26 @@ whole list of perfect matchings.
 We define what it means to remove a matching
 from the tree. This takes much less time
 than removing a matching from a list.
-Finally, we do the most natural thing after that:
+Finally, we do a fairly natural thing after that:
 while the tree still contains a matching $\sigma$,
 remove every element of $\sigma$'s orbit from the tree,
-and then do something with $\sigma$ (e.g. put $\sigma$
-in some list, or determine whether or not it represents
-a hyperbolic 3-manifold).
+and then put $\sigma$ in some list.\footnote{In a previous
+  version of this program, we had our enumeration scheme
+  apply a given procedure $f$ to $\sigma$, instead of
+  just putting $\sigma$ in a list. In some sense this
+  is the most natural thing to ``do'', and certainly
+  the most generic. However, since we will be
+  remembering the isomorphism signatures
+  of our gluings anyway,
+  this would not decrease our memory footprint
+  significantly. There is a more subtle way to enumerate
+  such gluings up to isomorphism, which way has a much lower
+  memory footprint, only ever holding the current path
+  taken in the above tree, and never even constructing
+  the whole tree itself. However, as this is more
+  complicated and unnecessarily fast, we eschewed this
+  option here, and will publish and use it separately
+  in future work.}
 @
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
@@ -376,8 +390,7 @@ At this point we end up with two options.
 Either we could use a non-binary tree, or we can
 introduce a sort of auxiliary stack parameter in $pfm$
 to "remember" which face-pairs we've foregone so far.
-Because our proof assistant Coq did not agree with
-non-binary trees, we choose the latter option.
+We choose the latter option.
 @
 So we end up with a slightly more complicated
 decomposition. We have some set $m$, and
@@ -461,7 +474,7 @@ extract from such a path a sequence of $n$
 face-pairs (in order to get a permutation in cycle notation).
 (The involutive and perfect properties
 must be proved from our original tree's properties,
-which proof we delay. TODO)
+which proof we leave to the reader.)
 @
 A path from root to leaf might be empty; in that
 case, the sequence is empty. Otherwise, the path
@@ -561,8 +574,8 @@ def isLinkComplement(mfld, allowInteriorVertices):
     vs = mfld.vertices()
     for v in vs:
         if not (v.link() == v.TORUS or \
-	  (allowInteriorVertices and \
-	   v.link() == v.SPHERE)):
+          (allowInteriorVertices and \
+           v.link() == v.SPHERE)):
             return False
     else:
         return True
@@ -1163,8 +1176,8 @@ $T^2 \times I$.
         m0 = m.firstChild()
         m1 = m0.nextSibling()
         if m0.hasCompressingDisc() \
-	   or m1.hasCompressingDisc() \
-	   or isT2xI(m0) or isT2xI(m1):
+           or m1.hasCompressingDisc() \
+           or isT2xI(m0) or isT2xI(m1):
             continue
 @
 If they are not, then the torus is
@@ -2237,8 +2250,8 @@ def forallShortDescendants(Q,B,M,f):
         pass
     else:
         forallShortDescendants(Q,B,(v,S),f)
-	f(M)
-	forallShortDescendants(Q,B,(S,w),f)
+        f(M)
+        forallShortDescendants(Q,B,(S,w),f)
 @
 \end{theorem}
 \begin{proof}
@@ -2502,7 +2515,7 @@ triangulations, canonized and not canonized.
 <<main.py>>=
     try:
         if M.volume() > 0.9:
-	    sig = M.triangulation_isosig()
+            sig = M.triangulation_isosig()
             for curve in mfld.dual_curves():
                 for tryCanonize in [True, False]:
                     A = M.drill(curve)
@@ -2514,12 +2527,12 @@ triangulations, canonized and not canonized.
                     A.dehn_fill((1,0),mfld.num_cusps())
                     if tryCanonize:
                         try:
-			    A.canonize()
-			except:
-			    pass
-		    if A.verify_hyperbolicity()[0]:
-		        reason = "Drill " + str(curve)[0] + " in " + sig
-		        return ("Hyperbolic", reason)
+                            A.canonize()
+                        except:
+                            pass
+                    if A.verify_hyperbolicity()[0]:
+                        reason = "Drill " + str(curve)[0] + " in " + sig
+                        return ("Hyperbolic", reason)
     except ValueError:
         pass
 @
@@ -2550,7 +2563,7 @@ reason that is in the second entry.
 <<main.py>>=
     x = isFaultless(N)
     if x[0] == False:
-	result = ("Not hyperbolic", x[1])
+        result = ("Not hyperbolic", x[1])
 @
 Otherwise, all we know is that $N$ is faultless.
 It could possibly be small Seifert fibered, in
@@ -2578,12 +2591,12 @@ function definition to fit it into the
 [[forallShortSlopes]] framework. We don't
 need to do any memoization here.
 <<main.py>>=
-def classifyShortSlopes(snappyManifold, cusp):
+def classifyShortSlopes(snappyManifold, cusp, memo):
     mu = snappyManifold.copy()
     q = cusp_form(mu,cusp)
     hyp,nonhyp,unknown = [],[],[]
     def checkSlope(s):
-        t = fillingType(mu,cusp,s)
+        t = fillingType(mu,cusp,s,memo)
         if t[0] == "Hyperbolic":
             hyp.append(s)
         if t[0] == "Not hyperbolic":
@@ -2594,6 +2607,35 @@ def classifyShortSlopes(snappyManifold, cusp):
     return (hyp,nonhyp,unknown)
 @
 \subsection{Running the calculations}
+We maintain a list of isomorphism signatures of necklace
+gluings, and separately of three-cusped necklace
+gluings. For every gluing $g$, if we have seen its
+isomorphism signature before, then we skip it.
+Otherwise if a gluing $M_g$ is not three-cusped, then we
+compute a set $NE(M_g)$ containing manifolds such that
+every hyperbolic knot complement into which $M_g$ embeds
+nonelementarily is a Dehn filling of some manifold in
+$NE(M_g)$. (If it is three-cusped, we remember it for
+inspection later.) For every element $ne$ of this set,
+if we have seen its isomorphism signature before, then
+we skip it. Otherwise, we determine its exceptional
+short slopes on each cusp. If any cusp has more than
+eight exceptional slopes, we remember this $ne$ for
+further inspection later. Otherwise, for every cusp
+and for every short slope on the cusp, if that slope is
+hyperbolic, then we fill along that cusp to get a
+hyperbolic knot complement $ne_s$ that is a candidate to
+have more than eight exceptional fillings. For each such
+knot complement, we check to see if we have encountered
+its isomorphism signature before. If so, we skip it.
+Otherwise, for each of \emph{its} short fillings
+$s'$, we fill along $s'$ to get a closed manifold
+$ne_{s,s'}$. Then we determine whether or not it is
+hyperbolic, possibly using memoized computations to do
+so if we have seen its isomorphism signature before.
+Thus we determine (a superset of) the exceptional
+fillings of $ne_s$; if this set has cardinality more
+than 8 then we remember $ne_s$ for later.
 <<main.py>>=
 if ___name___ == "___main___":
     neckls = set()
@@ -2603,22 +2645,69 @@ if ___name___ == "___main___":
         sig = m.isoSig()
         if sig in neckls:
             return None
-        necklIsoSigs.add(sig)
         if m.countBoundaryComponents() == 3:
             threeCusped.add(sig)
             return None
+        necklIsoSigs.add(sig)
         NEs = NE(m)
         for ne in NEs:
             checkNE(ne)
-    nonelems = set()
-    onecusped = set()
+    nonElems = set()
+    oneCusped = {}
+    trouble = set()
+    memo = ({},{})
     def checkNE(reginaMfld):
         sig = reginaMfld.isoSig()
-	if sig in nonelems:
-	    return None
-	nonelems.add(sig)
-	if reginaMfld
+        if sig in nonElems:
+            return None
+        nonElems.add(sig)
+        mu = Manifold(reginaMfld.snapPea())
+        canonized = False
+        while not canonized:
+            try:
+                mu.randomize()
+                mu.canonize()
+                canonized = True
+            except:
+                pass
+        hyp,non,unk = {},{},{}
+        for cusp in range(mu.num_cusps()):
+            (h,n,u) = classifyShortSlopes(mu,cusp,memo)
+            if len(n) + len(u) > 8:
+                trouble.add(reginaMfld.isoSig())
+                return None
+            hyp[cusp],non[cusp],unk[cusp] = h,n,u
+        for cusp in hyp:
+            for s in hyp[cusp]:
+                m = mu.copy()
+                m.dehn_fill(s,cusp)
+                n = minFill(m, 10)
+                n.simplify()
+                n.canonize()
+                names = n.identify()
+                if names != []:
+                    name = ('census', names[0])
+                else:
+                    x = n.triangulation_isosig()
+                    name = ('isosig', x)
+                if name in oneCusped:
+                    continue
+                (h,n,u) = classifyShortSlopes(n,0,memo)
+                oneCusped[name] = (h,n,u)
+                if len(n) + len(u) > 8: 
+                    assert name = ('census', 'm004')
+    for b in [4,5,6,7]:
+        forallOrbitReps(b,checkNecklace)
+    for sig in threeCusped:
+        tc = regina.Triangulation3(sig)
+        f = NE(tc)
+        if f != []:
+            mag = Manifold(tc.snapPea())
+            mag.canonize()
+            assert mag.identify()[0] == "s776"
+    assert len(trouble) == 0
 
+@ 
 \subsection{Formatting the output}
 Now it's straightforward to go through the
 manifolds. First we make a file
@@ -2714,8 +2803,8 @@ def fullDisplay(outfile,vettedlist):
         ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
         ln4 = "\\end{itemize}"
         lns = [ln0,ln1,ln2,ln3,ln4]
-	lns = map(lambda s:s + "\n", lns)
-	f.writelines(lns)
+        lns = map(lambda s:s + "\n", lns)
+        f.writelines(lns)
     f.write("\\end{itemize}\n")
 
 def summaryPreamble(f,l,tp):
@@ -2826,11 +2915,11 @@ if __name__ == "__main__":
     hypInvs = map(lambda l: map(lambda trp: trp[0],l),hyp)
     for hypInvL in hypInvs:
         if hypInvL == []:
-	    texH.write("[],\\\n")
-	    continue
+            texH.write("[],\\\n")
+            continue
         texH.write("[\\\n")
-	for inv in hypInvL:
-	    texH.write(str(inv) + ",\\\n")
+        for inv in hypInvL:
+            texH.write(str(inv) + ",\\\n")
         texH.write("],\\\n")
     texH.write("]\n")
     texH.close()
@@ -2893,56 +2982,56 @@ if __name__ == "__main__":
     f.write("\\begin{document}")
     namesSoFar = set()
     for hL in hypInvs:
-    	newNames = set()
+            newNames = set()
         repeatNames = set()
         if hL == []:
             continue
         n = len(hL[0])
         f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
         named = giveNames(hL)
-	for nm in named:
-	    if nm in namesSoFar:
-	        repeatNames.add(nm)
-	    else:
-	        newNames.add(nm)
-		namesSoFar.add(nm)
-	f.write("There were " + str(len(named)) + " gluings,\n")
-	f.write("and " + str(len(newNames)) + " new gluings.\n")
-	f.write("Their names are as follows, along with\n")
-	f.write("the number of associated gluings\n")
-	f.write("of bead number " + str(n) + ".\n")
-	def writeNames(s):
+        for nm in named:
+            if nm in namesSoFar:
+                repeatNames.add(nm)
+            else:
+                newNames.add(nm)
+                namesSoFar.add(nm)
+        f.write("There were " + str(len(named)) + " gluings,\n")
+        f.write("and " + str(len(newNames)) + " new gluings.\n")
+        f.write("Their names are as follows, along with\n")
+        f.write("the number of associated gluings\n")
+        f.write("of bead number " + str(n) + ".\n")
+        def writeNames(s):
             if s == set():
-	        return None
-	    f.write("\\begin{quotation}\n")
-	    namel = list(s)
+                return None
+            f.write("\\begin{quotation}\n")
+            namel = list(s)
             namel.sort()
             for (name, num_cusps) in namel[:-1]:
                 nmc = (name, num_cusps)
                 f.write("\\textbf{" + name + "}: ")
-	        f.write(str(len(named[nmc])) + ";\n")
-	    f.write("\\textbf{" + namel[-1][0] + "}: ")
-	    f.write(str(len(named[namel[-1]])) + ".\n")
-	    f.write("\\end{quotation}\n")
-	f.write("\\subsection{New names}\n")
-	writeNames(newNames)
-	f.write("\\subsection{Old names}\n")
-	writeNames(repeatNames)
-	f.write("\\subsection{Gluings' names}\n")
+                f.write(str(len(named[nmc])) + ";\n")
+            f.write("\\textbf{" + namel[-1][0] + "}: ")
+            f.write(str(len(named[namel[-1]])) + ".\n")
+            f.write("\\end{quotation}\n")
+        f.write("\\subsection{New names}\n")
+        writeNames(newNames)
+        f.write("\\subsection{Old names}\n")
+        writeNames(repeatNames)
+        f.write("\\subsection{Gluings' names}\n")
         f.write("\\begin{itemize}\n")
-	def writeGluings(s):
-	    namel = list(s)
-	    namel.sort()
-	    for (name, num_cusps) in namel:
-		nmc = (name, num_cusps)
-		f.write("\\item \\textbf{" + name + "}, ")
-		if len(named[nmc]) > 1:
-		    f.write("{0} gluings; ".format(len(named[nmc])))
-		f.write("{0} cusps\n".format(num_cusps))
-		f.write("\\begin{itemize}\n")
-		for inv in named[nmc]:
-		    f.write("\\item " + invToString(inv) + "\n")
-		f.write("\\end{itemize}\n")
+        def writeGluings(s):
+            namel = list(s)
+            namel.sort()
+            for (name, num_cusps) in namel:
+                nmc = (name, num_cusps)
+                f.write("\\item \\textbf{" + name + "}, ")
+                if len(named[nmc]) > 1:
+                    f.write("{0} gluings; ".format(len(named[nmc])))
+                f.write("{0} cusps\n".format(num_cusps))
+                f.write("\\begin{itemize}\n")
+                for inv in named[nmc]:
+                    f.write("\\item " + invToString(inv) + "\n")
+	        f.write("\\end{itemize}\n")
         writeGluings(newNames)
 	writeGluings(repeatNames)
         f.write("\\end{itemize}\n")
