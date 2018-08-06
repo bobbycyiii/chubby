@@ -37,14 +37,17 @@ We remind the reader that indexing begins at 0.
 \section{Enumerating necklace gluings}
 \subsection{Necklace gluings with $n$ beads}
 \begin{definition}
-An $n$-dipyramid is a 3-ball with a cell structure
-whose boundary triangulation is the suspension
-of an $n$-gon. The choice of suspension points
+An \emph{$n$-dipyramid} is the suspension
+of an $n$-gon, regarded as a convex polyhedron. 
+The choice of suspension points
 is canonical unless $n = 4$, in which case we
 take care to remember which vertices are suspension points.
 \end{definition}
 The following is our implementation of this
-definition in Regina.
+definition in Regina. We give a \emph{triangulation}
+of the $n$-dipyramid instead of the $n$-dipyramid itself.
+The induced cellulation on the boundary is the same,
+and that's what counts, as we will be gluing up boundary faces.
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
         """Returns an n-dipyr."""
@@ -56,23 +59,42 @@ def makeDipyr(n):
                 you = newt.simplex((i+1)%n)
                 me.join(2,you,Perm4(2,3))
         return newt
-<<neckl.py>>=
-<<how to make an n-dipyr>>
+@ 
+Note: in what follows, the labels [[0]],
+\ldots, [[3]] refer to Regina's internal labelling system
+for faces and vertices of tetrahedra, not to 
+our own labels of boundary faces, which we denote
+with $0,\ldots,2\cdot n - 1$.
 @
 As you can verify, we have glued up the $n$-dipyramid so
-that the interior faces are all faces 2 and 3 of their
+that the interior faces are all faces [[2]] and [[3]] of their
 respective tetrahedra, and the boundary faces are thus faces
-0 and 1. Their common edge in a given tetrahedron is an edge
-of the base polygon. We have also indexed the tetrahedra
-with naturals less than $n$ so that the induced cyclic
-ordering on the common edges is the same as that induced
-by the base polygon. Finally, as you may verify, all the
-0 faces lie around one suspension point, and the 1 faces
+[[0]] and [[1]]. The common edge $2-3$ of these boundary faces
+in a given tetrahedron is an edge of the base polygon. 
+In this gluing, Regina's internal indexing of the tetrahedra
+by $[n] = \{i : \mathbf{N} : 0 \leq i < n\}$ 
+is such that consecutive $2-3$ edges in the polygon
+lie in tetrahedra with (cyclically) consecutive indices.
+Finally, as you may verify, all the
+[[0]] faces lie around one suspension point, and the [[1]] faces
 lie around the other suspension point.
 @
-N.B. In the above paragraph, the labels 0,1,2,3 refer to
-Regina's internal labelling system, not our just imposed
-face labelling on the boundary faces of the dipyramid.
+We label the boundary faces of the $n$-dipyramid
+so triangulated very simply. If $f$ is a boundary
+face of the $n$-dipyramid, then it lies in a
+tetrahedron of some index $i$, and $f$ is incident
+to a suspension vertex [[v]] (either $v = 0$ or $v = 1$).
+We label $f = 2 \cdot i + v$. (We choose this
+labelling scheme over Milley's as the symmetries of this
+scheme are easier to implement.) See Figure \ref{fig:bead5}
+for a 5-dipyramid with its faces labelled.
+@
+%\begin{figure}
+%\centering
+%\includegraphics[width=.4\textwidth]{dipyr5.png}
+%\caption{Our labelled 5-dipyramid in stereographic projection
+%from the higher suspension point.}\label{fig:bead5}
+%\end{figure}
 @
 \begin{definition}
   A \emph{necklace gluing of bead number $n$}
@@ -93,30 +115,7 @@ than $2 \cdot n$, we get an identification
 sending perfect matchings
 in $S_{2 \cdot n}$ to necklace gluings. 
 @
-The labelling we choose involves a choice
-of higher and lower suspension point, an
-orientation of the base polygon, and
-a choice of face thereon. With these choices,
-mark the sides of the base polygon
-with $\{2\cdot i : 0 \leq i < n\}$, such that
-the chosen face takes marking 0, and
-the cyclic ordering on faces from the
-orientation induces the natural cyclic
-ordering $0 < 2 < \cdots < 2\cdot n - 2$.
-Then a face of the $n$-dipyramid which
-is adjacent to the lower suspension point
-takes as a label the marking on the side of
-the base of which it is a cone, but a face of the
-$n$-dipyramid adjacent to the higher
-suspension point takes instead $1$ plus
-the marking on its base side. (Cf. Figure \ref{fig:bead5}.)
-@
-%\begin{figure}
-%\centering
-%\includegraphics[width=.4\textwidth]{dipyr5.png}
-%\caption{Our labelled 5-dipyramid in stereographic projection
-%from the higher suspension point.}\label{fig:bead5}
-%\end{figure}
+
 @
 Therefore, the following code accomplishes a necklace
 gluing, given a perfect matching in
@@ -2606,7 +2605,7 @@ def classifyShortSlopes(snappyManifold, cusp, memo):
     forallShortSlopes(q,6,checkSlope)
     return (hyp,nonhyp,unknown)
 @
-\subsection{Running the calculations}
+\subsubsection{Running the calculations}
 We maintain a list of isomorphism signatures of necklace
 gluings, and separately of three-cusped necklace
 gluings. For every gluing $g$, if we have seen its
@@ -2636,6 +2635,17 @@ so if we have seen its isomorphism signature before.
 Thus we determine (a superset of) the exceptional
 fillings of $ne_s$; if this set has cardinality more
 than 8 then we remember $ne_s$ for later.
+
+After doing the above for every single necklace gluing,
+we assert that the only three-cusped necklace gluing
+admitting a non-elementary embedding into a hyperbolic
+3-manifold is [[s776]]; that every two-cusped necklace
+gluing that admitted a non-elementary embedding had
+at most eight exceptional slopes on each of its cusps;
+and, finally, that the only one-cusped short Dehn filling
+on a necklace gluing of bead number at most 7 that itself
+admits more than eight exceptional fillings is [[m004]],
+the figure-eight knot complement.
 <<main.py>>=
 if ___name___ == "___main___":
     neckls = set()
@@ -2645,10 +2655,12 @@ if ___name___ == "___main___":
         sig = m.isoSig()
         if sig in neckls:
             return None
+        neckls.add(sig)
+        if not isLinkComplement(m):
+            return None
         if m.countBoundaryComponents() == 3:
             threeCusped.add(sig)
             return None
-        necklIsoSigs.add(sig)
         NEs = NE(m)
         for ne in NEs:
             checkNE(ne)
@@ -2656,6 +2668,7 @@ if ___name___ == "___main___":
     oneCusped = {}
     trouble = set()
     memo = ({},{})
+    manyExcs = []
     def checkNE(reginaMfld):
         sig = reginaMfld.isoSig()
         if sig in nonElems:
@@ -2676,7 +2689,7 @@ if ___name___ == "___main___":
             if len(n) + len(u) > 8:
                 trouble.add(reginaMfld.isoSig())
                 return None
-            hyp[cusp],non[cusp],unk[cusp] = h,n,u
+            hyp[cusp] = h
         for cusp in hyp:
             for s in hyp[cusp]:
                 m = mu.copy()
@@ -2695,7 +2708,7 @@ if ___name___ == "___main___":
                 (h,n,u) = classifyShortSlopes(n,0,memo)
                 oneCusped[name] = (h,n,u)
                 if len(n) + len(u) > 8: 
-                    assert name = ('census', 'm004')
+                    manyExcs.append(name)
     for b in [4,5,6,7]:
         forallOrbitReps(b,checkNecklace)
     for sig in threeCusped:
@@ -2706,375 +2719,6 @@ if ___name___ == "___main___":
             mag.canonize()
             assert mag.identify()[0] == "s776"
     assert len(trouble) == 0
-
-@ 
-\subsection{Formatting the output}
-Now it's straightforward to go through the
-manifolds. First we make a file
-which just automates the enumeration
-from the command line. It is fairly kludgy,
-but perhaps that is to be expected; it makes
-\LaTeX\ files. The file [[enumSummary.tex]] is
-a summary of the enumeration, and the file
-[[allData.tex]] is the whole set of data.
-For later purposes, we also output a
-file [[parents.py]] which defines
-a list, the $i$th entry of which is the
-list of (potential) parents for hyperbolic
-link complements admitting bead-$i$ necklace
-structures (up to isomorphism). We use this later.
-<<vetting.py>>=
-from neckl import forallOrbitReps
-from neckl import makeNecklace
-from unhyp import linkComplement
-from unhyp import isFaultless
-from nonelem import NE
-from shortSlopes import forallShortSlopes
-from cuspForm import cuspForm
-from DehnFillHack import minFill
-from time import clock
-@ 
-First we define a procedure [[vetNecklaces]] that goes
-through the $n$-bead necklaces, and
-returns a pair of lists, one of hyperbolic parents
-(not necessarily necklace manifolds)
-and one of unhyperbolic, ``barren'' necklaces
-that do not embed nonelementarily. Each
-entry of each list is a triple of
-a gluing, a reason why that gluing
-is in the list, and a number representing
-how long it took to investigate this gluing.
-It also takes a debugging flag [[wstat]] to
-tell whether or not we want it to display
-its progress by printing out all the matchings
-it investigates as it goes through them.
-@
-<<vetting.py>>=
-from sys import stdout
-def vetNecklaces(n,wstat=False):
-    parents = []
-    barren = []
-    def vetInv(inv,p,b):
-        if wstat:
-            print str(inv)
-        mfld = makeNecklace(inv)
-        if not linkComplement(mfld,False):
-           if wstat:
-               print "invalid\n"
-           return None
-        before = clock()
-        mfld.intelligentSimplify()
-        ps = NE(mfld)
-        elapsed = clock() - before
-        if ps != []:
-            p.append((inv,ps,elapsed))
-            status = " parent\n"
-        else:
-            b.append((inv,ps,elapsed))
-            status = " barren\n"
-        if wstat:
-            print status
-        stdout.flush()
-    vi = lambda inv: vetInv(inv,parents,barren)
-    forallOrbitReps(n,vi)
-    return (parents,barren)
-@ 
-Now for the severely kludgy part. We define
-some functions that write \LaTeX\ to a given file.
-<<vetting.py>>=
-def invToString(inv):
-    s = "$"
-    for p in inv:
-        s = s + "(" + str(p[0]) + "\ " + str(p[1]) + ")"
-    s = s + "$"
-    return s    
-def fullDisplay(outfile,vettedlist):
-    f,l = outfile, vettedlist
-    if len(l) == 0:
-        return None
-    f.write("\\begin{itemize}\n")
-    for x in l:
-        ln0 = "\\item \\begin{itemize}"
-        ln1 = "      \\item " + invToString(x[0])
-        if type(x[1][1]) == str:
-            ln2 =  "      \\item " + x[1][1]
-        else:
-            ln2 =  "      \\item " + x[1][1][1]
-        ln3 = "      \\item Time to vet was {0} seconds.".format(x[2])
-        ln4 = "\\end{itemize}"
-        lns = [ln0,ln1,ln2,ln3,ln4]
-        lns = map(lambda s:s + "\n", lns)
-        f.writelines(lns)
-    f.write("\\end{itemize}\n")
-
-def summaryPreamble(f,l,tp):
-    if len(l) == 0:
-        return None
-    f.write("\\subsection{")
-    f.write("{0} manifolds with bead number {1}".format(tp[0],tp[1]))
-    f.write("}\n")
-    
-def recognitionTypes(f,l):
-    if len(l) == 0:
-        return None
-    if len(l) == 1:
-        x = l[0]
-        ln0 = "There was one such manifold, with {0}, ".format(x[1][1])
-        ln1 =  "namely, " + invToString(x[0]) + ". "
-        f.writelines([ln0,ln1])
-        return None
-    ln0 = "There were {0} such manifolds. ".format(len(l))
-    ln1 =  "Their recognition types were as follows."
-    ln2 =  "\\begin{itemize}"
-    f.writelines([ln0,ln1,ln2])
-    recTypes = {}
-    for tup in l:
-        rct = tup[1][1]
-        if not rct.__class__ is str:
-            assert rct.__class__ is tuple
-            rct = rct[1]
-        if not rct in recTypes:
-            recTypes[rct] = 1
-        else:
-            recTypes[rct] = recTypes[rct] + 1
-    for rct in recTypes:
-        f.write("\\item With {0}, there were {1} manifolds.\n".format(rct,recTypes[rct]))
-
-from numpy import log2
-def timesTaken(f,l,tp):
-    if len(l) == 0:
-        return None
-    if len(l) == 1:
-        f.write("It took {0} seconds to vet.".format(l[0][2]))
-        return None
-    ln0 = "\\end{itemize}"
-    ln1 = "The times they took were approximately as follows."
-    ln2 = "\\begin{itemize}"
-    f.writelines([ln0,ln1,ln2])
-    times = {}
-    for x in l:
-        timeTaken = x[2]
-        approxLogTimeTaken = int(log2(timeTaken))
-        altt = approxLogTimeTaken
-        if not altt in times:
-            times[altt] = [x[0]]
-        else:
-            times[altt].append(x[0])
-    for altt in times:
-        f.write("\\item Of manifolds vetted in about $2^{")
-        f.write(str(altt)+"}")
-        f.write("$ seconds, there were {0}.\n".format(len(times[altt])))
-    f.write("\\end{itemize}\n")
-
-    longTime = -2
-    wasLongTime = False
-    for altt in times:
-        if altt > longTime:
-            wasLongTime = True
-    if wasLongTime == True:
-        f.write("Those that took an unusual amount of time are as follows.\n")
-        f.write("\\begin{itemize}\n")
-        for altt in times:
-            if altt > longTime:
-                f.write("\item The manifolds that took about $2^{")
-                f.write(str(altt) + "}$ seconds were as follows.\n")
-                f.write("\\begin{itemize}\n")
-                for inv in times[altt]:
-                    f.write("\\item " + invToString(inv) + "\n")
-                f.write("\\end{itemize}\n")
-        f.write("\\end{itemize}\n")
-
-    if tp[0] == "Hyperbolic":
-        f.write("In summary, the associated matchings were as follows:\n")
-        f.write("\\begin{itemize}\n")
-        for x in l:
-            f.write("\\item " + invToString(x[0]) + "\n")
-        f.write("\\end{itemize}\n")
-
-def vettingResultsSummary(f,l,tp):
-    summaryPreamble(f,l,tp)
-    recognitionTypes(f,l)
-    timesTaken(f,l,tp)
-@     
-And finally (and still kludgily), we have
-the [[main]] function for [[vetting.py]].
-<<vetting.py>>=
-import sys
-if __name__ == "__main__":
-    if not len(sys.argv) == 2:
-        raise(Exception("Only one argument"))
-    x = int(sys.argv[1])
-    texH = open("hyperbolics.py",'w')
-    hyp = []
-    unh = []
-    for i in range(x+1):
-        (h, u) = vetNecklaces(i)
-        hyp.append(h)
-        unh.append(u)
-    texH.write("hypInvs = [\\\n")
-    hypInvs = map(lambda l: map(lambda trp: trp[0],l),hyp)
-    for hypInvL in hypInvs:
-        if hypInvL == []:
-            texH.write("[],\\\n")
-            continue
-        texH.write("[\\\n")
-        for inv in hypInvL:
-            texH.write(str(inv) + ",\\\n")
-        texH.write("],\\\n")
-    texH.write("]\n")
-    texH.close()
-    texS = open("enumSummary.tex",'w')
-    texD = open("allData.tex",'w')
-    preamble = ["\\documentclass{article}", \
-                "\\begin{document}"]
-    texS.writelines(preamble)
-    texD.writelines(preamble)
-    texS.write("\\section{Summary of results}\n")
-    for i in range(x+1):
-        vettingResultsSummary(texS,hyp[i],("Hyperbolic",i))
-        vettingResultsSummary(texS,unh[i],("Unhyperbolic",i))
-    texS.write("\\end{document}\n")
-    texS.close()
-    texD.write("\\section{All data}\n")
-    for i in range(x+1):
-        texD.write("\\subsection{" + "Hyperbolics of bead number {0}".format(i) + "}\n")
-        fullDisplay(texD,hyp[i])
-        texD.write("\\subsection{" + "Non-hyperbolics of bead number {0}".format(i) + "}\n")
-        fullDisplay(texD,unh[i])
-    texD.write("\\end{document}\n")
-    texD.close()
-@
-\subsection{Naming the hyperbolics}
-That took care of the classification as such. However, we would also
-like to identify the hyperbolic manifolds in the SnapPea census; they
-have such identifications since they have at most 8 tetrahedra.
-We do this separately from vetting the manifolds, as SnapPy does not
-compile yet on ARM chips, due to the [[ManifoldHP]] class.
-<<naming.py>>=
-from hyperbolics import hypInvs
-from snappy import Manifold
-from neckl import makeNecklace
-from vetting import invToString
-
-def giveName(inv):
-    reginaM = makeNecklace(inv)
-    reginaM.intelligentSimplify()
-    snapM = Manifold(reginaM.snapPea())
-    l = snapM.identify()
-    if l == []:
-        return (snapM.isometry_signature(),snapM.num_cusps())
-    else:
-        return (l[0].name(),snapM.num_cusps())
-
-def giveNames(invL):
-    named = {}
-    for inv in invL:
-        name = giveName(inv)
-        if not name in named:
-            named[name] = [inv]
-        else:
-            named[name].append(inv)
-    return named
-
-if __name__ == "__main__":
-    f = open("hypNames.tex","w")
-    f.write("\\documentclass{article}\n")
-    f.write("\\begin{document}")
-    namesSoFar = set()
-    for hL in hypInvs:
-            newNames = set()
-        repeatNames = set()
-        if hL == []:
-            continue
-        n = len(hL[0])
-        f.write("\\section{Hyperbolics of bead number " + str(n) + "}\n")
-        named = giveNames(hL)
-        for nm in named:
-            if nm in namesSoFar:
-                repeatNames.add(nm)
-            else:
-                newNames.add(nm)
-                namesSoFar.add(nm)
-        f.write("There were " + str(len(named)) + " gluings,\n")
-        f.write("and " + str(len(newNames)) + " new gluings.\n")
-        f.write("Their names are as follows, along with\n")
-        f.write("the number of associated gluings\n")
-        f.write("of bead number " + str(n) + ".\n")
-        def writeNames(s):
-            if s == set():
-                return None
-            f.write("\\begin{quotation}\n")
-            namel = list(s)
-            namel.sort()
-            for (name, num_cusps) in namel[:-1]:
-                nmc = (name, num_cusps)
-                f.write("\\textbf{" + name + "}: ")
-                f.write(str(len(named[nmc])) + ";\n")
-            f.write("\\textbf{" + namel[-1][0] + "}: ")
-            f.write(str(len(named[namel[-1]])) + ".\n")
-            f.write("\\end{quotation}\n")
-        f.write("\\subsection{New names}\n")
-        writeNames(newNames)
-        f.write("\\subsection{Old names}\n")
-        writeNames(repeatNames)
-        f.write("\\subsection{Gluings' names}\n")
-        f.write("\\begin{itemize}\n")
-        def writeGluings(s):
-            namel = list(s)
-            namel.sort()
-            for (name, num_cusps) in namel:
-                nmc = (name, num_cusps)
-                f.write("\\item \\textbf{" + name + "}, ")
-                if len(named[nmc]) > 1:
-                    f.write("{0} gluings; ".format(len(named[nmc])))
-                f.write("{0} cusps\n".format(num_cusps))
-                f.write("\\begin{itemize}\n")
-                for inv in named[nmc]:
-                    f.write("\\item " + invToString(inv) + "\n")
-	        f.write("\\end{itemize}\n")
-        writeGluings(newNames)
-	writeGluings(repeatNames)
-        f.write("\\end{itemize}\n")
-    f.write("\\section{All the names together}\n")
-    f.write("There were " + str(len(namesSoFar)) + " manifolds in all.\n")
-    f.write("Their names are as follows.\n")
-    f.write("\\begin{quotation}\n")
-    namel = list(namesSoFar)
-    namel.sort()
-    for (name, num_cusps) in namel[:-1]:
-        f.write("\\textbf{" + name + "},\n")
-    f.write("\\textbf{" + namel[-1][0] + "}.\n")
-    f.write("\\end{quotation}\n")
-    f.write("\\end{document}\n")
-    f.close()
-@
-\section{Compiling everything}
-To compile everything, run the following script.
-<<compile.sh>>=
-#!/bin/sh
-noweave -delay nonelem.nw > nonelem.tex
-pdflatex nonelem.tex; pdflatex nonelem.tex; pdflatex nonelem.tex
-notangle -Rneckl.py nonelem.nw > neckl.py
-notangle -Runhyp.py nonelem.nw > unhyp.py
-notangle -Rvetting.py nonelem.nw > vetting.py
-notangle -Rnaming.py nonelem.nw > naming.py
-touch enumSummary.tex
-touch allData.tex
-touch hyperbolics.py
-python vetting.py 8
-pdflatex enumSummary.tex; pdflatex allData.tex
-touch hypNames.tex
-python naming.py
-pdflatex hypNames.tex
+    assert manyExcs == [('census', 'm004')]
 @ 
 \end{document} 
-
-<<unhyp preamble>>=
-from regina import Triangulation3
-from regina import NormalSurfaces as NS
-enumerate = NS.enumerate
-from regina import NS_STANDARD as NSS
-from regina import NS_QUAD as NSQ
-from regina import NS_FUNDAMENTAL as NSF
-# This computation is partially supported by NSF
-from regina import NS_VERTEX as NSV
