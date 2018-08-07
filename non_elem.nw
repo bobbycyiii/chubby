@@ -34,7 +34,7 @@
 We use camel-case naming, following Regina.
 We remind the reader that indexing begins at 0.
 @
-\section{Enumerating necklace gluings}
+\section{Necklace gluing iteration}
 \subsection{Necklace gluings with $n$ beads}
 \begin{definition}
 An \emph{$n$-dipyramid} is the suspension
@@ -79,22 +79,24 @@ Finally, as you may verify, all the
 [[0]] faces lie around one suspension point, and the [[1]] faces
 lie around the other suspension point.
 @
-We label the boundary faces of the $n$-dipyramid
-so triangulated very simply. If $f$ is a boundary
+\begin{remark}
+We label the boundary faces of the above
+triangulated $n$-dipyramid as follows. If $f$ is a boundary
 face of the $n$-dipyramid, then it lies in a
 tetrahedron of some index $i$, and $f$ is incident
 to a suspension vertex [[v]] (either $v = 0$ or $v = 1$).
 We label $f = 2 \cdot i + v$. (We choose this
 labelling scheme over Milley's as the symmetries of this
-scheme are easier to implement.) See Figure \ref{fig:bead5}
-for a 5-dipyramid with its faces labelled.
+scheme are easier to implement.) See Figure \ref{fig:bead7}
+for a 7-dipyramid with its faces labelled.
+\end{remark}
 @
-%\begin{figure}
-%\centering
-%\includegraphics[width=.4\textwidth]{dipyr5.png}
-%\caption{Our labelled 5-dipyramid in stereographic projection
-%from the higher suspension point.}\label{fig:bead5}
-%\end{figure}
+\begin{figure}
+\centering
+\includegraphics[width=.4\textwidth]{bead7.png}
+\caption{Our labelled 7-dipyramid in stereographic projection
+  from the higher suspension point.}\label{fig:bead7}
+\end{figure}
 @
 \begin{definition}
   A \emph{necklace gluing of bead number $n$}
@@ -104,23 +106,35 @@ for a 5-dipyramid with its faces labelled.
   of the dipyramid's vertices
   into suspension points.
 \end{definition}
+\begin{remark}
+Necklace gluings of bead number $n$ are in
+bijection with full, oriented, complete
+one-relator Heegaard diagrams. The correspondence
+is through the canonical Heegaard surface of
+a necklace gluing, viz. the splitting surface
+whose quads are of type $01/23$. The diagrams
+are full because they come from splitting
+surfaces; they are oriented because they come
+from two-sided orientable surfaces; they
+are complete because all sides of the $n$-dipyramid
+are interior; and they are one-relator because
+there is a unique edge between polar vertices.
+\end{remark}
 The set of necklace gluings
 of bead number $n$ on an $n$-dipyramid
 is naturally in bijection
 with the perfect matchings
 on the set of faces of that $n$-dipyramid.
 There are $2 \cdot n$ faces, so given any
-labelling of the faces by naturals less
-than $2 \cdot n$, we get an identification
+labelling of the faces by $[2 \cdot n]$
+(in particular, our chosen labelling),
+we get an identification
 sending perfect matchings
-in $S_{2 \cdot n}$ to necklace gluings. 
-@
-
+in $S_{[2 \cdot n]}$ to necklace gluings. 
 @
 Therefore, the following code accomplishes a necklace
 gluing, given a perfect matching in
-$S_{2\cdot n}$ in cycle notation,
-assuming Regina maintains the indexing of tetrahedra.
+$S_{[2\cdot n]}$ in cycle notation.
 
 First, it is easy to match a face label with a tetrahedron index.
 
@@ -134,7 +148,6 @@ we make an appropriate dipyramid, and for every
 pair in the list, glue the faces together.
 The first task is to determine which tetrahedras'
 faces are getting glued together.
-
 <<how to make a necklace gluing>>=
 def makeNecklace(fpfinv):
     n = len(fpfinv)
@@ -144,10 +157,9 @@ def makeNecklace(fpfinv):
         (i,j) = local.pop()
         me = ndipyr.simplex(whichTet(i))
         you = ndipyr.simplex(whichTet(j))
-        
 @
 The face of [[me]] getting glued is
-either 0 or 1, respectively, according
+either [[0]] or [[1]], respectively, according
 as $i$ is adjacent to the lower or
 higher suspension point, i.e. according
 as $i$ is even or odd.
@@ -158,8 +170,8 @@ We now split into two cases according as
 $i,j$ lie on the same or different suspension points.
 
 If they lie along the same suspension point, then
-the face-pairing restricted to the vertices fixes
-0 and 1. (Recall the duality between faces and
+the face-pairing restricted to the vertices fixes the vertices
+[[0]] and [[1]]. (Recall the duality between faces and
 vertices of a tetrahedron.) 
 But it must reverse orientation, so that
 the whole manifold is oriented. Thus the induced
@@ -169,8 +181,8 @@ map on the vertices is the permutation $(2\ 3)$.
             me.join(meFace,you,Perm4(2,3))
 @
 On the other hand, if they lie along different
-suspension points, then the 0,1 vertices must
-be flipped. Thus the 2 and 3 vertices must be
+suspension points, then the [[0]],[[1]] vertices must
+be flipped. Thus the [[2]] and [[3]] vertices must be
 fixed so that the gluing is oriented.
 <<how to make a necklace gluing>>=
         else:
@@ -178,61 +190,133 @@ fixed so that the gluing is oriented.
     ndipyr.setLabel(str(fpfinv))
     return ndipyr
 @
-\subsection{Enumerating necklace gluings}
-Our next goal is to get a list as small as
-possible which for every necklace gluing
-contains a manifold homeomorphic to that gluing. We
-could, of course, just enumerate all
-perfect matchings and put the
-associated gluings in a list. But many of
-these, presumably, will be asymmetric, so
-that by applying elements of the symmetry
-group of the $n$-dipyramid, we get different
-gluings which are homeomorphic. We wish to
-eliminate as much of such redundancy as we
-reasonably can.
+\subsection{The iteration}
+The approach taken before this work was
+to simply enumerate all perfect matchings
+on $[2\cdot n]$ and store them in a list.
+Previous work involved perfect matchings
+on $[24]$; the large number of such matchings
+made it impossible to store all these matchings
+in RAM. A first improvement one could make
+is to store all the perfect matchings in a \emph{trie}
+instead of in a list. Storage is much more
+efficient in time and space for tries, and
+retrieval is much more time-efficient. The
+reader might enjoy working out how to construct
+such a trie before reading \S \ref{subsub:trie}.
 @
-A reasonable approach is to have our list
-contain one representative from each
-dipyr-symmetry group orbit of perfect
-matchings, and nothing else. Milley took
-this approach, and it is the approach we take
-as well. However, we introduce a subtlety which
-makes the enumeration faster and leaner.
+However, since the structure of the trie
+is so simple---it has \emph{all} perfect
+matchings on $[2\cdot n]$---we can instead 
+just run a function
+\emph{whose ``call-structure'' is in 
+the ``shape'' of this trie}. Apparently
+this would be called a \emph{hylomorphism}
+by some folks in the functional programming community.
+It's also apparently an example of ``fusion.''
+It is certainly not a new idea, but 
+it is a pretty good one.
 @
-We do not begin by enumerating all
-perfect matchings as Milley does.
-Instead, we begin by constructing a tree
-with a face-pair at each internal node, such
-that there is an identification of perfect
-matchings in $S_{2\cdot n}$ with
-backtrack-free paths from the root of the tree to leaves.
-This takes much less space to store than the
-whole list of perfect matchings.
-We define what it means to remove a matching
-from the tree. This takes much less time
-than removing a matching from a list.
-Finally, we do a fairly natural thing after that:
-while the tree still contains a matching $\sigma$,
-remove every element of $\sigma$'s orbit from the tree,
-and then put $\sigma$ in some list.\footnote{In a previous
-  version of this program, we had our enumeration scheme
-  apply a given procedure $f$ to $\sigma$, instead of
-  just putting $\sigma$ in a list. In some sense this
-  is the most natural thing to ``do'', and certainly
-  the most generic. However, since we will be
-  remembering the isomorphism signatures
-  of our gluings anyway,
-  this would not decrease our memory footprint
-  significantly. There is a more subtle way to enumerate
-  such gluings up to isomorphism, which way has a much lower
-  memory footprint, only ever holding the current path
-  taken in the above tree, and never even constructing
-  the whole tree itself. However, as this is more
-  complicated and unnecessarily fast, we eschewed this
-  option here, and will publish and use it separately
-  in future work.}
-@
+A third improvement we can make is to
+investigate properties of arbitrary
+matchings encountered ``along the way.''
+If we can show that all the ``descendants''
+of a node in the trie aren't viable
+\emph{from a quick calculation on the
+node's matching}, then we can omit the
+calculation for that entire subtrie!
+\subsubsection{The proper matching trie}\label{subsub:trie}
+Though we don't ever compute this trie in practice,
+we ought to define it anyhow, and to ensure our
+definition is clear, we define it in code.
+\begin{definition}
+A \emph{proper matching} on a well-ordered
+set $S$ is a list of elements
+of $S\times S$ that is either
+\begin{itemize}
+\item the empty list; or
+\item a list of the form
+$(m,s) :: L$, where the
+head $(m,s)$ has $m = \min S$,
+and the tail $L$ is a proper
+matching on $S \setminus \{m,n\}$.
+\end{itemize}
+\end{definition}
+\begin{definition}
+If $A$ is a set, then a \emph{binary tree on $A$}
+either has the form $Leaf$ or has the form
+$Branch(a, L, R)$ where $a \in A$ and
+$L,R$ are binary trees on $A$. (This is a
+well-founded inductive definition.)
+\end{definition}
+It seems that to get a definition of
+the proper matching trie requires the
+recursive equivalent of a strengthening
+of the inductive hypothesis. We have to
+define a more complicated function first.
+\begin{definition}
+A \emph{$(U,V)$-proper matching} is
+a proper matching on $U \cup V$ that
+does not take the minimum of $U$ into $V$.
+\end{definition}
+Note that a proper matching on $S$ is
+an $(S,\emptyset)$-proper matching.
+
+We wish to construct a trie $uvPM(U,V)$ 
+``containing'' all $(U,V)$-proper matchings.
+First, if $|U| < 2$ then there are no
+$(U,V)$-proper matchings. Otherwise, let
+$m = \min U$, $U' = U \setminus \{m\}$,
+and $m' = \min U'$. A $(U,V)$-proper
+matching sends $m$ to $m'$, or to some
+other element of $U$. In the former case,
+the tail of the matching is itself
+a $(U\setminus\{m,m'\}\cup V,\emptyset)$-proper
+matching. In the latter case, the tail
+is a $(U\setminus\{m'\},V \cup \{m'\})$-proper matching.
+
+Thus, we make the following definition.
+\begin{definition}
+The \emph{proper matching trie} for $S$ is $uvPM(S,\emptyset)$,
+where $uvPM$ is defined by $uvPM(U,V) = Leaf$ if $|U| < 2$,
+and otherwise
+\[
+uvPM(U,V) = Branch((m,m'),
+                   uvPM(U\setminus\{m,m'\}\cup V,\emptyset),
+                   uvPM(U\setminus\{m'\},V \cup \{m'\})).
+\]
+\end{definition}
+In the following code we assume $U$ is sorted in
+increasing order, that $V$ is sorted in decreasing order,
+and that all elements of $V$ are less than all elements
+of $U'$. For efficiency's sake we have another
+auxiliary function for taking the union in the left
+branch.
+<<properMatching.py>>=
+def smush(l,r):
+   if r == []:
+       return l
+   else:
+       return smush([r[0]] + l, r[1:])
+
+def uvPM(U,V):
+    if len(U) < 2:
+        return ("Leaf",)
+    else:
+        m = U[0]
+	mp = U[1]
+        left = uvPM(smush(U[2:],V),[])
+	right = uvPM([m] + U[2:], [mp] + V)
+	return ("Branch",(m,m'),left,right)
+@ 
+\subsubsection{Viability}
+\subsubsection{The pruned hylomorphism}       
+
+
+
+
+
+\subsection{The symmetry group}
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
 It also acts on face-pairs and, of course, on faces. Since it
