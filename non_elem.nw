@@ -33,6 +33,7 @@
 \section*{Conventions}
 We use camel-case naming, following Regina.
 We remind the reader that indexing begins at 0.
+
 @
 \section{Necklace gluing iteration}
 \subsection{Necklace gluings with $n$ beads}
@@ -48,6 +49,7 @@ definition in Regina. We give a \emph{triangulation}
 of the $n$-dipyramid instead of the $n$-dipyramid itself.
 The induced cellulation on the boundary is the same,
 and that's what counts, as we will be gluing up boundary faces.
+
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
         """Returns an n-dipyr."""
@@ -59,12 +61,14 @@ def makeDipyr(n):
                 you = newt.simplex((i+1)%n)
                 me.join(2,you,Perm4(2,3))
         return newt
+
 @ 
 Note: in what follows, the labels [[0]],
 \ldots, [[3]] refer to Regina's internal labelling system
 for faces and vertices of tetrahedra, not to 
 our own labels of boundary faces, which we denote
 with $0,\ldots,2\cdot n - 1$.
+
 @
 As you can verify, we have glued up the $n$-dipyramid so
 that the interior faces are all faces [[2]] and [[3]] of their
@@ -78,6 +82,7 @@ lie in tetrahedra with (cyclically) consecutive indices.
 Finally, as you may verify, all the
 [[0]] faces lie around one suspension point, and the [[1]] faces
 lie around the other suspension point.
+
 @
 \begin{remark}
 We label the boundary faces of the above
@@ -90,6 +95,7 @@ labelling scheme over Milley's as the symmetries of this
 scheme are easier to implement.) See Figure \ref{fig:bead7}
 for a 7-dipyramid with its faces labelled.
 \end{remark}
+
 @
 \begin{figure}
 \centering
@@ -97,6 +103,7 @@ for a 7-dipyramid with its faces labelled.
 \caption{Our labelled 7-dipyramid in stereographic projection
   from the higher suspension point.}\label{fig:bead7}
 \end{figure}
+
 @
 \begin{definition}
   A \emph{necklace gluing of bead number $n$}
@@ -106,6 +113,8 @@ for a 7-dipyramid with its faces labelled.
   of the dipyramid's vertices
   into suspension points.
 \end{definition}
+
+@
 \begin{remark}
 Necklace gluings of bead number $n$ are in
 bijection with full, oriented, complete
@@ -120,6 +129,8 @@ are complete because all sides of the $n$-dipyramid
 are interior; and they are one-relator because
 there is a unique edge between polar vertices.
 \end{remark}
+
+@
 The set of necklace gluings
 of bead number $n$ on an $n$-dipyramid
 is naturally in bijection
@@ -131,6 +142,7 @@ labelling of the faces by $[2 \cdot n]$
 we get an identification
 sending perfect matchings
 in $S_{[2 \cdot n]}$ to necklace gluings. 
+
 @
 Therefore, the following code accomplishes a necklace
 gluing, given a perfect matching in
@@ -157,18 +169,20 @@ def makeNecklace(fpfinv):
         (i,j) = local.pop()
         me = ndipyr.simplex(whichTet(i))
         you = ndipyr.simplex(whichTet(j))
+
 @
 The face of [[me]] getting glued is
 either [[0]] or [[1]], respectively, according
 as $i$ is adjacent to the lower or
 higher suspension point, i.e. according
 as $i$ is even or odd.
+
 <<how to make a necklace gluing>>=
         meFace = i % 2
+
 @
 We now split into two cases according as
 $i,j$ lie on the same or different suspension points.
-
 If they lie along the same suspension point, then
 the face-pairing restricted to the vertices fixes the vertices
 [[0]] and [[1]]. (Recall the duality between faces and
@@ -176,25 +190,29 @@ vertices of a tetrahedron.)
 But it must reverse orientation, so that
 the whole manifold is oriented. Thus the induced
 map on the vertices is the permutation $(2\ 3)$.
+
 <<how to make a necklace gluing>>=
         if (i % 2 == j % 2):
             me.join(meFace,you,Perm4(2,3))
+
 @
 On the other hand, if they lie along different
 suspension points, then the [[0]],[[1]] vertices must
 be flipped. Thus the [[2]] and [[3]] vertices must be
 fixed so that the gluing is oriented.
+
 <<how to make a necklace gluing>>=
         else:
             me.join(meFace,you,Perm4(0,1))
     ndipyr.setLabel(str(fpfinv))
     return ndipyr
+
 @
 \subsection{The iteration}
-The approach taken before this work was
+The approach taken in \cite{GMM} was
 to simply enumerate all perfect matchings
 on $[2\cdot n]$ and store them in a list.
-Previous work involved perfect matchings
+This involved perfect matchings
 on $[24]$; the large number of such matchings
 made it impossible to store all these matchings
 in RAM. A first improvement one could make
@@ -204,6 +222,7 @@ efficient in time and space for tries, and
 retrieval is much more time-efficient. The
 reader might enjoy working out how to construct
 such a trie before reading \S \ref{subsub:trie}.
+
 @
 However, since the structure of the trie
 is so simple---it has \emph{all} perfect
@@ -214,8 +233,12 @@ the ``shape'' of this trie}. Apparently
 this would be called a \emph{hylomorphism}
 by some folks in the functional programming community.
 It's also apparently an example of ``fusion.''
-It is certainly not a new idea, but 
-it is a pretty good one.
+Examples of such iterations were known and implemented
+by the 1970s. This is not a new idea, but it
+is a pretty good one. I haven't found the
+following enumeration in the literature, but
+it follows in a long tradition of such algorithms.
+
 @
 A third improvement we can make is to
 investigate properties of arbitrary
@@ -225,10 +248,17 @@ of a node in the trie aren't viable
 \emph{from a quick calculation on the
 node's matching}, then we can omit the
 calculation for that entire subtrie!
+If we had constructed the trie to begin with,
+then this would amount to severing or \emph{pruning}
+a branch of the trie.
+
+@
 \subsubsection{The proper matching trie}\label{subsub:trie}
 Though we don't ever compute this trie in practice,
 we ought to define it anyhow, and to ensure our
 definition is clear, we define it in code.
+
+@
 \begin{definition}
 A \emph{proper matching} on a well-ordered
 set $S$ is a list of elements
@@ -242,26 +272,35 @@ and the tail $L$ is a proper
 matching on $S \setminus \{m,n\}$.
 \end{itemize}
 \end{definition}
+
+@
 \begin{definition}
-If $A$ is a set, then a \emph{binary tree on $A$}
-either has the form $Leaf$ or has the form
-$Branch(a, L, R)$ where $a \in A$ and
-$L,R$ are binary trees on $A$. (This is a
-well-founded inductive definition.)
+If $A$ is a type, then the type $Trie A$
+is defined inductively as $List (A, Trie A)$.
+That is, a \emph{trie on $A$} is either [[Nil]],
+or it is a list of pairs of elements of
+$A$ and tries on $A$.
 \end{definition}
+
+@
 It seems that to get a definition of
 the proper matching trie requires the
 recursive equivalent of a strengthening
 of the inductive hypothesis. We have to
 define a more complicated function first.
+
+@
 \begin{definition}
 A \emph{$(U,V)$-proper matching} is
 a proper matching on $U \cup V$ that
 does not take the minimum of $U$ into $V$.
 \end{definition}
+
+@
 Note that a proper matching on $S$ is
 an $(S,\emptyset)$-proper matching.
 
+@
 We wish to construct a trie $uvPM(U,V)$ 
 ``containing'' all $(U,V)$-proper matchings.
 First, if $|U| < 2$ then there are no
@@ -275,47 +314,127 @@ a $(U\setminus\{m,m'\}\cup V,\emptyset)$-proper
 matching. In the latter case, the tail
 is a $(U\setminus\{m'\},V \cup \{m'\})$-proper matching.
 
+@
 Thus, we make the following definition.
+
+@
 \begin{definition}
 The \emph{proper matching trie} for $S$ is $uvPM(S,\emptyset)$,
-where $uvPM$ is defined by $uvPM(U,V) = Leaf$ if $|U| < 2$,
+where $uvPM$ is defined by $uvPM(U,V) = \emptyset$ if $|U| < 2$,
 and otherwise
 \[
-uvPM(U,V) = Branch((m,m'),
-                   uvPM(U\setminus\{m,m'\}\cup V,\emptyset),
-                   uvPM(U\setminus\{m'\},V \cup \{m'\})).
+uvPM(U,V) = ((m,m'),uvPM(U\setminus\{m,m'\}\cup V,\emptyset)) :
+                   uvPM(U\setminus\{m'\},V \cup \{m'\})),
 \]
+where $:$ is [[cons]], the list constructor.
 \end{definition}
-In the following code we assume $U$ is sorted in
-increasing order, that $V$ is sorted in decreasing order,
-and that all elements of $V$ are less than all elements
-of $U'$. For efficiency's sake we have another
-auxiliary function for taking the union in the left
-branch.
-<<properMatching.py>>=
-def smush(l,r):
-   if r == []:
-       return l
-   else:
-       return smush([r[0]] + l, r[1:])
+
+We also define [[smush]], which takes the destructive union of
+two lists, reversing the latter.
+<<proper matching trie>>
+def smush(U,V):
+    UU = list(U)
+    VV = list(V)
+    while VV != []:
+        v = VV.pop()
+	UU.append(v)
+    return UU
 
 def uvPM(U,V):
-    if len(U) < 2:
-        return ("Leaf",)
-    else:
-        m = U[0]
-	mp = U[1]
-        left = uvPM(smush(U[2:],V),[])
-	right = uvPM([m] + U[2:], [mp] + V)
-	return ("Branch",(m,m'),left,right)
-@ 
-\subsubsection{Viability}
-\subsubsection{The pruned hylomorphism}       
+    if U == []:
+        return []
+    if U[1:] == []:
+        return []
+    u = U[0]
+    uu = U[1]
+    return [((u,uu),uvPM(smush(U[2:],V),[]))] + uvPM([u] + U[2:], [uu] + V)
 
+@
+\subsubsection{The pruned hylomorphism}
+We now develop the pruned hylomorphism intimated above.
+It is pretty straightforward. At any given point in the
+computation, the state consists of a \emph{prefix $P$}
+and sets $U$ and $V$ given as lists in, respectively,
+increasing and decreasing order, with $P$ acting
+trivially on $U$ and $V$. Our goal is to go through
+matchings of the form $P \circ (m X) \circ p'$, where
+$m$ is the minimum of $U$, $X$ is some other element of $U$,
+and $p'$ is some matching on $U \setminus \{m,X\}$; \emph{and only}
+to go through those matchings satisfying a \emph{hereditary predicate}:
 
+@
+\begin{definition}
+A predicate $Q$ on matchings is \emph{hereditary} if
+for all matchings $P$, if $Q(P)$, then $Q(P')$ for
+all matchings $P'$ of which $P$ is a prefix.
+\end{definition}
 
+@
+We'll develop that predicate later. For now let us
+develop the iteration with the predicate [[viable]] given as an argument.
+For every viable perfect matching we encounter, we will want
+to do something. We incorporate this into a function [[f]]
+that we also pass as a parameter. (One could also do something
+for all matchings by doing [[f(P)]] at the beginning of the
+[[elif U[1:] == []]] block, but we don't need to do that.)
 
+<<prunedTrieIteration.py>>=
+def nothin(x):
+    pass
 
+def yup(x):
+    return True
+
+eight = [0,1,2,3,4,5,6,7]
+
+def pTI(f,viable,S):
+    P,U,V = [],list(S),[]
+    def printState():
+        print str(P)
+        print str(U)
+        print str(V)
+        print "\n"
+    while True:
+        print "--------\n"
+        vbl = viable(P)
+        if U == []:
+            if vbl:
+                f(P)
+            [m0,m1] = P.pop()
+            printState()
+            U.append(m0)
+            printState()
+            V.append(m1)
+            printState()
+        if not vbl:
+            while U[1:] != []:
+                V.append(U.pop())
+                printState()
+        if U[1:] == []:
+            if P == []:
+                break
+            [m0,m1] = P.pop()
+            printState()
+            u = U.pop()
+            printState()
+            while V[0] > m1:
+                U.append(V.pop())
+                printState()
+            V = [m1] + V + [u]
+            printState()
+            U.append(m0)
+            printState()
+        else:
+            P.append(U[0:2])
+            printState()
+            U = U[2:]
+            printState()
+            while V != []:
+                U.append(V.pop())
+                printState()
+
+pTI(nothin,yup,eight)
+@
 \subsection{The symmetry group}
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
