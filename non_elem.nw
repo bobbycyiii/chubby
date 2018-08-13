@@ -225,296 +225,84 @@ checkable way. For this to work, the negation
 of viability must be \emph{hereditary}, i.e.
 if a matching $\mu$ is not viable, then no
 matching of which $\mu$ is a prefix is viable either.
+In fact we enumerate arbitrary matchings, and
+include perfection in the viability predicate.
 
 @
-We also go somewhat further towards a
-formal proof of correctness for the enumeration,
-since the program is more involved. The reader
-may or may not regard such tedium as an improvement!
+\subsubsection{The ordering on matchings}
+Let $M(S)$ be the set of matchings on a finite set $S$.
+Given a procedure $f$ whose domain is $M(S)$, and
+given a predicate $viable$ on $M(S)$, we propose
+to do $f(\pi)$ for all $\pi \in M(S)$ such that $viable(\pi)$.
+
+@
+We will use Python lists as stacks, and only interact
+with them through the usual stack API [[pop]] and [[push]]
+(which in Python is called [[append]] instead). The usual
+lexicographic order on stacks is defined as follows; this
+is equivalent in Python to
+\begin{verbatim}
+c0.reverse(); c1.reverse(); c0 < c1; c1.reverse(); c0.reverse()
+\end{verbatim}
+since Python lists pop their last elements, 
+not their first elements. It should be a tad
+faster though since it can return before going
+through the whole of the lists.
+
+<<cycle order>>=
+def stack_gt(gt,c0,c1):
+    C0 = c0
+    C1 = c1
+    while C0 != []:
+        hd0 = C0[-1]
+	C0 = C0[:-1]
+        if C1 == []:
+            return True
+        hd1 = C1[-1]
+	C1 = C1[:-1]
+        if hd0 != hd1:
+            return gt((hd0,hd1))
+    return False
+
+def cycle_gt(c0,c1):
+    num_gt = lambda (x,y): x > y
+    return stack_gt(num_gt,c0,c1)
+
+def matching_gt(c0,c1):
+    return stack_gt(cyc_gt,c0,c1)
+
+@
+\subsubsection{The sheer number of matchings}
+There are very many matchings.
+\begin{proposition}
+
+\end{proposition}
+\subsubsection{Strengthening the iteration}
+The proposition to do [[f]] for all specified
+matchings seems to be too weak to work. Even
+doing [[f]] for all viable matchings with a
+given prefix seems to be too weak. Here is
+what we actually do.
+
+\begin{definition}
+Fix a well-ordered finite set $S$.
+A \emph{latter segment of $S$} is a subset of $S$
+that is either empty, or is a latter segment
+$S'$ together with $\max (S \setminus S')$,
+and possibly together with some other element of
+$S \setminus S'$. A \emph{prefix on $S$}
+is a matching on a latter segment of $S$.
+\end{definition}
+
+
+
 
 <<viableMatchingIteration.py>>=
-def forAllViablePerfectMatchings(f,viable,n):
-@
-\begin{theorem}
-The procedure does [[f(P)]] for
-all viable perfect matchings $P$ on $[2\cdot n]$.
-\end{theorem}
-<<viableMatchingIteration.py>>=
+def forAllViableMatchings(f,viable,n):
     S = range(2*n)
-@
-\begin{proof}
-  We begin with a note on Python lists.
-  One might think that the ``head'' of a
-  non-empty list is both the element of
-  index 0 (the initial element) and the
-  result of ``popping'' the list. This is
-  not the case in Python, where popping a
-  non-empty list [[L]] yields its terminal
-  element [[L[-1].]] Likewise, in Python,
-  the analog of ``pushing'' is appending,
-  and [[L.append(x)]] makes [[L]] have
-  a new terminal element [[x]]. So in
-  Python, the head and tail of [[L]]
-  are, respectively, [[L[-1] ]]and
-  [[L[:-1].]] If $L$ has head $\ell$
-  and tail $L'$, we write $L = L' :: \ell$.
-  (That is, Python does [[snoc]] instead of [[cons]].)
-
-@
-Furthermore, according to the traditional
-definition, the range [[S]] is decreasing:
-its head is the maximum, and its tail is
-decreasing. (Or else $S$ is empty, which
-is trivially decreasing.) This is not so
-bad, as we would want to have stuff decrease
-anyhow when trying to prove termination.
-
-@
-Now, with that note finished, we discuss
-the iteration. The state at the beginning
-of every loop iteration is contained in
-three lists: a list $P$ of pairs of naturals
-indicating a matching (possibly not perfect),
-and two lists $U$, $V$ partitioning the
-remaining, unmatched elements of $[2\cdot n]$,
-with $U$ representing those elements we regard
-as eligible for inclusion in the next matching
-pair to be added to $P$.
-
-@
-More specifically, we ensure the following
-conditions hold at the beginning of every
-iteration of the loop. Letting $flatten(P)$
-denote the set of all entries of elements
-of $P$,
-@
-\begin{enumerate}
-\item $\{U,V,flatten(P)\}$ partitions $[2\cdot n]$.\label{cond:partition}
-\item For all $(m_0,m_1) \in P$, and for all $w \in U\cup V$,
-  $m_0 > w$.\label{cond:Pgt}
-\item Letting $u$ be the head of $U$ and $U'$ the tail,
-  for all $v \in V$ and $u' \in U'$,
-  $u > v$, $u > u'$, and $v > u'$.\label{cond:UVgt}
-\item $U$ is index-increasing, and hence traditionally
-  decreasing.\label{cond:Utdec}
-\item $V$ is index-decreasing, and hence traditionally
-  increasing.\label{cond:Vtinc}
-\end{enumerate}
-
-@
-We initialize these, naturally, as follows.
-The initial matching ought to be empty.
-Also, all of $S$ is eligible for the first matching-pair.
-
-<<viableMatchingIteration.py>>=
     P,U,V = [],S,[]
-@
-This initialization does not necessarily
-satisfy all these conditions. But if not,
-then either the empty matching is not
-viable or $S$ itself is empty. In these
-cases, there is no work to do, and we
-may exit the procedure immediately.
-
-<<viableMatchingIteration.py>>=
-    if S == [] or not viable(P):
-        return None
-@ 
-Otherwise, we may begin the iteration
-with our conditions satisfied.
-
-<<viableMatchingIteration.py>>=
-    while True:
-@ 
-At the beginning, the most natural
-thing to try to do is pop the first
-two elements off of $U$ and put that
-pair on $P$. But we can only do that
-assuming $U$ and its tail are non-empty.
-
-@
-If $U$ is empty, then $P$ is perfect.
-Since $P$ is viable, we do [[f(P)]].
-
-<<viableMatchingIteration.py>>=
-        if U == []:
-            f(P)
-@
-Now what? Well, let $P'$ be the tail
-of $P$. Since $P$ is perfect, there
-is no other matching whose tail is $P'$.
-So we put the state in the form indicating
-that we have investigated all viable
-perfect matchings with $P'$ as a prefix---namely,
-setting $U$ to be a singleton. Notice that
-if $U$ is a singleton, then there is no
-way to make a new matching-pair with elements
-of $U$. We take up this situation in the
-next conditional. For now, we do what we
-said we would do.
-
-<<viableMatchingIteration.py>>= 
-            (m0,m1) = P.pop()
-            U.append(m0)
-            V.append(m1)
-@
-It's easy to check that upon concluding
-this conditional block, the loop invariant
-conditions are satisfied. We will do this
-check in detail for the other cases.
-
-@
-If this conditional doesn't go through
-then $U$ is non-empty. Let $U = U' :: u$
-and set $U := U'$, i.e. pop $U$ into $u$.
-
-<<viableMatchingIteration.py>>=
-        u = U.pop()
-@ 
-Naturally, after this we have the predicate
-transforms of the conditions.
-\begin{enumerate}
-\item becomes ``$\{U::u,V,flatten(P)\}$ 
-  partitions $[2\cdot n]$'';
-\item becomes ``For all $(m_0,m_1) \in P$, 
-  for all $w \in U \cup \{u\} \cup V$, $m_0 > w$;
-\item becomes ``For all $v \in V$ and $u' \in U$,
-  $u > v$, $u > u'$, and $v > u'$;
-\item becomes ``$U$ is index-increasing'' (and
-  ``for all $u' \in U$, $u > u'$''---but we knew
-  that already from the previous condition); and
-\item is invariant, not involving $U$.
-\end{enumerate}
-
-@
-We will refer to the transform of condition
-$n$ as condition $n'$.
-
-@
-Now, suppose that either $P$ is not viable
-or that $U :: u$ is a singleton, i.e. $U$ is empty. 
-Then there is no viable matching with $P$ as a
-prefix and with some matching-pair
-containing only elements of $U :: u$.
-
-@
-As it turns out, we can reduce non-viability
-to the singleton case. We take $U :: u$ being a
-singleton to mean that we've investigated
-all viable perfect matchings with $P$ as prefix.
-Since there are no such matchings (as $P$
-is not viable and non-viability is hereditary),
-we can make this happen. We put all the
-elements of $U$ on $V$, in reverse order.
-
-<<viableMatchingIteration.py>>=
-        if not viable(P):
-	    while U != []:
-                V.append(U.pop())
-@
-We go through the conditions again.
-Let $K$ denote the inner procedure.
-All the new conditions are, happily,
-invariant under this loop.
-\begin{enumerate}
-\item \ref{cond:partition}' is invariant,
-  since $K$ doesn't change the partition 
-  $\{U\cup\{u\}\cup V, flatten(P)\}$
-  of $[2\cdot n]$ at all.
-\item \ref{cond:Pgt}' is invariant, since
-  $K$ doesn't change $U \cup \{u\} \cup V$.
-\item Suppose before $K$ we have $U = U' :: u''$.
-  Then \ref{cond:UVgt}' becomes
-  \[
-  \forall (v\in tail(V)) (u'\in U' :: u''),
-  u > v\ \land\ u > u'\ \land\ v > u'
-  \]
-  which is
-  \[
-  u > u''\ \land\ \forall (v\in tail(V)), v > u''
-  \ \land\ 
-  \forall (v\in tail(V)) (u'\in U'),
-  u > v\ \land\ u > u'\ \land\ v > u'
-  \]
-  which, since $u > u''$ and we have condition \ref{cond:Utdec}', is
-  \[
-  \forall (v\in tail(V) :: u'') (u'\in U'),
-  u > v\ \land\ u > u'\ \land\ v > u',
-  \]
-  but $U = U'$ and $V = tail(V) :: u''$ after 
-  $K$. So this is exactly condition \ref{cond:UVgt}' as desired.
-\item \ref{cond:Utdec}' is invariant, since popping preserves monotonicity.
-\item Suppose before $K$ we have $U = U' :: u''$.
-  Then \ref{cond:Vtinc}' becomes
-  ``$tail(V)$ is traditionally increasing.''
-  But by (the transform of) \ref{cond:UVgt}' 
-  we know that $u'' < v$ for all $v \in tail(V)$.
-  So $V :: u''$ is traditionally increasing.
-  Hence \ref{cond:Vtinc} is invariant.
-\end{enumerate}
-
-@
-This reduces us to the case that
-$U :: u$ is a singleton, if we began
-with a non-viable $P$.
-
-<<viableMatchingIteration.py>>=
-        if U == []:
-@
-Now, if both $U$ and $P$ are empty, then
-$U :: u$ is a singleton, and we have
-therefore investigated all viable
-perfect matchings with empty prefix,
-i.e. all viable perfect matchings.
-So we're completely done.
-
-<<viableMatchingIteration.py>>=
-            if P == []:
-                return None
-@ 
-Otherwise, let $P = P' :: (m0,m1)$
-and set $P := P'$.
-
-<<viableMatchingIteration.py>>=
-            (m0,m1) = P.pop()
-@ 
-This trivially preserves conditions
-\ref{cond:UVgt}', \ref{cond:Utdec}, and \ref{cond:Vtdec}.
-@
-Before doing this we have either condition
-\label{cond:partition} or \label{cond:partition}'.
-Call this condition $\Pi$. Popping here doesn't
-preserve $\Pi$, but we do have $\Pi^\ast$, which
-is $\Pi$ with $P$ replaced by $P :: (m0,m1)$---that
-is, $\Pi^\ast = \Pi[P := P :: (m0,m1)]$.
-@
-Popping not only preserves condition \label{cond:Pgt},
-but also lets us conclude that for all $w \in U \cup 
-<<>>=
-        if not viable(P):
-            while U[1:] != []:
-                V.append(U.pop())
-        if U[1:] == []:
-            if P == []:
-                break
-            (m0,m1) = P.pop()
-            u = U.pop()
-            while V != [] and V[-1] > m1:
-                U.append(V.pop())
-            V.append(m1)
-            if u > m1:
-                U.append(u)
-            else:
-                V = [u] + V
-            U.append(m0)
-        else:
-            m0 = U.pop()
-            m1 = U.pop()
-            P.append((m0,m1))
-            while V != []:
-                U.append(V.pop())
-
-@
+    if not viable(P):
+        
 \subsection{The symmetry group}
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
