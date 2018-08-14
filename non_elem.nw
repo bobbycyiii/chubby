@@ -228,81 +228,62 @@ matching of which $\mu$ is a prefix is viable either.
 In fact we enumerate arbitrary matchings, and
 include perfection in the viability predicate.
 
-@
-\subsubsection{The ordering on matchings}
-Let $M(S)$ be the set of matchings on a finite set $S$.
-Given a procedure $f$ whose domain is $M(S)$, and
-given a predicate $viable$ on $M(S)$, we propose
-to do $f(\pi)$ for all $\pi \in M(S)$ such that $viable(\pi)$.
-
-@
-We will use Python lists as stacks, and only interact
-with them through the usual stack API [[pop]] and [[push]]
-(which in Python is called [[append]] instead). The usual
-lexicographic order on stacks is defined as follows; this
-is equivalent in Python to
-\begin{verbatim}
-c0.reverse(); c1.reverse(); c0 < c1; c1.reverse(); c0.reverse()
-\end{verbatim}
-since Python lists pop their last elements, 
-not their first elements. It should be a tad
-faster though since it can return before going
-through the whole of the lists.
-
-<<cycle order>>=
-def stack_gt(gt,c0,c1):
-    C0 = c0
-    C1 = c1
-    while C0 != []:
-        hd0 = C0[-1]
-	C0 = C0[:-1]
-        if C1 == []:
-            return True
-        hd1 = C1[-1]
-	C1 = C1[:-1]
-        if hd0 != hd1:
-            return gt((hd0,hd1))
-    return False
-
-def cycle_gt(c0,c1):
-    num_gt = lambda (x,y): x > y
-    return stack_gt(num_gt,c0,c1)
-
-def matching_gt(c0,c1):
-    return stack_gt(cyc_gt,c0,c1)
-
-@
-\subsubsection{The sheer number of matchings}
-There are very many matchings.
-\begin{proposition}
-
-\end{proposition}
-\subsubsection{Strengthening the iteration}
-The proposition to do [[f]] for all specified
-matchings seems to be too weak to work. Even
-doing [[f]] for all viable matchings with a
-given prefix seems to be too weak. Here is
-what we actually do.
-
-\begin{definition}
-Fix a well-ordered finite set $S$.
-A \emph{latter segment of $S$} is a subset of $S$
-that is either empty, or is a latter segment
-$S'$ together with $\max (S \setminus S')$,
-and possibly together with some other element of
-$S \setminus S'$. A \emph{prefix on $S$}
-is a matching on a latter segment of $S$.
-\end{definition}
-
-
-
-
-<<viableMatchingIteration.py>>=
+<<initializations>>=
+DOWN = 0
+UP = 1
+OVER = 2
+S = 2 ^ (2*n)
+P = 0
+U = S
+prefix = []
+direction = DOWN
+<<step down>>=
+    if U == 0:
+        direction = UP
+    else:
+        u0 = U & (-U)
+        U = U & (U - 1)
+        P += u0
+        if U == 0:
+            prefix.append([u0])
+        else:
+            u1 = U & (-U)
+            U = U & (U - 1)
+            P += u1
+            prefix.append([u0,u1])
+<<step up>>=
+    if prefix == []:
+        raise Exception("Nothing above nil")
+    p0 = prefix.pop()
+    for u in p0:
+        U += u
+        P -= u
+    direction = OVER
+<<step over>>=
+    if U == 0:
+        direction == UP
+    else:
+        u = U & (-U)
+        U = U & (U - 1)
+        U = U & (U - 1)
+        U += u
+        direction = DOWN
+<<viableMatchings.py>>=
 def forAllViableMatchings(f,viable,n):
-    S = range(2*n)
-    P,U,V = [],S,[]
-    if not viable(P):
-        
+    <<initializations>>
+    while not (prefix == [] and direction == UP):
+        if direction == DOWN:
+            if not viable(prefix):
+                direction = UP
+            else:
+                f(prefix)
+                <<step down>>
+        elif direction == UP:
+            <<step up>>
+        elif direction == OVER:
+            <<step over>>
+
+@
 \subsection{The symmetry group}
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
