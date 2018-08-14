@@ -109,14 +109,14 @@ takes as a label the marking on the side of
 the base of which it is a cone, but a face of the
 $n$-dipyramid adjacent to the higher
 suspension point takes instead $1$ plus
-the marking on its base side. (Cf. Figure \ref{fig:bead5}.)
+the marking on its base side. (Cf. Figure \ref{fig:bead7}.)
 @
-%\begin{figure}
-%\centering
-%\includegraphics[width=.4\textwidth]{dipyr5.png}
-%\caption{Our labelled 5-dipyramid in stereographic projection
-%from the higher suspension point.}\label{fig:bead5}
-%\end{figure}
+\begin{figure}
+\centering
+\includegraphics[width=.4\textwidth]{bead7.png}
+\caption{Our labelled 7-dipyramid in stereographic projection
+from the higher suspension point.}\label{fig:bead7}
+\end{figure}
 @
 Therefore, the following code accomplishes a necklace
 gluing, given a perfect matching in
