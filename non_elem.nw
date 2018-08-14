@@ -43,8 +43,11 @@ of an $n$-gon. The choice of suspension points
 is canonical unless $n = 4$, in which case we
 take care to remember which vertices are suspension points.
 \end{definition}
+
+@
 The following is our implementation of this
 definition in Regina.
+
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
         """Returns an n-dipyr."""
@@ -56,8 +59,7 @@ def makeDipyr(n):
                 you = newt.simplex((i+1)%n)
                 me.join(2,you,Perm4(2,3))
         return newt
-<<neckl.py>>=
-<<how to make an n-dipyr>>
+	
 @
 As you can verify, we have glued up the $n$-dipyramid so
 that the interior faces are all faces 2 and 3 of their
@@ -69,10 +71,12 @@ ordering on the common edges is the same as that induced
 by the base polygon. Finally, as you may verify, all the
 0 faces lie around one suspension point, and the 1 faces
 lie around the other suspension point.
+
 @
 N.B. In the above paragraph, the labels 0,1,2,3 refer to
 Regina's internal labelling system, not our just imposed
 face labelling on the boundary faces of the dipyramid.
+
 @
 \begin{definition}
   A \emph{necklace gluing of bead number $n$}
@@ -82,6 +86,8 @@ face labelling on the boundary faces of the dipyramid.
   of the dipyramid's vertices
   into suspension points.
 \end{definition}
+
+@
 The set of necklace gluings
 of bead number $n$ on an $n$-dipyramid
 is naturally in bijection
@@ -92,6 +98,7 @@ labelling of the faces by naturals less
 than $2 \cdot n$, we get an identification
 sending perfect matchings
 in $S_{2 \cdot n}$ to necklace gluings. 
+
 @
 The labelling we choose involves a choice
 of higher and lower suspension point, an
@@ -110,6 +117,7 @@ the base of which it is a cone, but a face of the
 $n$-dipyramid adjacent to the higher
 suspension point takes instead $1$ plus
 the marking on its base side. (Cf. Figure \ref{fig:bead7}.)
+
 @
 \begin{figure}
 \centering
@@ -117,17 +125,20 @@ the marking on its base side. (Cf. Figure \ref{fig:bead7}.)
 \caption{Our labelled 7-dipyramid in stereographic projection
 from the higher suspension point.}\label{fig:bead7}
 \end{figure}
+
 @
 Therefore, the following code accomplishes a necklace
 gluing, given a perfect matching in
 $S_{2\cdot n}$ in cycle notation,
 assuming Regina maintains the indexing of tetrahedra.
 
+@
 First, it is easy to match a face label with a tetrahedron index.
 
 <<how to make a necklace gluing>>=
 def whichTet(face):
     return face / 2
+    
 @
 We represent face-pairings as lists of pairs
 of natural numbers. To accomplish a gluing,
@@ -144,20 +155,21 @@ def makeNecklace(fpfinv):
     while local != []:
         (i,j) = local.pop()
         me = ndipyr.simplex(whichTet(i))
-        you = ndipyr.simplex(whichTet(j))
-        
+        you = ndipyr.simplex(whichTet(j))    
 @
 The face of [[me]] getting glued is
 either 0 or 1, respectively, according
 as $i$ is adjacent to the lower or
 higher suspension point, i.e. according
 as $i$ is even or odd.
+
 <<how to make a necklace gluing>>=
         meFace = i % 2
 @
 We now split into two cases according as
 $i,j$ lie on the same or different suspension points.
 
+@
 If they lie along the same suspension point, then
 the face-pairing restricted to the vertices fixes
 0 and 1. (Recall the duality between faces and
@@ -165,6 +177,7 @@ vertices of a tetrahedron.)
 But it must reverse orientation, so that
 the whole manifold is oriented. Thus the induced
 map on the vertices is the permutation $(2\ 3)$.
+
 <<how to make a necklace gluing>>=
         if (i % 2 == j % 2):
             me.join(meFace,you,Perm4(2,3))
@@ -173,11 +186,16 @@ On the other hand, if they lie along different
 suspension points, then the 0,1 vertices must
 be flipped. Thus the 2 and 3 vertices must be
 fixed so that the gluing is oriented.
+
 <<how to make a necklace gluing>>=
         else:
             me.join(meFace,you,Perm4(0,1))
     ndipyr.setLabel(str(fpfinv))
     return ndipyr
+
+<<necklace.py>>=
+<<how to make an n-dipyr>>
+<<how to make a necklace gluing>>
 @
 \subsection{Enumerating necklace gluings}
 Our next goal is to get a list as small as
@@ -205,19 +223,19 @@ makes the enumeration faster and leaner.
 @
 We do not begin by enumerating all
 perfect matchings as Milley does.
-Instead, we begin by constructing a tree
+Instead, we begin by constructing a trie
 with a face-pair at each internal node, such
 that there is an identification of perfect
 matchings in $S_{2\cdot n}$ with
-backtrack-free paths from the root of the tree to leaves.
+backtrack-free paths from the root of the trie to leaves.
 This takes much less space to store than the
 whole list of perfect matchings.
 We define what it means to remove a matching
-from the tree. This takes much less time
+from the trie. This takes much less time
 than removing a matching from a list.
 Finally, we do a fairly natural thing after that:
-while the tree still contains a matching $\sigma$,
-remove every element of $\sigma$'s orbit from the tree,
+while the trie still contains a matching $\sigma$,
+remove every element of $\sigma$'s orbit from the trie,
 and then put $\sigma$ in some list.
 
 @
@@ -229,6 +247,7 @@ and then put $\sigma$ in some list.
 \end{remark}
 
 @
+\subsubsection{The action of the symmetry group on gluings}
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
 It also acts on face-pairs and, of course, on faces. Since it
@@ -252,11 +271,10 @@ then we call it \emph{the} v-flip.
 \end{definition}
 
 @
-\begin{proposition}
-  The following implements these symmetries as
-  they act on face labels. For convenience, we implement the
-  rotation through $t$ $n$ths of a revolution.
-  \end{proposition}
+The following implements these symmetries as
+they act on face labels. For convenience, we implement the
+rotation through $t$ $n$ths of a revolution.
+
 @
 <<how to act>>=
 def rt(n,t,face):
@@ -275,6 +293,7 @@ followed possibly by the v-flip. (We also
 remind the reader that in Python, [[m % n]]
 is the remainder upon division of $m$ by $n$,
 at least 0 and less than $n$.)
+
 @
 Because $DP$ acts on so many things,
 we introduce a poor man's datatype to
@@ -284,7 +303,7 @@ of a string and number, where the string
 [[str]] must be one of [["Rot"]],
 [["PRot"]], [["VRot"]], or [["VPRot"]], and
 the number [[t]] is assumed less than $n$.
-@
+
 <<how to act>>=
 def actFace (n,dp,face):
     (s,t) = dp
@@ -299,6 +318,7 @@ def actFace (n,dp,face):
         return vFlip(n,pFlip(r))
     else:
         raise Exception
+
 @
 Now, to discuss the action on face-pairs, we must
 discuss our representation of face-pairs. We represent
@@ -306,11 +326,12 @@ them not just as ordered pairs, but as consistently
 ordered pairs. We represent the pair of faces $i,j$
 by $(i,j)$ or $(j,i)$ according as $i > j$ or $j > i$,
 respectively.
+
 @
 Therefore, the implementation of the action on face-pairs
 is not as simple as applying the action to each entry; we
 have to maintain the order's consistency.
-@
+
 <<how to act>>=
 def actFacePair(n,dp,facepair):
     (i,j) = facepair
@@ -320,24 +341,26 @@ def actFacePair(n,dp,facepair):
         return (x,y)
     else:
         return (y,x)
+
 @
 Finally, we represent a gluing as a $>$-sorted list
 of face-pairs. So we have to sort
 after applying the action on face-pairs.
-@
+
 <<how to act>>=
 def actGluing(n,dp,gluing):
     afp = actFacePair
     unsorted = map((lambda fp: afp(n,dp,fp)), \
                                  gluing)
     return sorted(unsorted, reverse=True)
+
 @
 Having defined the action on gluings, we define
 the orbit. We only make sure that the list
 returned contains all elements from the orbit,
 and only elements from the orbit. We do not
 remove duplicates from this list.
-@
+
 <<how to orbit>>=
 def orbitWithRepeats(n,gluing):
     l = gluing
@@ -350,28 +373,33 @@ def orbitWithRepeats(n,gluing):
         for t in nums:
             out = [ag(n,(s,t),l)] + out
     return out
-    
+
+<<necklace.py>>=
+<<how to act>>
+<<how to orbit>>
 @
-Our tree will be a pretty standard binary tree on
-pairs of natural numbers. Its type's definition in Coq
-would be
-<<Coq definition of the type of our tree>>=
-Inductive PairTree : Type :=
-| PTLeaf : PairTree
-| PTBranch : (nat*nat) -> PairTree -> PairTree -> PairTree.
+\subsubsection{The trie of gluings}
+We implement the trie of gluings as a standard binary trie on
+pairs of natural numbers. Its type's definition in Coq would be
+<<Coq definition of the type of our trie>>=
+Inductive PairTrie : Type :=
+| PTLeaf : PairTrie
+| PTBranch : (nat*nat) -> PairTrie -> PairTrie -> PairTrie.
+
 @
-That is to say, a pair-tree is either a leaf, or it's
+That is to say, a pair-trie is either a leaf, or it's
 a branch, with an associated pair $(m,n)$ of numbers and
-two associated pair-trees, a left child and right child.
+two associated pair-tries, a left child and right child.
 We again go with a poor-man's implementation of this
-datatype in Python. A pair-tree will be a tuple,
+datatype in Python. A pair-trie will be a tuple,
 either a singleton or a quadruple. If it is a
-singleton, its single entry will be the string [["PTLeaf"]].
-Otherwise, its initial entry will be the string [["PTBranch"]];
+singleton, its single entry will be the constant [[PTLeaf]].
+Otherwise, its initial entry will be the constant [[PTBranch]];
 its next entry will be a pair [[(m,n)]] of integers; and
-its final entries will be pair-trees.
+its final entries will be pair-tries.
+
 @
-The way we construct our tree follows from a more general
+The way we construct our trie follows from a more general
 construction of perfect matchings on arbitrary
 lists of even length. Suppose $pfm(l)$ were the set of
 perfect matchings on $l$. If $l$ is empty,
@@ -383,12 +411,14 @@ $pfm(l) = (f\ f') \cdot pfm(l'')\ \cup\ X$, where
 $f,f'$ are the first elements of $l$; $l''$ is $l$
 without these elements; and $X$ is the subset of
 $pfm(l)$ sending $f$ to something apart from $f'$.
+
 @
 At this point we end up with two options.
-Either we could use a non-binary tree, or we can
+Either we could use a non-binary trie, or we can
 introduce a sort of auxiliary stack parameter in $pfm$
 to "remember" which face-pairs we've foregone so far.
 We choose the latter option.
+
 @
 So we end up with a slightly more complicated
 decomposition. We have some set $m$, and
@@ -418,39 +448,41 @@ $pfm$s to consider. We represent this situation by
 a branch. (For convenience,
 we define an auxiliary ``smush'' function establishing union
 in the first part of the partition.)
-@
-<<how to make a prefix tree>>=
+
+<<how to make the gluing trie>>=
 def smush (l,m):
     if m == []:
         return l
     else:
         return smush (([m[0]] + l), m[1:])
 
+PTLeaf = -1
+PTBranch = -2
+
 def pfm(l,m):
     if l == []:
-        return ("PTLeaf",)
+        return (PTLeaf,)
     # else
     f = l[0]
     lp = l[1:]
     if lp == []:
-        return ("PTLeaf",)
+        return (PTLeaf,)
     fp = l[1]
     lpp = l[2:]
-    return ("PTBranch", \
+    return (PTBranch, \
             (f,fp), \
             pfm(smush(lpp,m), []), \
             pfm([f] + lpp, [fp] + m))
     
-def originalTree(n):
+def completePairTrie(n):
     nums = range(2*n)
     nums.reverse()
     return pfm(nums, [])
-<<neckl.py>>=
-<<how to make a prefix tree>>
+
 @
 It's pretty simple to extract at least one matching
-from our tree if there is one. Just go left.
-@
+from our trie if there is one. Just go left.
+
 <<how to get a matching if there is one>>=
 def leftMatching(pt):
     if pt[0] == "PTLeaf":
@@ -459,11 +491,10 @@ def leftMatching(pt):
         (str, p, lt, rt) = pt
         assert str == "PTBranch"
         return [p] + leftMatching(lt)
-<<neckl.py>>=
-<<how to get a matching if there is one>>
+
 @
 It's also fairly straightforward to remove
-a matching from our tree. This, however,
+a matching from our trie. This, however,
 requires now that we spell out exactly what
 is the association between a path from root to
 leaf and perfect matching. By cycle
@@ -471,8 +502,9 @@ notation it will suffice to describe how to
 extract from such a path a sequence of $n$
 face-pairs (in order to get a permutation in cycle notation).
 (The involutive and perfect properties
-must be proved from our original tree's properties,
+must be proved from our original trie's properties,
 which proof we leave to the reader.)
+
 @
 A path from root to leaf might be empty; in that
 case, the sequence is empty. Otherwise, the path
@@ -481,24 +513,25 @@ say that the sequence of a path is that list
 whose first element is the pair of the node
 at which the path first turns left, and whose
 tail is the associated sequence of the path
-from the root of the child tree to the given leaf.
+from the root of the child trie to the given leaf.
+
 @
 The application of this for removing a matching
 is as follows. One has given a matching in the
-proper order, and a pair-tree again in proper order.
+proper order, and a pair-trie again in proper order.
 (So if we were being thorough, we would need to
-define proper order and show the original tree
+define proper order and show the original trie
 is properly ordered, and show that removal preserves
-propriety.) If the tree is empty, you return the tree.
+propriety.) If the trie is empty, you return the trie.
 Otherwise, compare the root with the head of the
 matching. If they differ, remove the whole matching 
 from the right child. If, instead, they agree, then
 remove the rest of the matching from the left child.
 If the result is just a leaf, then we can get rid of this
 root entirely, so the result should be the right child.
-Otherwise, it's just the tree with the rest of the matching
+Otherwise, it's just the trie with the rest of the matching
 removed from the left child.
-@
+
 <<how to remove a matching>>=
 def removeMatching(l,pt):
     if l == []:
@@ -515,23 +548,25 @@ def removeMatching(l,pt):
         return rt
     else:
         return ("PTBranch", pp, ltp, rt)
-<<neckl.py>>=
-<<how to remove a matching>>
+
 @
 This takes time proportional to at most the number of face-pairs.
 With a more sophisticated structure, we could possibly
 get it down lower. At any rate, this is much better
-than time proportional to the number of \emph{gluings}.
+than time proportional to the number of \emph{gluings},
+which is the time it would take to find and remove
+gluings from a \emph{list} of all gluings.
+
 @
 In conclusion for this section, it's now completely
 straightforward to implement our original plan as
 described above: pop top, remove orbit, do something
 with the orbit representative (here encapsulated
 in a function [[f]]), repeat.
-@
+
 <<how to do stuff with orbit representatives>>=
 def forallOrbitReps(n,f):
-    pt = originalTree(n)
+    pt = originalTrie(n)
     while pt[0] != "PTLeaf":
         l = leftMatching(pt)
         lorb = orbitWithRepeats(n,l)
@@ -539,26 +574,40 @@ def forallOrbitReps(n,f):
              pt = removeMatching(lp,pt)
         f(l)
 
-<<neckl.py>>=
+<<necklace.py>>=
+<<how to make the gluing trie>>
+<<how to get a matching if there is one>>
+<<how to remove a matching>>
 <<how to do stuff with orbit representatives>>
 @
-\section{Nonelementary embedding testing}
+\section{Hyperbolicity testing for link complements}
 We can now generate all the manifolds of interest to us.
-Our first task is to determine among these which embed
+Our next task is to determine among these which embed
 nonelementarily into hyperbolic 3-manifolds.
-\subsection{Hyperbolicity}
 As a warmup we first describe how to determine
 whether or not a given nontrivial link complement is hyperbolic.
-\subsubsection{Sanity checks}
 As a very first step, we can implement some basic sanity checks.
+Then we implement normal surface routines that find
+interesting surfaces of non-negative Euler characteristic,
+which for link complements are the only obstructions
+to hyperbolicity, by Thurston's hyperbolization theorem
+for Haken manifolds.
+
+@
+\subsection{Sanity checks}
+\subsubsection{Link complement testing}
 All necklace gluings are orientable. Likewise, they are all connected.
 (If we were testing arbitrary MOM gluings, then we would 
-add a connectedness test.) Our other requirement, though, 
+add a connectedness test.) One other requirement, though, 
 is that the links of all the vertices must be tori. This
-is known in the literature as a "(generalized) link complement,"
-i.e. the complement of a nontrivial link in some closed orientable 3-manifold.
-(Some authors require that the given closed 3-manifold be irreducible.
+is known in the literature as a ``(generalized) link complement,''
+i.e. the complement of a nontrivial link
+in some closed orientable 3-manifold.
+(Some authors require that the given
+closed 3-manifold be irreducible.
 We do not make this requirement.)
+
+@
 <<link complement>>=
 def isLinkComplement(mfld, allowInteriorVertices):
     if not mfld.isOrientable():
@@ -579,13 +628,13 @@ def isLinkComplement(mfld, allowInteriorVertices):
         return True
 
 @
-\subsection{Simple obstructions to hyperbolicity}
+\subsubsection{Fundamental group obstructions}
 Next we describe some obstructions to
 the hyperbolicity of a 3-manifold $M$ that are
 often easy to detect using [[Regina]]. These
 obstructions fall into two classes.
+
 @
-\subsubsection{Fundamental group obstructions}
 The first class of obstructions are
 obstructions coming from presentations
 of $\pi_1(M)$. Regina is skillful in producing
@@ -593,9 +642,11 @@ useful, small presentations of $\pi_1(M)$.
 Perhaps surprisingly, these are enough to disprove
 hyperbolicity in a majority of our calculations.
 
+@
 First of all, in version 5.1 Regina can
 often recognise [sic] the following class of groups.
 
+@
 \begin{definition}
   A \emph{Regina-5.1} group is one of the following.
   \begin{itemize}
@@ -604,11 +655,15 @@ often recognise [sic] the following class of groups.
   \item a free product of Regina-5.1 groups
   \end{itemize}
 \end{definition}
+
+@
 \begin{lemma}
   If $M$ is a link complement and
   $\pi_1(M)$ is a Regina-5.1 group,
   then $M$ is not hyperbolic.
 \end{lemma}
+
+@
 \begin{proof}
   All hyperbolic link complements
   have nonabelian fundamental groups
@@ -620,6 +675,7 @@ often recognise [sic] the following class of groups.
   or $\mathbf{Z}\oplus\mathbf{Z}$ over $\mathbf{Z}$.
 \end{proof}
 
+@
 In addition to these obstructions,
 two other obstructions happen exceedingly often.
 These are presentations of the fundamental group
@@ -628,10 +684,14 @@ or $\langle a,b\ |\ \ldots, a^p b^q, \ldots \rangle$. We call these
 \emph{common axis relations}, the first being a
 common axis \emph{commutator}, and the latter a
 common axis \emph{equation}.
+
+@
 \begin{lemma}
   Presentations with common axis relators do not present
   fundamental groups of hyperbolic link complements.
 \end{lemma}
+
+@
 \begin{proof}
   Suppose such a presentation presents $G$.
   Suppose $G < PSL_2\mathbf{C}$.
@@ -645,7 +705,7 @@ common axis \emph{equation}.
   and is not the fundamental group of a hyperbolic link complement.
 \end{proof}
 
-<<obvious obstructions>>=
+<<fundamental group obstructions>>=
 def isCommonAxisCommutator(expr):
     l = expr.terms()
     if len(l) != 4 or \
@@ -672,10 +732,10 @@ def possiblyHyperbolicPi1(mfld):
     if name != '':
         return (False, "$\\pi_1 =" + name + "$")
     return (True,'')
+    
 @
-\subsection{Census check}
-@ 
-The second class of obstructions are census checks.
+\subsubsection{Census obstructions}
+The second class of obstructions come from census checks.
 
 @
 \begin{remark}
@@ -686,7 +746,8 @@ The second class of obstructions are census checks.
   of the code; if run in a different version of
   Regina, it will return no census hit name.
 \end{remark}
-<<census check>>=
+
+<<census obstructions>>=
 def censusNE(mfld):
     if rg.versionString() != "5.1":
         print "Censuses not vetted for Regina versions not equal to 5.1"
@@ -698,7 +759,8 @@ census is a very fast check---it's essentially
 linear in the triangulation. Regina assigns
 ``names'' to census ``hits,'' i.e. occurrences
 of a triangulation in a census.
-<<census check>>=
+
+<<census obstructions>>=
     ch = rg.Census.lookup(mfld)
     if ch.first() == None:
         return None
@@ -708,6 +770,7 @@ There is apparently no online documentation
 of the types of names in Regina's censuses.
 As of version 5.1, an inspection of their names in the Regina GUI
 reveals that all the names of census manifolds are of the following types.
+
 @
 From the closed orientable census, the names have the form
 [[ homeo : #x ]], where [[homeo]] is a string denoting the
@@ -715,6 +778,8 @@ manifold's homeomorphism type, and [[x]] is some decimal place-value
 number used for distinguishing non-isomorphic triangulations of
 the same manifold. The homeomorphism type strings are as
 in Table \ref{tab:censuses}.
+
+@
 \begin{table}[t]
   \centering
     \begin{tabular}[c]{|c|c|} \hline
@@ -737,6 +802,8 @@ in Table \ref{tab:censuses}.
     \caption{Names for homeomorphism types in Regina 5.1.}
     \label{tab:censuses}
 \end{table}
+
+@
 All the other orientable censuses are of hyperbolic 3-manifolds.
 The Hodgson-Weeks census has entries $\rho:N$ where
 $\rho$ is a decimal approximation of the hyperbolic volume
@@ -744,6 +811,7 @@ and $N$ is an expression of the manifold
 as a Dehn filling of some SnapPea census manifold.
 The cusped census has the usual SnapPea census names.
 The link census has the usual link names.
+
 @
 The following fact follows from the above.
 \begin{remark}\label{rem:regcensus}
@@ -751,6 +819,7 @@ The following fact follows from the above.
   that embed nonelementarily in hyperbolic link complements
   are themselves hyperbolic.
 \end{remark}
+
 @
 Implementing a census check for hyperbolic
 manifolds, and indeed for nonelementary embedding,
@@ -758,8 +827,8 @@ is almost completely straightforward. We just have
 to be careful to distinguish the two types of name beginning with $L$,
 viz. lens spaces and hyperbolic link complements
 with more than one boundary component.
-@ 
-<<censuscheck>>=
+ 
+<<census obstructions>>=
     if name.find("Hyp") != -1:
         return (True, name)
     try:
@@ -771,10 +840,16 @@ with more than one boundary component.
         return (True, name)
     return (False, name)
 
+<<sanity checks>>=
+<<link complement>>
+<<fundamental group obstructions>>
+<<census obstructions>>
 @
 \subsection{Finding faults}
 Now comes the real work. We introduce some
 nonstandard terminology here.
+
+@
 \begin{definition}
   A \emph{fault} in a nontrivial link complement
   $M$ is a properly embedded surface with nonnegative
@@ -782,13 +857,14 @@ nonstandard terminology here.
   \begin{itemize}
     \item nonorientable;
     \item a sphere not bounding a ball;
-    \item a disc not cutting off a ball;
+    \item a disc not separating a ball from $M$;
     \item an incompressible torus not parallel
       to $\partial M$; or
     \item an incompressible, $\partial$-incompressible
       annulus not parallel to $\partial M$.
   \end{itemize}
 \end{definition}
+
 @
 The motivation behind the word ``fault'' is twofold.
 First, my background is in hyperbolic manifolds; I
@@ -804,16 +880,21 @@ some tetrahedra into ever thinner, longer
 tetrahedra. If they were made of some physical,
 ductile material, eventually they would snap.
 Such snap points are called ``faults'' in materials science.
+(And also in geology; this is where Thurston's terminology
+of earthquakes and faults in \emph{surfaces} comes from.)
 The conglomeration of such faults in
 a triangulation often seem to ``follow along'' essential
 surfaces of high Euler characteristic---hence the name.
 (This is related to the duality between angle structures and normal
 surfaces given by the combinatorial area pairing.)
+
 @
 To find such surfaces, we can appeal to normal
 surface theories, of which there are several
 implemented in Regina. The spirit of normal surface
 theory is composed of the following two ideas:
+
+@
 \begin{itemize}
 \item Normal surfaces are identified with solutions to an
   integer linear programming problem defined using a triangulation.
@@ -822,6 +903,7 @@ theory is composed of the following two ideas:
   among a finite computable set of basic normal surfaces,
   for some definition of \emph{basic}.
 \end{itemize}
+
 @
 Normal surface algorithms run as follows:
 enumerate the finite computable set, then
@@ -829,6 +911,7 @@ check for essential surfaces of a given type
 in the finite set. If there is no essential
 surface in the set of given type, then there
 is no such essential surface in the manifold at all.
+
 @
 The essential surface checks themselves are
 implemented using normal surface algorithms.
@@ -841,7 +924,7 @@ algorithms throughout. As a first step,
 we can perform the following basic
 checks to immediately show a surface is
 not essential. 
-@
+
 <<trivially inessential>>=
 def triviallyInessential(surf):
     if surf.isVertexLinking() or \
@@ -852,8 +935,6 @@ def triviallyInessential(surf):
     else:
         return False
 
-<<unhyp.py>>=
-<<trivially inessential>>
 @ 
 \subsubsection{Spheres, projective planes, and discs}
 We first need to determine whether or not the
@@ -875,10 +956,12 @@ and vertex surfaces, but we can only use
 have more tetrahedra. We use the more
 familiar standard and fundamental surfaces
 when we can.
+
 @
 The plan is simply to go through the
 standard fundamental surfaces and check if
 they are essential spheres or $P^2$s.
+
 @
 Since the construction of normal surface
 lists is costly, we do not write functions
@@ -886,6 +969,7 @@ determining whether or not a 3-manifold
 has an essential surface of a given type,
 but rather whether a given normal surface
 list has a such a surface. 
+
 @
 <<essential P2>>=
 def essentialP2In(nsl):
@@ -904,6 +988,7 @@ At this point we know $s = P^2$. We return its index in the
 normal surface iterator [[l]],
 and indicate that it is $P^2$. If there is a projective
 plane, it is essential (\cite{Rolfsen}, Lem. 5.1).
+
 <<essential P2>>=
             return (i,"$P^2$")
 @ 
@@ -914,7 +999,8 @@ projective planes, then there are none.
         return None
 
 @
-Now we look for essential spheres.            
+Now we look for essential spheres.
+
 <<essential S2>>=
 def essentialS2In(nsl):
     l = nsl
@@ -934,6 +1020,7 @@ Cut $M$ along $s$ into $m$. (It is
   We should probably be able to crush instead.)
 Then $m$ has two sphere boundary components. 
 We cap them off by idealizing $m$.
+
 @
 We note here that Python includes indentation
 as a critical part of its syntax. It's somewhat
@@ -943,6 +1030,7 @@ large [[if]] statement but inside the
 overall [[for]] loop. The statements inside
 the [[if]] are at indentation level at least 3;
 the following is at indentation level 2.
+
 <<essential S2>>=
         m = s.cutAlong()
         m.finiteToIdeal()
@@ -950,6 +1038,7 @@ the following is at indentation level 2.
 @
 If $m$ is connected, then $s$ was non-separating,
 and hence essential.
+
 <<essential S2>>=
         if m.isConnected():
             return (i, "non-separating $S^2$")
@@ -961,6 +1050,7 @@ $s$ is essential precisely when neither component
 of $M$ cut along $s$ is a ball. We've idealized the
 cut, so this is equivalent to neither component
 of $m$ being $S^3$.
+
 <<essential S2>>=
         m.splitIntoComponents()
         m0 = m.firstChild()
@@ -969,19 +1059,17 @@ of $m$ being $S^3$.
                 m1.isThreeSphere()):
             return (i,"Connect-sum $S^2$")
 @
-The following
-is at indentation level 1, outside the [[for]] loop.
+The following is at indentation level 1,
+outside the [[for]] loop.
 This code is only run if none of the above
 [[return]] statements are
 encountered. In that case, there are no
 essential spheres or projective planes whatever
 by normal surface theory, and the manifold is irreducible.
+
 <<essential S2>>=
     return None
-    
-<<unhyp.py>>=
-<<essential P2>>
-<<essential S2>>
+
 @
 For our sakes, developing a method to find
 an essential disk \emph{in $M$} is trivial,
@@ -1010,6 +1098,7 @@ such confusion has happened multiple times in the past.
 
 You have been forewarned.
 \end{remark}
+
 @
 \subsubsection{Finding essential tori and Klein bottles}
 First, no hyperbolic nontrivial link complement has
@@ -1017,6 +1106,7 @@ an embedded Klein bottle. Any Klein bottle whatever
 is a witness against hyperbolicity (for nontrivial
 link complements). We note that if we do return a $K^2$, then
 it may not necessarily be an essential $K^2$.
+
 @
 <<essential K2>>=
 def essentialK2In(nsl):
@@ -1034,6 +1124,7 @@ def essentialK2In(nsl):
 @
 If the [[for]] loop has concluded, then
 there is no Klein bottle.
+
 <<essential K2>>=
     return None
 
@@ -1046,6 +1137,7 @@ using the methods of Jaco and Tollefson; however,
 these have not yet been implemented in Regina.
 Nevertheless, for tori, it only requires a test of homeomorphism
 to $T^2 \times I$.
+
 @
 Neil Hoffman and I have found
 the following faster method to test for homeomorphism
@@ -1053,6 +1145,7 @@ to $T^2 \times I$, and it also only uses methods
 already implemented in Regina. The method works
 due to results on knots in solid tori due to Gabai
 (and also Berge), which we indicate below.
+
 @
 The method in practice is quite simple. We first
 do some sanity checks. In particular, if we are
@@ -1072,6 +1165,7 @@ for our simple examples. A more general approach
 is ongoing work with Neil Hoffman
 implementing \emph{inflations} due
 to Jaco and Rubinstein.) 
+
 @
 Closing the book along any edge $e$ in $T$ accomplishes
 a Dehn filling along the flip of $e$ in $T$.
@@ -1083,6 +1177,7 @@ the $T^2\times I$ is clearly just a boundary collar.)
 Conversely, if any such filling is not a solid torus,
 then $M$ is demonstrably not $T^2 \times I$.
 As mentioned above, we can check this with Regina.
+
 @
 If we fold along one edge and get a solid torus, then
 we know $M$ is the exterior of a knot in a solid torus.
@@ -1097,6 +1192,7 @@ the above Dehn fillings, then in fact $M$ must be $T^2\times I$.
 that we suspect this point in the procedure will not be
 reached for the manifolds we encounter. Nevertheless we
 may as well add it for posterity.)
+
 @
 <<is T2xI>>=
 def isT2xI(mfld):
@@ -1116,6 +1212,11 @@ def isT2xI(mfld):
     t = M.boundaryComponents()[0]
     if t.countFaces(0) != 1:
         raise Exception("weird boundary component")
+@
+(Continued on next page.)
+
+@
+<<is T2xI>>=
     edges = t.faces(1)
     for e in edges:
         i = e.index()
@@ -1126,11 +1227,11 @@ def isT2xI(mfld):
             return False
     else:
         return True
-        
-<<unhyp.py>>=
-<<is T2xI>>
+
 @ 
 Now we look for essential tori.
+
+@
 <<essential T2>>=
 def essentialT2In(nsl):
     l = nsl
@@ -1152,10 +1253,12 @@ we should test whether or not it is essential.
 This boils down to whether or not it cobounds
 a $\partial$-reducible 3-manifold (implying it is compressible),
 or a $T^2 \times S^1$ (implying it is boundary-parallel).
+
 @
 Of first concern to us
 is whether or not it separates. If it doesn't,
 then it is a non-separating torus and hence essential.
+
 <<essential T2>>=
         m = s.cutAlong()
         m.intelligentSimplify()
@@ -1166,7 +1269,8 @@ Having found a separating torus, we can
 now test whether or not it is essential,
 by testing whether the components of
 $m$ are either $\partial$-compressible or
-$T^2 \times I$. 
+$T^2 \times I$.
+
 <<essential T2>>=
         m.idealToFinite()
         m.intelligentSimplify()
@@ -1179,19 +1283,18 @@ $T^2 \times I$.
             continue
 @
 If they are not, then the torus is
-essential. 
+essential.
+
 <<essential T2>>=
         return (i,"essential $T^2$")
 @
 Otherwise, if there is no essential torus,
 then return nothing. (This else is outside the [[for]] loop.)
+
 <<essential T2>>=
     else:
         return None
-        
-<<unhyp.py>>=
-<<essential K2>>
-<<essential T2>>
+
 @
 \subsubsection{Essential annuli and M\"obius strips}
 Now, as for the atoroidal remainder, there
@@ -1199,12 +1302,14 @@ will be hyperbolic and Seifert-fibered manifolds.
 We can distinguish the Seifert-fibered manifolds by
 finding essential annuli and M\"{o}bius strips in them.
 Hyperbolic manifolds have no such surface.
+
 @
 As we are finally treating bounded surfaces,
 we can no longer use ideal triangulations; the
 theory of spun-normal surfaces is not yet well-enough
 developed. However, we can just look among the
 Q-vertex surfaces.
+
 @
 \begin{proposition}
   Let $T$ be a material triangulation of
@@ -1213,6 +1318,7 @@ Q-vertex surfaces.
   admits an essential annulus, then $T$
   admits a Q-vertex essential annulus.
 \end{proposition}
+
 @
 \begin{proof}
   Since $M$ admits an essential annulus,
@@ -1223,11 +1329,13 @@ Q-vertex surfaces.
   By the proof of Theorem 2 in Tollefson,
   $A$ is isotopic to a Q-vertex surface.
 \end{proof}
+
 @
 We don't use this just yet, though, to keep
 parallelism among all the fault-finding routines.
 We will plug Q-vertex lists into the following
 functions instead of standard fundamental lists.
+
 @
 <<essential M2>>=
 def essentialM2In(nsl):
@@ -1245,18 +1353,21 @@ At this point we know [[s]] is either
 an annulus or a M\"{o}bius band. If it's
 not orientable, it's the latter, and is
 a witness against hyperbolicity.
+
 <<essential M2>>=
         if not s.isOrientable():
             return (i,"$M^2$")
 @
 After the [[for]] loop, there were no
 M\"{o}bius bands. So there isn't one in the list.
+
 <<essential M2>>=
     else:
         return None
 
 @
 Now we look for essential annuli.
+
 <<essential A2>>=
 def essentialA2In(nsl):
     l = nsl
@@ -1277,6 +1388,7 @@ At this point we know [[s]] is an annulus. To determine
 whether or not it is essential, cut along it.
 If the complement is connected, then the
 annulus is nonseparating, and is thus essential.
+
 <<essential A2>>=
         m = s.cutAlong()
         if m.isConnected():
@@ -1291,6 +1403,7 @@ and $\partial$-irreducibility of our given
 manifold, we can just do ball and solid torus tests.
 If this is not the case, please take this opportunity
 to contact the author as in Remark \ref{rem:convol}.)
+
 <<essential A2>>=
         m.splitIntoComponents()
         m0 = m.firstChild()
@@ -1306,24 +1419,33 @@ to contact the author as in Remark \ref{rem:convol}.)
 Finally, if we have gone through all quad-vertex
 surfaces and found no essential annulus (or M\"{o}bius band),
 then there is no such surface by Q-normal surface theory.
+
 <<essential A2>>=
     else:
         return None
-<<unhyp.py>>=
+	
+<<faults>>=
+<<essential P2>>
+<<essential S2>>
+<<essential K2>>
+<<essential T2>>
 <<essential M2>>
 <<essential A2>>
 @        
-\subsection{Fault-finding}
+\subsubsection{Packaging fault finding}
 With all the fault-finding routines done,
-we can now put them all together into a
+we can now package them all together into a
 fault-finding routine. Technically, the
 final routine is not a hyperbolicity routine,
 but a faultlessness routine. For nontrivial
 link complements this is no distinction, by
 Thurston's hyperbolization theorem. But we
-shall have occasion to run this on closed manifolds.
+shall have occasion to run this on closed manifolds,
+so we call it [[isFaultless]] and not
+[[isHyperbolic]].
+
 @
-<<faultless>>=
+<<packaging fault finding>>=
 def findFault(mfld):
     assert linkComplement(mfld,True)
     M = Triangulation3(mfld)
@@ -1355,8 +1477,9 @@ def findFault(mfld):
     if a2 != None:
         return a2
     return None
+
 @
-<<faultless>>=    
+<<packaged fault finding>>=    
 def isFaultless(mfld):
     if mfld.hasStrictAngleStructure():
         return (True, "strict angle structure")
@@ -1372,8 +1495,10 @@ def isFaultless(mfld):
     else:
         return (True, "no faults")
 
-<<unhyp.py>>=
-<<isFaultless>>
+<<faults.py>>=
+<<trivially inessential>>
+<<faults>>
+<<packaged fault finding>>
 @
 \section{Nonelementary embeddings}
 The above was a nice warmup. But for our problem,
@@ -1385,6 +1510,7 @@ normal surface theory (not Regina, but normal surface theory
 as such) and a notion of complexity due to
 Matveev. However, bead-number 7 structures are Mom-5s,
 and the distinction is nontrivial in general. 
+
 @
 There is an algorithm that, given
 a triangulation $T$ of a link-complement $M$, will
@@ -1395,12 +1521,15 @@ the hyperbolic Dehn fillings of elements of $L$. However, this
 algorithm is quite complicated, due to its dependence
 upon a $S^3$-link complement algorithm whose foundations
 were laid by R. Budney.
+
 @
 Thus, instead, we are going to implement a simpler algorithm
 $NE$ that returns not $L$ but a finite superset of $L$.
+
 @
 \subsection{Review}
 Recall the following.
+
 @
 \begin{definition}
   Suppose $\phi: (M, S) \hookrightarrow (N,T)$ is a proper embedding
@@ -1409,6 +1538,7 @@ Recall the following.
   the induced map $\phi_\ast: \pi_1(M) \to \pi_1(N)$
   has nonabelian image.
 \end{definition}
+
 @
 What we have shown in the preceding work is not just that
 $N$ of low cusp volume admits an embedding from a necklace
@@ -1418,11 +1548,12 @@ running $NE$ on all the necklace manifolds of bead number
 at most 7 and concatenating these lists together will yield
 a finite list of Dehn parents for hyperbolic 3-manifolds
 of low cusp volume.
+
 @
 \begin{lemma}
   Suppose $\phi: (M,S) \hookrightarrow (N,T)$ is a nonelementary
-  embedding in a hyperbolic link complement $N$, with $M$ also
-  a link complement.
+  embedding of a link complement $M$ in a hyperbolic
+  link complement $N$.
   
   There is a nonelementary embedding
   $\phi': (M,S) \hookrightarrow (N,T)$ with
@@ -1431,46 +1562,61 @@ of low cusp volume.
   either is boundary parallel in $N$, or bounds
   a solid torus in $N$. 
 \end{lemma}
+
 @
 We call such an embedding a \emph{Dehn embedding}.
+
 @
 \begin{lemma}
   Suppose $\phi: (M,S) \hookrightarrow (N,T)$ is a Dehn
-  embedding in a hyperbolic link complement $N$,
-  with $M$ also a link complement.
+  embedding of a link complement $M$ in a
+  hyperbolic link complement $N$.
+
   \begin{enumerate}
-    \item $M$ admits no $\mathbf{RP}^2$ or $K^2$.
-    \item Suppose $M$ admits an essential sphere $\sigma$.
-      \begin{enumerate}
-      \item $M$ is a connect-sum along $\sigma$.
-      \item Letting $M'$ be that summand containing $S$,
-        there is a Dehn embedding
-        $\phi': (M',S) \hookrightarrow (N,T)$.
-      \item The other summand is an $S^3$ link complement.
-      \end{enumerate}
-    \item If $M$ is irreducible, then it is $\partial$-irreducible.
-    \item Suppose $M$ is irreducible
-      and admits an essential torus $\tau$.\label{itm:essT2}
-      \begin{enumerate}
-      \item $\tau$ separates $M$.
-      \item Letting $M'$ be that component containing $S$
-        and the other component be $M''$,
-        one of the following is true:
-        \begin{enumerate}
-        \item There is a Dehn embedding
-          $\phi': (M',S) \hookrightarrow (N,T)$,
-          and $M''$ is the complement of a link
-          in $D^2\times S^1$.
-        \item There is a Dehn embedding
-          $\phi': (M'',\tau) \hookrightarrow (N,T)$,
-          and $M'$ is the complement of a link
-          in $T^2 \times I$.
-        \end{enumerate}
-      \end{enumerate}
-    \item Suppose $M$ is irreducible and atoroidal.
-      Then $M$ is hyperbolic.
+  \item $M$ admits no $\mathbf{RP}^2$ or $K^2$.
+    
+  \item Suppose $M$ admits an essential sphere $\sigma$.
+    
+    \begin{enumerate}
+    \item $M$ is a connect-sum along $\sigma$.
+      
+    \item Letting $M'$ be that summand containing $S$,
+      there is a Dehn embedding
+      $\phi': (M',S) \hookrightarrow (N,T)$.
+      
+    \item The other summand is an $S^3$ link complement.
     \end{enumerate}
+    
+  \item If $M$ is irreducible, then it is $\partial$-irreducible.
+    
+  \item Suppose $M$ is irreducible
+    and admits an essential torus $\tau$.\label{itm:essT2}
+    
+    \begin{enumerate}
+    \item $\tau$ separates $M$.
+      
+    \item Letting $M'$ be that component containing $S$
+      and the other component be $M''$,
+      one of the following is true:
+      
+      \begin{enumerate}
+      \item There is a Dehn embedding
+        $\phi': (M',S) \hookrightarrow (N,T)$,
+        and $M''$ is the complement of a link
+        in $D^2\times S^1$.
+        
+      \item There is a Dehn embedding
+        $\phi': (M'',\tau) \hookrightarrow (N,T)$,
+        and $M'$ is the complement of a link
+        in $T^2 \times I$.
+      \end{enumerate}
+    \end{enumerate}
+    
+  \item Suppose $M$ is irreducible and atoroidal.
+    Then $M$ is hyperbolic.
+  \end{enumerate}
 \end{lemma}
+
 @
 In order to get a full nonelementary embedding recognition
 algorithm, one would need to refine this lemma in part \ref{itm:essT2}
@@ -1480,13 +1626,19 @@ involve a computation of the \emph{companionship graph} of the
 JSJ-decomposition of $M$, an involved process (see \cite{Budney}).
 We do not go into this here and content ourselves with using
 the above lemma.
+
 @
 The proof comes more or less verbatim from the introductory
 lemmas of \cite{GMM11}. We leave the details to the reader.
+
 @
-\subsection{The naive pseudocode}
-Here is a naive pseudocode sketch of an approach to
-getting $NE$. Recall that $NE$ should return a list of
+\subsection{Initial pseudocode sketch}
+Having finished the background review, we
+now sketch the structure of the routine [[NE]],
+beginning with some naive ideas, and then refining them.
+
+\subsubsection{Naive pseudocode}
+Recall that $NE$ should return a list of
 hyperbolic manifolds whose Dehn fillings include
 all hyperbolic link complements into which the given manifold
 embeds nonelementarily. Happily, we also already know
@@ -1494,6 +1646,8 @@ the particular torus boundary component that should get sent to
 the small cusp, namely the polar cusp of a necklace manifold.
 So we can give that as input to the procedure, and implement
 it following the lemma without much thought.
+
+@
 \begin{verbatim}
 NaiveNE(M,S):
     if there is P2 or K2 in M:
@@ -1523,8 +1677,9 @@ NaiveNE(M,S):
     else:
         return [M]
 \end{verbatim}
+
 @
-\subsection{Less naive pseudocode}
+\subsubsection{Less naive pseudocode}
 Unfortunately we don't have a nice implementation
 of determining whether or not $M''$ is a certain
 kind of link complement. Instead, we will have
@@ -1540,6 +1695,8 @@ say that we recur on $NE$ when the other component is ``not
 obviously not'' a link complement of given type. But this
 awkward construction is captured neatly by [[else]] statements
 in the pseudocode.
+
+@
 \begin{verbatim}
 NE(M,S):
     if there is P2 or K2 in M:
@@ -1573,25 +1730,34 @@ NE(M,S):
     else:
         return [M]
 \end{verbatim}
+
 @
-\subsection{Obvious non-link-complements}
+\subsection{Implementing [[NE]]}
+With the sketch done, we move on to the actual implementation.
+
+@
+\subsubsection{Obvious non-link-complements}
 First, we should define what it means to be
 obviously not a ------ link complement with
 the blank filled variously by $S^3$, $D^2\times S^1$,
 and $T^2\times I$. We could just say that this
 is \emph{never} obvious and get a correct procedure,
 but we can do better than that.
+
 @
 First of all, if $M$ is closed and not $S^3$, then
 it is obviously not an $S^3$ link complement! Likewise,
 if it has at most one boundary torus and isn't $D^2\times S^1$,
-then it is obviously not a $D^2\times S^1$ link complement, and similarly
+then it is obviously not a $D^2\times S^1$
+link complement, and similarly
 if it has at most two boundary tori and isn't $T^2\times I$,
 then it is obviously not a $T^2\times I$ link complement.
+
 @
 Likewise, we should check that the homology of the manifold agrees
 appropriately with Alexander duality. ($D^2\times S^1$- and
 $T^2\times I$-link complements are themselves $S^3$-link complements.)
+
 @
 <<obvious link complement tests>>=
 from unhyp import isT2xI
@@ -1608,6 +1774,7 @@ def obvious_isLinkIn(M,amb):
 @        
 After the above sanity check (really, a type-check),
 we do the boundary-component tests.
+
 <<obvious link complement tests>>=
     nbc = M.countBoundaryComponents()    
     if amb == s3:
@@ -1643,6 +1810,7 @@ and $T^2\times I$-link complements), then
 H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 \mbox{ and } H_2(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|-1}.
 \]
+
 <<obvious link complement tests>>=
     h1 = M.homologyH1()
     if h1.countInvariantFactors() > 0 \
@@ -1657,21 +1825,22 @@ If at this point we haven't determined
 whether or not the manifold is a link
 complement in whichever ambient manifold,
 then we give up.
+
 <<obvious link complement tests>>=
     else:
         return None
-<<nonelem.py>>=
-<<obvious link complement tests>>
+
 @
-\subsection{Actually implementing [[NE]]}
+\subsubsection{[[NE]]}
 The code for [[NE]] is much the same
 as for the hyperbolicity algorithm, except
 that instead of terminating when we find
 a fault, we cut along the fault and examine
 the components recursively.
+
 @
 We also note that the following implementation
-is significantly different from the above
+is significantly different even from the above
 ``less naive'' pseudocode, as this implementation
 does not account for which boundary component
 of $M$ is $S$. This could possibly include
@@ -1680,11 +1849,14 @@ it is still a superset of Dehn parents as desired.
 (We don't account for $S$ as Regina's surface cutting
 methods complicate the boundary. With more work one
 could keep track of which surface is which.)
+
 @
-<<NE>>=
+<<preamble>>=
 import regina as rg
 from unhyp import *
-nsl = rg.NormalSurfaces.enumerate    
+nsl = rg.NormalSurfaces.enumerate
+
+<<NE>>=
 def NE(mfld):
     Mi = rg.Triangulation3(mfld)
     Mi.intelligentSimplify()
@@ -1697,7 +1869,7 @@ is recognizable as above in the hyperbolicity
 section. If so, then not only is $M$ not hyperbolic,
 but also $M$ does not even embed nonelementarily
 into any hyperbolic link complement.
-@
+
 <<NE>>=
     x = possiblyHyperbolicPi1(mfld)
     if not x[0]:
@@ -1705,7 +1877,7 @@ into any hyperbolic link complement.
 @ 
 Next, we do census checks on both the given
 triangulation, and its simplified idealization.
-@
+
 <<NE>>=
     x = censusNE(Mi)
     if x != None:
@@ -1726,7 +1898,7 @@ structure. If it does, then $M$ is hyperbolic,
 and every hyperbolic $N$ into which $M$ embeds nonelementarily
 is a hyperbolic Dehn filling of $M$. This is a relatively
 quick check.
-@
+
 <<NE>>=
     if Mi.hasStrictAngleStructure():
         return [Mi]
@@ -1742,7 +1914,7 @@ essential surfaces we need in the QVM collection;
 however, we suspect the FSI collection is smaller,
 and it contains all the essential \emph{closed}
 surfaces that we need.
-@
+
 <<NE>>=
     Li = nsl(Mi,rg.NS_STANDARD,rg.NS_FUNDAMENTAL)
 @ 
@@ -1750,7 +1922,7 @@ Next, we look for obviously bad surfaces.
 Assuming $M$ is orientable, we can lump these
 bad surfaces all together as closed non-separating
 surfaces of nonnegative Euler characteristic.
-@
+
 <<NE>>=
     assert mfld.isOrientable()
     for i in range(Li.size()):
@@ -1764,7 +1936,7 @@ Next, we look for an essential, connect-sum sphere.
 But we already know how to do this. Then we cut along
 it and test the components for being link complements
 as in the above pseudocode.
-@
+
 <<NE>>=
     s2 = essentialS2In(Li)
     if not s2 == None:
@@ -1788,7 +1960,7 @@ test. If we finish the above $S^2$ search with no
 essential $S^2$, then $M$ is irreducible. So
 it is $\partial$-irreducible if and only if
 it is a solid torus.
-@
+
 <<NE>>=
     if mfld.isSolidTorus():
         return []
@@ -1804,7 +1976,7 @@ implementation differs from the above pseudocode
 in that no $T^2\times I$-link complement test
 is performed. That is because we cannot yet keep
 track of boundary components in Regina under cutting.
-@
+
 <<NE>>=
     t2 = essentialT2In(Li)
     if t2 != None:
@@ -1833,10 +2005,11 @@ on $M$, using surfaces: it is Seifert-fibered if and only
 if it admits an essential annulus or M\"{o}bius band. By
 Q-normal surface theory we can always find such a surface
 among quad-vertex surfaces, under our assumptions on $M$.
+
 @
 Most importantly, a Seifert-fibered manifold admits
 no nonelementary embeddings into a hyperbolic link complement.
-@
+
 <<NE>>=
     Mf = rg.Triangulation3(mfld)
     Mf.intelligentSimplify()
@@ -1852,23 +2025,30 @@ no nonelementary embeddings into a hyperbolic link complement.
 @ 
 If we have found no ``faulty'' surfaces,
 then $M$ is hyperbolic.
-@
+
 <<NE>>=
     return [mfld]
 @
 That concludes the procedure [[NE]].
-@
-<<nonelem.py>>=
+
+<<nonElementary.py>>=
+<<preamble>>
+<<obvious link complement tests>>
 <<NE>>
 @
 \section{Exceptional fillings}
-We wish to determine those one-cusped
-hyperbolic Dehn fillings $N$ of some
-two-cusped hyperbolic 3-manifolds $M$
-that might have more than 8 exceptional slopes.
-Then we wish to determine among these
-which do in fact have more than 8 exceptional slopes.
+Our final crucial computation is to determine those one-cusped
+hyperbolic Dehn fillings $N$ of some collection
+of two-cusped hyperbolic 3-manifolds
+that have more than eight exceptional slopes.
+We first determine a finite collection
+of one-cusped Dehn fillings that might
+have more than eight exceptional slopes.
+Then we conclude by determining which
+among these do in fact have more than 8 exceptional slopes.
+
 @
+Here is our plan in more detail.
 Fix $M$. If $s$ is a slope on a boundary
 torus $t$ of $M$ with length
 greater than 6, then $M(s)$ is hyperbolic
@@ -1878,23 +2058,53 @@ with exceptional Dehn filling
 coefficients $s+s'$ on $M$. There are at
 most as many of these as there are
 short slopes $s'$ on the other boundary
-torus $t'$ of $M$. So first we
-will examine how many short slopes are
+torus $t'$ of $M$.
+
+@
+So, first we will examine how many
+``short'' slopes there are
 on each boundary torus. For every
 two-cusped manifold we inspect and
 for each of its boundary tori, this
-number is always at most 8. After
-this we simply count for each one-cusped
-manifold how many exceptional short
-fillings it has.
+number is always at most 8. The only
+three-cusped manifold we encounter is
+the magic manifold [[s776]], whose
+exceptional fillings were already classified
+in \cite{excFill5}. Therefore, the
+candidate one-cusped manifolds are the
+hyperbolic Dehn fillings on our two-cusped
+manifolds along short slopes.
+
 @
-\subsection{Short slopes}
+Finally, for each candidate one-cusped
+manifold, we determine its short slopes,
+and determine an upper bound on how many
+of these are exceptional slopes. This
+upper bound is always at most 8, except
+of course for the figure eight knot complement
+[[m004]], which has 10 exceptional slopes.
+
+@
+\subsection{Enumerating short slopes}
 We now describe a simple, efficient
 approach to enumerating short slopes
 inspired by the first chapter of \cite{ConwayFung},
 where the reader can find a more geometric
-intuition for the following.
+intuition for the following. A different
+approach was taken in \cite{excFill5}.
+The following code is simpler and goes through fewer
+slopes. We also prove this code in more detail
+than was given for the code in \cite{excFill5}.
+The reader comfortable with \cite{ConwayFung} could
+probably skip directly to the code and understand
+its correctness without much difficulty, as a
+reader comfortable with the properties of
+quadratic forms used there could comfortably
+understand its correctness with the justifications
+given in that paper.
+
 @
+\subsubsection{Quadratic forms on cusps}
 Given a maximal cusp $C$ in some hyperbolic 3-manifold
 $M$, we can have SnapPea calculate
 the length $\ell$ of the shortest
@@ -1913,12 +2123,14 @@ we get a positive-definite real quadratic form
 $Q(p,q) = \ell^2 \cdot |p + q \cdot z|^2$,
 taking its smallest and second-smallest values
 at $(1,0)$ and $(0,1)$ respectively.
+
 @
 \begin{lemma}\label{lem:longslopes}
   Suppose $Q(v) \leq Q(w) \leq Q(v+w)$ and
   $1\leq p, 1 \leq q$ with $p,q \in \mathbf{N}$.
   Then $Q(p\cdot v + q \cdot w) \geq Q(v+w)$.
 \end{lemma}
+
 @
 \begin{proof}
   \begin{align*}
@@ -1936,16 +2148,18 @@ at $(1,0)$ and $(0,1)$ respectively.
     &= (p^2 - p\cdot q) \cdot Q(v) + (q^2 - 1) \cdot Q(w)\\
     &\geq (p^2 + q^2 - p\cdot q - 1) \cdot Q(v)
   \end{align*}
+  
 @
-  (We used the conditions on $p,q$ to show
-  $2\cdot (p\cdot q - 1) \cdot \langle v,w
-  \rangle \geq -(p\cdot q - 1)\cdot Q(v)$.)
-  Now, $q(p,q) = p^2 - p \cdot q + q^2$ is
-  itself a positive-definite binary
-  quadratic form whose smallest value on
-  $\mathbf{Z}^2 \setminus \{\vec{0}\}$
-  is 1. The result follows.
+(We used the conditions on $p,q$ to show
+$2\cdot (p\cdot q - 1) \cdot \langle v,w
+\rangle \geq -(p\cdot q - 1)\cdot Q(v)$.)
+Now, $q(p,q) = p^2 - p \cdot q + q^2$ is
+itself a positive-definite binary
+quadratic form whose smallest value on
+$\mathbf{Z}^2 \setminus \{\vec{0}\}$
+is 1. The result follows.
 \end{proof}
+
 @
 \subsubsection{The tree in the background}
 From the above lemma we get a way to show
@@ -1955,17 +2169,17 @@ not use a single vector, but two vectors.
 We therefore find it useful to put some
 structure not on $\mathbf{Z}^2$ but on
 (a certain subset of) $M_{2\times 2}\mathbf{Z}$.
+
 @
 Let $T$ be the subset of $M_{2\times 2}\mathbf{N}$ consisting
-of determinant one matrices. Suppose $M \in T$.
-@
-Let
+of determinant one matrices. Suppose $M \in T$. Let
 \[
 M = \begin{pmatrix}
   a & b \\
   c & d
 \end{pmatrix}.
 \]
+
 @
 Then $a\cdot d - b\cdot c = 1$, so $d/b = c/a + 1/(ab) \geq c/a$,
 assuming $a\cdot b > 0$. On the other hand, if $a = 0$,
@@ -1973,11 +2187,12 @@ then $-b\cdot c = 1$, which is impossible; and if $b = 0$,
 then $a\cdot d = 1$, in which case $a = d = 1$ and $d/b = \infty$.
 Regarding $\infty > x$ for all $x \in \mathbf{Q}$,
 in any case, $d/b > c/a$.
+
 @
 \begin{definition}
 The \emph{interval of $M$} is the open interval
 $I(M) = (c/a, d/b)$.
-@
+
 Furthermore, again since
 $a \cdot d - b \cdot c = 1$,
 $c/a < (c+d)/(a+b) < d/b$.
@@ -1995,17 +2210,19 @@ and the \emph{right child of $M$} is the matrix
 \end{pmatrix}
 = M.\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
 \]
-@
+
 The \emph{slope} of $M$ is $s(M) = (a+b\ \ c+d)^t = M.(1\ 1)^t$.
-@
+
 The \emph{number} of $M$ is $r(M) = (c+d)/(a+b)$.
 \end{definition}
+
 @
 We see that $L(M), R(M) \in T$ if $M \in T$.
 By the above considerations, $I(L(M)) \cap I(R(M)) = \emptyset$
 and $I(L(M)) \cup \{r(m)\} \cup I(R(M)) = I(M)$.
 In particular, $I(L(M))$ and $I(R(M))$ are strict subsets of
 $I(M)$, and $r(M) \in I(M)$.
+
 @
 Clearly we may also define the inverse maps
 \[L^{-1}(M) = \begin{pmatrix}
@@ -2019,6 +2236,7 @@ and
 \end{pmatrix} \]
 as maps from $SL_2\mathbf{Z}$ to itself; however,
 neither inverse map takes $T$ into itself.
+
 @
 \begin{definition}
   By abuse of notation, we will regard $T$ as a digraph
@@ -2026,55 +2244,62 @@ neither inverse map takes $T$ into itself.
   and that has edges from each vertex to its left child
   and right child.
 \end{definition}
+
 @
 \begin{lemma}
   $T$ is an infinite binary tree whose source (i.e. root) is
   the identity matrix.
 \end{lemma}
+
 @
 \begin{proof}
   Note that the interval of the identity matrix
   is $(0,\infty)$, and every nonidentity matrix
   has interval being a strict subset of this interval.
   So the identity is a child of no vertex---that is, it is a source.
+
 @
-  Conversely, suppose $v$ is a child of no vertex.
-  Let
+Conversely, suppose $v$ is a child of no vertex.
+Let
   \[ v = \begin{pmatrix} a & b \\ c & d \end{pmatrix}. \]
-  Then neither $L^{-1}(v)$ nor $R^{-1}(v)$ lies in $T$.
-  Thus one of $b-a,d-c$ is negative, and one of
-  $a-b,c-d$ is negative---i.e., $a-b,c-d$ are
-  of opposite sign.
-  If $a-b > 0$, then $a > b$ and $d > c$. So $a \geq b + 1$
-  and $d \geq c + 1$; hence
-  $a\cdot d \geq b\cdot c + b + c + 1$,
-  and $a\cdot d - b\cdot c = 1 \geq b + c + 1$, i. e.
-  $0 \geq b + c$. So $b = c = 0$ and $a = d = 1$. The case
-  $a-b < 0$ leads similarly to
-  $a\cdot d - b\cdot c = 1 \leq -a -d -1$,
-  which is impossible. So the identity is the
-  unique source of this digraph.
+Then neither $L^{-1}(v)$ nor $R^{-1}(v)$ lies in $T$.
+Thus one of $b-a,d-c$ is negative, and one of
+$a-b,c-d$ is negative---i.e., $a-b,c-d$ are
+of opposite sign.
+If $a-b > 0$, then $a > b$ and $d > c$. So $a \geq b + 1$
+and $d \geq c + 1$; hence
+$a\cdot d \geq b\cdot c + b + c + 1$,
+and $a\cdot d - b\cdot c = 1 \geq b + c + 1$, i. e.
+$0 \geq b + c$. So $b = c = 0$ and $a = d = 1$. The case
+$a-b < 0$ leads similarly to
+$a\cdot d - b\cdot c = 1 \leq -a -d -1$,
+which is impossible. So the identity is the
+unique source of this digraph.
+
 @ 
 On the other hand, suppose $v$ is a child
 of some vertex $w$.
-  If $v = L(w)$, then $v_{0,0} < v_{0,1}$ and $v_{1,0} < v_{1,1}$,
-  so $R^{-1}(v) \notin T$, and thus $v$ is not the right child
-  of any vertex. So $v$ is the child
-  of the unique vertex $L^{-1}(v) = w$.
-  A similar result holds if $v = R(w)$. Thus vertices that are
-  children have unique ``parents.'' That is, each non-identity vertex
-  has a unique in-edge. Each vertex also has exactly two out-edges.
-  Thus $T$ is 3-regular apart from the source.
+If $v = L(w)$, then $v_{0,0} < v_{0,1}$ and $v_{1,0} < v_{1,1}$,
+so $R^{-1}(v) \notin T$, and thus $v$ is not the right child
+of any vertex. So $v$ is the child
+of the unique vertex $L^{-1}(v) = w$.
+A similar result holds if $v = R(w)$. Thus vertices that are
+children have unique ``parents.'' That is, each non-identity vertex
+has a unique in-edge. Each vertex also has exactly two out-edges.
+Thus $T$ is 3-regular apart from the source.
+
 @
-  Finally, every vertex has a unique backtrack-free path from the
-  source: simply apply $L^{-1}$ and $R^{-1}$ repeatedly until one
-  can do so no longer. This terminates since both maps strictly reduce
-  $L_1$ norm on $T$, and $L_1$ norm takes
-  values in $\mathbf{N}$ on $T$.
-  So $T$ is a tree.
+Finally, every vertex has a unique backtrack-free path from the
+source: simply apply $L^{-1}$ and $R^{-1}$ repeatedly until one
+can do so no longer. This terminates since both maps strictly reduce
+$L_1$ norm on $T$, and $L_1$ norm takes
+values in $\mathbf{N}$ on $T$.
+So $T$ is a tree.
+
 @
-  Therefore, $T$ is an infinite binary search tree.
+Therefore, $T$ is an infinite binary search tree.
 \end{proof}
+
 @
 \begin{remark}
   We never actually construct this tree $T$ or even any
@@ -2082,6 +2307,7 @@ of some vertex $w$.
   call-structure is equivalent to finite subtrees of this
   tree. We use $T$ to prove properties of the function.
 \end{remark}
+
 @
 \begin{definition}
   The \emph{descendant relation} is the reflexive
@@ -2091,11 +2317,13 @@ of some vertex $w$.
   either $N = M$ or $N$ is a child of a descendant of $M$.
   We write $M \to N$ for ``$N$ is a descendant of $M$''.
 \end{definition}
+
 @
 \begin{lemma}
   All rows and columns of elements of $T$ are primitive.
   (In particular, all slopes of elements are primitive.)
 \end{lemma}
+
 @
 \begin{proof}
   Suppose $M \in T$; let
@@ -2106,15 +2334,19 @@ of some vertex $w$.
   Hence $k = \pm 1$, and $(a\ c)$ is primitive. The result
   follows from symmetries of $\det$.
 \end{proof}
+
 @
 \begin{lemma}\label{lem:slopeUniqueElement}
   Every $(p\ q)^t \in \mathbf{N}^2$
   with $gcd(p,q) = 1$
   is the slope of a unique element of $T$.
 \end{lemma}
+
 @
 \begin{proof}
   We give an algorithm in Python that computes this element.
+  (But we don't use this algorithm in our computation.)
+  
 <<T element from slope>>=
  def T_element(slope):
      (p,q) = slope
@@ -2129,6 +2361,7 @@ of some vertex $w$.
      return (a,b,c,d)
 @ 
 First, none of the code modifies $p$ or $q$.
+
 @
 Before the loop, we have set up the preconditions
 $u = a\cdot p - b \cdot q$, $v = -c \cdot p + d \cdot q$,
@@ -2136,6 +2369,7 @@ and $a \cdot d - b \cdot c = 1$. The loop keeps these conditions
 invariant. For instance, if $u > v$, then we calculate
 $Q,R$ such that $0 \leq R < v$ and $u = Q\cdot v + R$,
 then reassign $u := R$, i.e. $u := u - Q \cdot v$. Now,
+
 @
 \begin{align*}
   u - Q \cdot v 
@@ -2143,10 +2377,12 @@ then reassign $u := R$, i.e. $u := u - Q \cdot v$. Now,
   &= a\cdot p - b \cdot q + Q \cdot c \cdot p - Q \cdot d \cdot q\\
   &= (a + Q\cdot c) \cdot p - (b + Q \cdot d)\cdot q
 \end{align*}
+
 @
 Moreover, the substitution $a,c := a + Q\cdot b, c + Q\cdot d$
 does not change the determinant $a\cdot d - b\cdot c = 1$.
 The other cases are similar.
+
 @
 Furthermore, the loop has $max(u,v)$
 as a variant, i.e. as a natural number
@@ -2154,6 +2390,7 @@ that decreases with every loop. The reason
 for this is that $u,v \geq 1$; this follows
 since $gcd(u,v) = gcd(p,q) = 1$.
 So the loop terminates.
+
 @
 As usual, it terminates in the
 condition that is the conjunction of the above preconditions together
@@ -2166,6 +2403,7 @@ in reduced terms, since $gcd(p,q) = 1$ and
 $a\cdot d - b\cdot c = 1$. Since their numerators and denominators
 are at least 0, they must have equal numerators and denominators.
 This shows the existence of the element.
+
 @
 Uniqueness follows from considering intervals.
 Suppose $v = (p\ q)^t$ is the slope of $M$ and $M'$.
@@ -2175,11 +2413,13 @@ no strict subintervals (of the form $I(Y)$ for some $Y \in T$)
 of $I(M)$ or $I(M')$ contain $v$. So $I(M) \cap I(M') = I(M) = I(M')$.
 That is, $M = M'$.
 \end{proof}
+
 @
 \begin{lemma}
   As a monoid, $T$ acts on the left of its
   associated digraph by monomorphisms.
 \end{lemma}
+
 @
 \begin{proof}
   We just need to check that it acts by injections that preserve
@@ -2191,6 +2431,7 @@ That is, $M = M'$.
   for all matrices $s$, $L(s) = s.\ell$ and $R(s) = s.r$
   (see the definition of $L$ and $R$).
 \end{proof}
+
 @
 \begin{lemma}\label{lem:descendants}
   Suppose $M \in T$ and $v,w$ are the columns of $M$.
@@ -2198,11 +2439,13 @@ That is, $M = M'$.
   slopes are of the form $p\cdot v + q\cdot w$ with
   $1 \leq p$, $1 \leq q$.
 \end{lemma}
+
 @
 \begin{proof}
   Suppose $N$ is a descendant of $M$. By induction,
   the slope of $N$ is of the form $p\cdot v + q \cdot w$
   with $1\leq p$, $1\leq q$, $p,q \in \mathbf{N}$.
+
 @
   Conversely, suppose the slope of $N$ is of that form
   $p\cdot v + q \cdot w$ with $1\leq p$, $1\leq q$.
@@ -2216,42 +2459,50 @@ That is, $M = M'$.
   and since $X$ is a descendant of the identity,
   $N$ is a descendant of $M$.
 \end{proof}
+
 @
+\subsubsection{Short slope enumeration}
 \begin{proposition}\label{prop:longDescendants}
   Suppose $M \in T$, and suppose $Q$ is a positive-definite
   quadratic form on $\mathbf{Z}^2$
   taking smallest and second-smallest
   values on $(1\ 0)^t$ and $(0\ 1)^t$, respectively.
-@
+
   If $N$ is a descendant of $M$, then
   $Q(s(N)) > Q(s(M))$.
 \end{proposition}
+
 @
 \begin{proof}
   This follows directly from lemmas \ref{lem:longslopes}
   and \ref{lem:descendants}.
 \end{proof}
+
 @
 \begin{theorem}\label{thm:fasd}
 Assuming $f$ does not change any symbols used in the
-following program (e.g. $M$, $f$, [[for_all_short_descendants]],
+following program (e.g. $M$, $f$, [[forAllShortDescendants]],
 [[+]], and so on), and assuming $Q$ takes values in a
-decidable field,
-the following program does $f(N)$ for all descendants $N$
+decidable field, the following program does
+$f(N)$ for all descendants $N$
 of $M$ such that $Q(s(N)) \leq B$, and
 for no other descendants of $M$.
+
 <<shortSlopes.py>>=
-def forallShortDescendants(Q,B,M,f):
+def forAllShortDescendants(Q,B,M,f):
     (v, w) = M
     S = (v[0]+w[0],v[1]+w[1])
     if Q(S) > B:
         pass
     else:
-        forallShortDescendants(Q,B,(v,S),f)
+        forAllShortDescendants(Q,B,(v,S),f)
         f(M)
-        forallShortDescendants(Q,B,(S,w),f)
+        forAllShortDescendants(Q,B,(S,w),f)
+
 @
 \end{theorem}
+
+@
 \begin{proof}
   Let $D$ be the subgraph of $T$ whose vertices
   are the descendants of $M$ whose slopes have
@@ -2259,6 +2510,7 @@ def forallShortDescendants(Q,B,M,f):
   the edges among these vertices in $T$).
   We will show $D$ is a finite binary search
   tree on the $Q$-values of the slopes.
+
 @
 Suppose $N$ is a descendant of $M$ in $D$ with
 $Q(s(N)) < B$. Suppose $p: [0,n] \to T$
@@ -2268,6 +2520,7 @@ $Q(s(p(i))) < B$ for all $0 \leq i \leq n$. So $p$
 is a backtrack-free path in $D$ between $M$ and $N$.
 Hence $N$ is a descendant of $M$ in $D$. Thus
 $D$ is a sub-tree of $T$.
+
 @
 To show that $D$ is finite, it suffices to
 show it has finitely many vertices. Its vertices
@@ -2277,9 +2530,11 @@ the set $E = \{v:\mathbf{R}^2\ |\ Q(v) \leq B\}$, an
 ellipse. In particular, $E$ is compact; since
 $\mathbf{N}^2$ is discrete in $\mathbf{R}^2$,
 $D$ is finite.
+
 @
 The result follows by structural induction on $D$.
 \end{proof}
+
 @
 \begin{corollary}\label{cor:shortslopes}
   Assuming $f$ changes none of the symbols of
@@ -2290,22 +2545,25 @@ The result follows by structural induction on $D$.
   all primitives $v \in \mathbf{Z}^2$ in
   the right half-plane, and possibly also for $v = (0,1)$,
   such that $Q(v) \leq B$.
-@
+
 <<shortSlopes.py>>=
-def forallShortSlopes(Q,B,f):
+def forAllShortSlopes(Q,B,f):
     s = lambda M : (M[0][0]+M[0][1],M[1][0]+M[1][1])
     g = lambda M : f(s(M))
     Qbar = lambda (p,q): Q((p,-q))
     Lambda = lambda ((a,b),(c,d)): ((b,a),(-d,-c))
     gbar = lambda M : g(Lambda(M))
-    forallShortDescendants(Qbar,B,((1,0),(0,1)),gbar)
+    forAllShortDescendants(Qbar,B,((1,0),(0,1)),gbar)
     if not Q((1,0)) > B:
         f((1,0))
-    forallShortDescendants(Q,B,((1,0),(0,1)),g)
+    forAllShortDescendants(Q,B,((1,0),(0,1)),g)
     if not Q((0,1)) > B:
         f((0,1))
+
 @ 
 \end{corollary}
+
+@
 \begin{proof}
   Let us abbreviate the name of the program
   in Theorem \ref{thm:fasd} to [[fasd]].
@@ -2316,6 +2574,7 @@ def forallShortSlopes(Q,B,f):
   for all primitives $v \in (\mathbf{N}+1)^2$
   with $Q(v) \leq B$.
   We also do $f((1,0))$ and $f((0,1))$ if need be.
+
 @
   It remains to show $fasd(\bar{Q},B,I,\bar{g})$
   does $f(v)$ for all primitives
@@ -2338,6 +2597,7 @@ def forallShortSlopes(Q,B,f):
   f(s(\Lambda(M))) = f(v)$.
   The result follows.
 \end{proof}
+
 @
 \subsubsection{Reduction to rational arithmetic}
 The above theorem is true only assuming that
@@ -2346,6 +2606,8 @@ That is not the case for interval arithmetic, in which
 $\lnot [a,b] > [c,d]$ could mean $a \leq d$ instead.
 So we do the following. There is probably a better
 way to do this, but this will suffice for now.
+
+@
 \begin{proposition}\label{prop:ratApprox}
   For all $\epsilon > 0$ and all
   positive definite binary quadratic forms $Q$,
@@ -2353,6 +2615,7 @@ way to do this, but this will suffice for now.
   quadratic form $Q'$ such that for all nonzero
   $v$, $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
 \end{proposition}
+
 @
 \begin{proof}
 Let $\delta > 0$.
@@ -2365,6 +2628,7 @@ for $v \in \{e_0,e_\infty,e_0+e_\infty\}$.
 Then $(Q - Q')/\delta$ is itself a binary quadratic
 form given by some matrix
 \[ X = \begin{pmatrix} a & b \\ b & d \end{pmatrix}.\]
+
 @
 The above conditions imply that
 $1 \leq x \leq 1+\xi$ for $x \in \{a,d,a+d+2\cdot b\}$.
@@ -2373,12 +2637,14 @@ $\lambda^2 - (a+d) \cdot \lambda + a\cdot d - b^2$.
 By considering the graph of this polynomial,
 it is clear that its roots are both positive
 if and only if $a\cdot d - b^2 > 0$.
+
 @
 Now the conditions above imply $a\cdot d \geq 1$.
 So we wish to pick $\xi$ such that we can prove $b^2 < 1$.
 In fact the conditions imply that
 $-1-2\cdot \xi < 2\cdot b < -1 + \xi$.
 So it suffices to pick $\xi$ such that $0 < \xi < 1/2$.
+
 @
 Assuming $0 < \xi < 1/2$, we certainly can find rational
 positive-definite $Q'$ satisfying the above conditions,
@@ -2388,17 +2654,22 @@ The eigenvalues of the matrix $X$ of $(Q-Q')/\delta$
 are both positive, so $X$ is itself positive-definite,
 and hence $Q(v) - Q'(v) > 0$ for all nonzero $v$.
 Furthermore, the larger eigenvalue of $X$ is
+
+@
 \begin{align*}
   \rho_+ &= \frac{a+d}{2} + \frac{\sqrt{(a-d)^2 + (2\cdot b)^2}}{2}\\
   &\leq 1 + 2\cdot \xi + (1/2)\cdot \sqrt{4\cdot (\xi^2 + b^2)}\\
   &\leq 1 + 2\cdot \xi + \sqrt{\xi^2 + b^2}\\
   &\leq 1 + 2\cdot \xi + \sqrt{1/4 - \xi + 2\cdot \xi^2}.
 \end{align*}
+
+@
 The supremum of this on $\xi \in [0,1/2)$
 is the value of the expression
 at $\xi = 1/2$ where it is equal to $5/2$.
 Thus for all $v$, $X.v = (Q(v) - Q'(v))/\delta < 5/2 \cdot |v|^2$,
 i.e. $Q(v) - Q'(v) < 5/2\cdot\delta \cdot |v|^2$.
+
 @
 Therefore, let us pick $\delta = \epsilon/(5/2)$, $\xi = 1/3$.
 By the above, if we pick a rational positive-definite
@@ -2408,17 +2679,20 @@ $\delta < Q(v) - Q'(v) < (4/3)\cdot \delta$,
 then for all nonzero $v$,
 $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
 \end{proof}
+
 @
 \begin{corollary}\label{cor:fasdApprox}
   Suppose $Q,R$ are positive-definite binary
   quadratic forms with $R$ rational. Suppose
   further that for all nonzero $v$,
   $0 < Q(v) - R(v)$.
+  
   Then [[forallShortDescendants(R,B,M,f)]]
   does [[f(N)]] for all descendants $N$ of $M$
   such that $Q(s(N))\leq B$ (and possibly
   for finitely many other descendants of $M$).
 \end{corollary}
+
 @
 \begin{proof}
   By Theorem \ref{thm:fasd}
@@ -2431,8 +2705,11 @@ $0 < Q(v) - Q'(v) < \epsilon \cdot |v|^2$.
   it does [[f(N)]] for only finitely many
   descendants of $M$.
 \end{proof}
+
+@
 Fortunately this is automatically taken care of
 in the software we use.
+
 @
 \subsubsection{Extracting a quadratic form}
 It remains only to extract a positive-definite
@@ -2440,6 +2717,7 @@ rational lower bound $R$ on the Riemannian form
 restricted to a maximal cusp of a given hyperbolic
 3-manifold $M$. Using [[SnapPy]] as a Sage module,
 this is quite easily done.
+
 <<cuspForm.py>>=
 def cuspForm(mfld,cusp):
     X = mfld.cusp_translations(verified=True)
@@ -2447,6 +2725,7 @@ def cuspForm(mfld,cusp):
     nrm = lambda Z: (Z*Z.conjugate()).real()
     q = lambda (p,q): nrm(p*z+q*w).lower()
     return q
+
 @ 
 \subsection{Dehn filling hack}
 We will want to fill our manifolds along slopes
@@ -2456,9 +2735,9 @@ triangulation routines are not deterministic,
 which can lead to large variance in running times.
 So we define the following technical routine
 for trying to Dehn fill in a consistent way.
+
 <<DehnFillHack.py>>=
 def minFill(snappyMfld,fuel):
-    # Returns regina.Triangulation3
     N = snappyMfld.filled_triangulation()
     x = N.triangulation_isosig()
     x = x[: x.find("_")]
@@ -2471,12 +2750,15 @@ def minFill(snappyMfld,fuel):
         if new < minimum:
             minimum = new
     return regina.Triangulation3(minimum[1])
+
 @
-\section{Results}
 We can now conclude with our computation.
+
+@
 \subsection{The computation proper}
 We build our computation from the bottom up,
 memoizing the longer calculations.
+
 @
 <<main.py>>=
 from neckl import forallOrbitReps
@@ -2494,7 +2776,8 @@ is exceptional or not. We make a copy [[M]] of the manifold,
 so as not to disturb the manifold itself. We
 then clear any Dehn fillings [[M]] might have.
 Then we fill, and immediately see if we can verify
-its hyperbolicity in SAGE. 
+its hyperbolicity in SAGE.
+
 <<main.py>>=
 def fillingType(snappyMfld,cusp,slope,memo):
     M = snappyMfld.copy()
@@ -2510,6 +2793,7 @@ we try harder to verify hyperbolicity if the
 volume is large enough. We drill out along curves
 in the dual graph and try verifying associated
 triangulations, canonized and not canonized.
+
 <<main.py>>=
     try:
         if M.volume() > 0.9:
@@ -2541,6 +2825,7 @@ filling and running Regina. Retriangulating
 ten times seems to be enough to get
 triangulations of consistently low size,
 if not isomorphic triangulations.
+
 <<main.py>>=
     fuel = 10
     N = minFill(M,fuel)
@@ -2548,6 +2833,7 @@ if not isomorphic triangulations.
 Naturally, we now immediately check if
 we have seen this triangulation before. If
 so, we return the previous computation's result.
+
 <<main.py>>=
     sig = N.isoSig()
     if sig in memo:
@@ -2558,6 +2844,7 @@ we finally run the faultlessness routine in Regina.
 If the return value has first entry [[False]] then
 the manifold is certainly not hyperbolic, for the
 reason that is in the second entry.
+
 <<main.py>>=
     x = isFaultless(N)
     if x[0] == False:
@@ -2567,18 +2854,21 @@ Otherwise, all we know is that $N$ is faultless.
 It could possibly be small Seifert fibered, in
 which case the filling would be exceptional.
 We record what we know.
+
 <<main.py>>=
     else:
         result = ("Faultless", x[1])
 @ 
 Regardless of the result, we record it
 in [[closedSigs]] and return it.
+
 <<main.py>>=
     memo[mfld.num_cusps()-1][sig] = result
     return result
 @ 
 That concludes our method for checking whether
 or not a filling of a cusp of a manifold is exceptional.
+
 @
 \subsubsection{Classifying short slopes}
 At several points in our procedure we will
@@ -2588,6 +2878,7 @@ implement that here, using a short local
 function definition to fit it into the
 [[forallShortSlopes]] framework. We don't
 need to do any memoization here.
+
 <<main.py>>=
 def classifyShortSlopes(snappyManifold, cusp, memo):
     mu = snappyManifold.copy()
@@ -2603,6 +2894,7 @@ def classifyShortSlopes(snappyManifold, cusp, memo):
             unknown.append(s)
     forallShortSlopes(q,6,checkSlope)
     return (hyp,nonhyp,unknown)
+    
 @
 \subsection{Running the calculations}
 We maintain a list of isomorphism signatures of necklace
@@ -2634,6 +2926,7 @@ so if we have seen its isomorphism signature before.
 Thus we determine (a superset of) the exceptional
 fillings of $ne_s$; if this set has cardinality more
 than 8 then we remember $ne_s$ for later.
+
 <<main.py>>=
 if ___name___ == "___main___":
     neckls = set()
@@ -2706,7 +2999,7 @@ if ___name___ == "___main___":
     assert len(trouble) == 0
 
 @ 
-\subsection{Formatting the output}
+\section{Formatting the output}
 Now it's straightforward to go through the
 manifolds. First we make a file
 which just automates the enumeration
@@ -2731,6 +3024,7 @@ from shortSlopes import forallShortSlopes
 from cuspForm import cuspForm
 from DehnFillHack import minFill
 from time import clock
+
 @ 
 First we define a procedure [[vetNecklaces]] that goes
 through the $n$-bead necklaces, and
@@ -2746,6 +3040,7 @@ It also takes a debugging flag [[wstat]] to
 tell whether or not we want it to display
 its progress by printing out all the matchings
 it investigates as it goes through them.
+
 @
 <<vetting.py>>=
 from sys import stdout
