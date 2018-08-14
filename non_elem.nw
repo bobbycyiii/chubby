@@ -185,21 +185,23 @@ possible which for every necklace gluing
 contains a manifold homeomorphic to that gluing. We
 could, of course, just enumerate all
 perfect matchings and put the
-associated gluings in a list. But many of
+associated gluings in some container. But many of
 these, presumably, will be asymmetric, so
 that by applying elements of the symmetry
 group of the $n$-dipyramid, we get different
 gluings which are homeomorphic. We wish to
 eliminate as much of such redundancy as we
 reasonably can.
+
 @
-A reasonable approach is to have our list
+A reasonable approach is to have our container
 contain one representative from each
 dipyr-symmetry group orbit of perfect
 matchings, and nothing else. Milley took
 this approach, and it is the approach we take
 as well. However, we introduce a subtlety which
 makes the enumeration faster and leaner.
+
 @
 We do not begin by enumerating all
 perfect matchings as Milley does.
@@ -216,23 +218,16 @@ than removing a matching from a list.
 Finally, we do a fairly natural thing after that:
 while the tree still contains a matching $\sigma$,
 remove every element of $\sigma$'s orbit from the tree,
-and then put $\sigma$ in some list.\footnote{In a previous
-  version of this program, we had our enumeration scheme
-  apply a given procedure $f$ to $\sigma$, instead of
-  just putting $\sigma$ in a list. In some sense this
-  is the most natural thing to ``do'', and certainly
-  the most generic. However, since we will be
-  remembering the isomorphism signatures
-  of our gluings anyway,
-  this would not decrease our memory footprint
-  significantly. There is a more subtle way to enumerate
-  such gluings up to isomorphism, which way has a much lower
-  memory footprint, only ever holding the current path
-  taken in the above tree, and never even constructing
-  the whole tree itself. However, as this is more
-  complicated and unnecessarily fast, we eschewed this
-  option here, and will publish and use it separately
-  in future work.}
+and then put $\sigma$ in some list.
+
+@
+\begin{remark}
+  There are several other optimizations and
+  generalizations possible. However, the above
+  approach is sufficient for our needs, and it
+  is simpler to understand.
+\end{remark}
+
 @
 Let us call the dipyramidal symmetry group $DP$. Our
 first order of business is encoding its action on face-pairings.
@@ -240,6 +235,7 @@ It also acts on face-pairs and, of course, on faces. Since it
 acts on several things at once, we have different functions
 associated to these actions. But let us begin with how $DP$
 acts on faces.
+
 @
 \begin{definition}
 A face we represent as a natural number below $2 \cdot n$.
@@ -250,9 +246,11 @@ the reflection through the plane through the base, which we
 call a \emph{p-flip}; and
 a reflection through a plane through the suspension points
 and a lateral vertex, which we call a \emph{v-flip}. If
-that lateral vertex is adjacent to faces $0,1,2\cdot(n-1), 2\cdot n - 1$,
+that lateral vertex is adjacent to faces
+$0,1,2\cdot(n-1), 2\cdot n - 1$,
 then we call it \emph{the} v-flip.
 \end{definition}
+
 @
 \begin{proposition}
   The following implements these symmetries as
