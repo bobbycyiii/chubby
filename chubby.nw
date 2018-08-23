@@ -2604,8 +2604,7 @@ def forAllShortSlopes(Q,B,f):
   Let $M$ be the unique descendant
   of $I$ with slope $(p,q)$. Then
   $\bar{Q}(s(M)) = Q(v)$, and
-  $\bar{g}(M) = g(\Lambda(M)) =
-  f(s(\Lambda(M))) = f(v)$.
+  $\bar{g}(M) = g(\Lambda(M)) = f(s(\Lambda(M))) = f(v)$.
   The result follows.
 \end{proof}
 
@@ -2618,12 +2617,21 @@ restricted to a maximal cusp of a given hyperbolic
 this is quite easily done.
 
 <<cuspForm.py>>=
-def cuspForm(mfld,cusp):
+def cuspFormLowerBound(mfld,cusp):
     X = mfld.cusp_translations(verified=True)
     (z,w) = X[cusp]
     nrm = lambda Z: (Z*Z.conjugate()).real()
     q = lambda (p,q): nrm(p*z+q*w).lower()
     return q
+
+@ 
+This gives us a function that is a lower bound
+on the actual quadratic form. To guarantee
+termination for the algorithm, it would be best
+to get a lower bound that is a rational
+positive-definite quadratic form. However, our
+procedure as defined above terminates with our 
+desired input, so we don't worry about this.
 
 @ 
 \subsection{Dehn filling hack}
@@ -2664,7 +2672,7 @@ from neckl import forallOrbitReps
 from unhyp import isFaultless
 from nonelem import NE
 from shortSlopes import forallShortSlopes
-from cuspForm import cuspForm
+from cuspForm import cuspFormLowerBound
 from DehnFillHack import minFill
 from snappy import Manifold
 @
@@ -2781,7 +2789,7 @@ need to do any memoization here.
 <<main.py>>=
 def classifyShortSlopes(snappyManifold, cusp, memo):
     mu = snappyManifold.copy()
-    q = cusp_form(mu,cusp)
+    q = cuspFormLowerBound(mu,cusp)
     hyp,nonhyp,unknown = [],[],[]
     def checkSlope(s):
         t = fillingType(mu,cusp,s,memo)
@@ -2920,7 +2928,7 @@ from unhyp import linkComplement
 from unhyp import isFaultless
 from nonelem import NE
 from shortSlopes import forallShortSlopes
-from cuspForm import cuspForm
+from cuspForm import cuspFormLowerBound
 from DehnFillHack import minFill
 from time import clock
 
