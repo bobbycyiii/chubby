@@ -39,6 +39,19 @@ the exceptional Dehn fillings of those knot complements.
 \section*{Conventions}
 We use camel-case naming, following Regina.
 We remind the reader that indexing begins at 0.
+<<preamble>>=
+from regina import Triangulation3 as T3
+from regina import Perm4
+from regina import NormalSurfaces
+from regina import NormalCoords
+from regina import NS_FUNDAMENTAL as NSF
+# This work supported in part
+# by the National Science Foundation.
+from regina import NS_VERTEX as NSV
+from regina import versionString
+NSS = NormalCoords.NS_STANDARD
+NSQ = NormalCoords.NS_QUAD
+enumerate = NormalSurfaces.enumerate
 @
 \section{Enumerating necklace gluings}
 \subsection{Necklace gluings with $n$ beads}
@@ -57,7 +70,7 @@ definition in Regina.
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
         """Returns an n-dipyr."""
-        newt = Triangulation3()
+        newt = T3()
         for i in range(0,n):
                 newt.newTetrahedron()
         for i in range(0,n):
@@ -199,11 +212,105 @@ fixed so that the gluing is oriented.
     ndipyr.setLabel(str(match))
     return ndipyr
 
+@ 
+\subsection{Examples of necklace gluings}
+As examples of necklace gluings,
+we give the 3-sphere, $RP^3$,
+and also our favorite example, the Whitehead 
+link exterior. The reader may pick his or
+her own favorite two-sided one-relator Heegaard 
+diagram, translate it into a necklace gluing,
+and test the above construction.
+
+<<exampleGluings.py>>=
+from necklace import makeNecklace
+from regina import Census
+@
+\subsubsection{$S^3$}
+
+Uniquely among tame 3-manifolds, $S^3$ has
+a genus-0 Heegaard splitting. The easiest
+diagram for this splitting is with the
+usual 1-tetrahedron triangulation. This is
+a necklace gluing, namely the gluing
+[[(0,1)]].
+
+<<exampleGluings.py>>=
+s3 = makeNecklace([(0,1)])
+
+@ 
+\subsubsection{$RP^3$}
+
+Real projective space is the quotient of a
+ball by the antipodal map. The simplest dipyramid
+on which this map is a pole-preserving gluing
+is the 2-dipyramid.
+
+<<exampleGluings.py>>=
+rp3 = makeNecklace([(0,3),(1,2)])
+
+@
+\subsubsection{$T^3$}
+
+The 3-torus has a very clear Heegaard splitting
+coming from its cellulation by a cube in the usual
+way. Let $k = \mathbf{F}_2$ be the field of two
+elements. The vertices of the cube are elements of
+$k^3$, with edges between vertices differing in one
+entry, and faces being those vertices with one entry
+in common. Cellulate the cube by taking the cone
+off its boundary on an interior point, say the center
+$c$. Then the cells are (square-base) pyramids;
+identifying pyramids along their bases yields three
+4-dipyramids. This ends up being a necklace gluing.
+This gluing therefore has 24 sides. Each side
+lies in some pyramidal half of a dipyramid. We may
+identify this side by its lateral edge and the base
+of its associated pyramid.
+
+<<exampleGluings.py>>=
+t3facePairings = \
+   [(0,14),(1,10),(2,19),(3,23), \
+    (4,15),(5,11),(6,18),(7,22), \
+    (8,16),(9,20),(12,17),(13,21)]
+
+@ 
+However, this is not a one-relator Heegaard
+splitting, and so lies outside the scope of
+this project.
+
+\subsubsection{Whitehead link exterior}
+
+The following yields the Whitehead link
+exterior.
+
+<<exampleGluings.py>>=
+whlx = makeNecklace([(7,3),(6,1),(5,2),(4,0)])
+
+if __name__ == "__main__":
+    if not s3.isThreeSphere():
+        raise Exception("S3 gluing failed")
+    else:
+        print "s3 is S3"
+    x = Census.lookup(rp3).first().name()
+    if x != 'RP3 : #1':
+        raise Exception("RP3 gluing failed")
+    else:
+        print "rp3 is RP3"
+    x = Census.lookup(whlx).first().name()
+    if x != 'm129 : #2':
+        raise Exception("Whitehead exterior failed")
+    else:
+        print "whlx is Whitehead link exterior m129"
+
 <<necklace.py>>=
+<<preamble>>
 <<how to make an n-dipyr>>
 <<how to make a necklace gluing>>
+
 @
 \subsection{Enumerating necklace gluings}
+
 Our next goal is to get a list as small as
 possible which for every necklace gluing
 contains a manifold homeomorphic to that gluing. We
@@ -245,8 +352,15 @@ and then do something with $\sigma$.
 @
 \begin{remark}
   There are several other optimizations and
-  generalizations possible. However, the above
-  approach is sufficient for our needs, and it
+  generalizations possible. In particular,
+  one can perform a depth first search on the
+  above trie without constructing it first.
+  One could also perform tests at junctures
+  in the computation to determine if all the
+  descendant leaves of a node are invalid for
+  some reason and can be discarded---this is
+  called \emph{pruning}. However, the above 
+  approach is sufficient for our needs, and 
   is relatively simple to understand.
 \end{remark}
 
@@ -382,6 +496,7 @@ def orbitWithRepeats(n,gluing):
 \subsubsection{The trie of gluings}
 We implement the trie of gluings as a standard binary trie on
 pairs of natural numbers. Its type's definition in Coq would be
+
 <<Coq definition of the type of our trie>>=
 Inductive PairTrie : Type :=
 | PTLeaf : PairTrie
@@ -486,11 +601,11 @@ from our trie if there is one. Just go left.
 
 <<how to get a matching if there is one>>=
 def leftMatching(pt):
-    if pt[0] == "PTLeaf":
+    if pt[0] == PTLeaf:
         return []
     else:
         (str, p, lt, rt) = pt
-        assert str == "PTBranch"
+        assert str == PTBranch
         return [p] + leftMatching(lt)
 
 @
@@ -537,18 +652,18 @@ removed from the left child.
 def removeMatching(l,pt):
     if l == []:
         return pt
-    if pt[0] == "PTLeaf":
+    if pt[0] == PTLeaf:
         return pt
     p,ps,(str,pp,lt,rt) = l[0],l[1:],pt
-    assert str == "PTBranch"
+    assert str == PTBranch
     if p != pp:
-        return ("PTBranch", pp, lt, \
+        return (PTBranch, pp, lt, \
                 removeMatching(l,rt))
     ltp = removeMatching(ps,lt)
-    if ltp[0] == "PTLeaf":
+    if ltp[0] == PTLeaf:
         return rt
     else:
-        return ("PTBranch", pp, ltp, rt)
+        return (PTBranch, pp, ltp, rt)
 
 @
 This takes time proportional to at most the number of face-pairs.
@@ -565,8 +680,8 @@ in a function [[f]]), repeat.
 
 <<how to do stuff with orbit representatives>>=
 def forallOrbitReps(n,f):
-    pt = originalTrie(n)
-    while pt[0] != "PTLeaf":
+    pt = completePairTrie(n)
+    while pt[0] != PTLeaf:
         sigma = leftMatching(pt)
         lorb = orbitWithRepeats(n,sigma)
         for lp in lorb:
@@ -576,15 +691,43 @@ def forallOrbitReps(n,f):
 @ 
 We can now generate all the manifolds of interest to us: necklace
 gluings of bead number at most 7.
+
+\subsubsection{Tests}
+To test the enumeration we run it on sets of
+even cardinality at most 8.
+
+<<enumeration testing>>=
+if __name__ == "__main__":
+    for i in range(4):
+        reps = []
+	all = []
+        def putInReps(x):
+            reps.append(x)
+	pt = completePairTrie(i+1)
+	x = leftMatching(pt)
+	while pt[0] != PTLeaf:
+            all.append(x)
+            pt = removeMatching(x,pt)
+	    x = leftMatching(pt)
+        forallOrbitReps(i+1,putInReps)
+        print "Cardinality " + str(2*i+2)
+        for rep in reps:
+            print str(rep)
+	print "That's " + str(len(reps)) + " reps,"
+	print "from " + str(len(all)) + " total matchings."
+        print "\n"
+
 <<enumerateGluings.py>>=
 <<how to act>>
 <<how to orbit>>
 <<how to make the gluing trie>>
 <<how to get a matching if there is one>>
 <<how to remove a matching>>
-<<how to do stuff with orbit representatives>>
+<<how to do stuff with orbit representatives>> 
+<<enumeration testing>>
 
 @
+\pagebreak
 \section{Hyperbolicity testing for link complements}
 Naively, our next task is to determine which 
 among the necklace gluings of bead number at 
@@ -621,7 +764,7 @@ def isLinkComplement(mfld, allowInteriorVertices):
         return False
     if not mfld.isConnected():
         return False
-    M = Triangulation3(mfld)
+    M = T3(mfld)
     M.finiteToIdeal()
     if not M.isValid():
         return False
@@ -712,6 +855,7 @@ common axis \emph{equation}.
   and is not the fundamental group of a hyperbolic link complement.
 \end{proof}
 
+@
 <<fundamental group obstructions>>=
 def isCommonAxisCommutator(expr):
     l = expr.terms()
@@ -726,6 +870,8 @@ def isCommonAxisEquation(expr):
     l = expr.terms()
     return len(l) == 2
 
+@
+<<fundamental group obstructions>>=
 def possiblyHyperbolicPi1(mfld):
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
@@ -848,6 +994,7 @@ with more than one boundary component.
     return (False, name)
 
 <<sanity.py>>=
+<<preamble>>
 <<link complement>>
 <<fundamental group obstructions>>
 <<census obstructions>>
@@ -1207,31 +1354,26 @@ may as well add it for posterity.)
 @
 <<is T2xI>>=
 def isT2xI(mfld):
-    idl = Triangulation3(mfld)
+    idl = T3(mfld)
     idl.finiteToIdeal()
     idl.intelligentSimplify()
-    if not (linkComplement(idl,True) and \
+    if not (isLinkComplement(idl,True) and \
         len(mfld.boundaryComponents()) == 2):
         return False
     if not mfld.homologyH1().detail() == '2 Z\n':
         return False
     if mfld.fundamentalGroup().recogniseGroup() == '2 Z':
         return True
-    M = Triangulation3(mfld)
+    M = T3(mfld)
     M.idealToFinite()
     M.intelligentSimplify()
     t = M.boundaryComponents()[0]
     if t.countFaces(0) != 1:
         raise Exception("weird boundary component")
-@
-(Continued on next page.)
-
-@
-<<is T2xI>>=
     edges = t.faces(1)
     for e in edges:
         i = e.index()
-        Mp = Triangulation3(M)
+        Mp = T3(M)
         ep = Mp.face(1,i)
         Mp.closeBook(ep,False,True)
         if not Mp.isSolidTorus():
@@ -1311,15 +1453,15 @@ then return nothing. (This else is outside the [[for]] loop.)
 Now, as for the atoroidal remainder, there
 will be hyperbolic and Seifert-fibered manifolds.
 We can distinguish the Seifert-fibered manifolds by
-finding essential annuli and M\"{o}bius strips in them.
-Hyperbolic manifolds have no such surface.
+finding essential annuli and M\"{o}bius strips in them,
+assuming the manifolds are nontrivial link complements.
 
 @
 As we are finally treating bounded surfaces,
 we can no longer use ideal triangulations; the
 theory of spun-normal surfaces is not yet well-enough
-developed. However, we can just look among the
-Q-vertex surfaces.
+developed. However, we can just look among the Q-vertex 
+surfaces in a material triangulation.
 
 @
 \begin{proposition}
@@ -1408,12 +1550,10 @@ annulus is nonseparating, and is thus essential.
 Otherwise, [[m]] is disconnected. Split it
 into its components. The annulus [[s]] is
 essential when neither of these components
-is a ball or is a solid torus. (That is, when
-[[s]] is not compressible; by the irreducibility
-and $\partial$-irreducibility of our given
-manifold, we can just do ball and solid torus tests.
-If this is not the case, please take this opportunity
-to contact the author as in Remark \ref{rem:convol}.)
+is a ball or is a solid torus. (This
+assertion should be regarded with the same
+level of suspicion as the assertions about
+essential tori touted in Remark \ref{rem:convol}.)
 
 <<essential A2>>=
         m.splitIntoComponents()
@@ -1456,10 +1596,10 @@ so we call it [[isFaultless]] and not
 [[isHyperbolic]].
 
 @
-<<packaging fault finding>>=
+<<how to find a fault the hard way>>=
 def findFault(mfld):
-    assert linkComplement(mfld,True)
-    M = Triangulation3(mfld)
+    assert isLinkComplement(mfld,True)
+    M = T3(mfld)
     M.finiteToIdeal()
     M.intelligentSimplify()
     l = enumerate(M,NSS,NSF)
@@ -1477,7 +1617,7 @@ def findFault(mfld):
     t2 = essentialT2In(l)
     if t2 != None:
         return t2
-    M = Triangulation3(mfld)
+    M = T3(mfld)
     M.idealToFinite()
     M.intelligentSimplify()
     l = enumerate(M,NSQ,NSV)
@@ -1489,34 +1629,81 @@ def findFault(mfld):
         return a2
     return None
 
-@
-<<packaged fault finding>>=    
 def isFaultless(mfld):
     if mfld.hasStrictAngleStructure():
         return (True, "strict angle structure")
-    x = possiblyHyperbolicPi1(mfld)
-    if not x[0]:
-        return x
-    x = censusNE(mfld)
-    if x != None:
-       return x[0]
     s = findFault(mfld)
     if s != None:
         return (False, s)
     else:
         return (True, "no faults")
 
+@ 
+\subsubsection{Testing}
+These routines should find no faults whatever
+on our examples, except for $RP^3,$ nor indeed 
+should they find faults in any of the hyperbolic census manifolds.
+They should find faults in the census manifolds
+admitting such surfaces. We include a few such
+census manifolds in the following tests.
+
+<<fault testing>>=
+if __name__ == "__main__":
+    from exampleGluings import *
+    if not isFaultless(s3)[0]:
+        raise Exception("essential surface in S3")
+    else:
+        print "s3 is faultless"
+    if isFaultless(rp3)[0]:
+        raise Exception("missed RP2 in RP3")
+    else:
+        print "rp3 is not faultless"
+    if not isFaultless(whlx)[0]:
+        raise Exception("fault in Whitehead link complement")
+    else:
+        print "Whitehead link complement is faultless"
+@ 
+The first census example is a Seifert-fibered space over
+an orbifold with four cone points. This admits an
+essential torus.
+
+<<fault testing>>=
+    ex0 = T3('gLALQbccefffemkbemi')
+    if isFaultless(ex0)[0]:
+        raise Exception("SFS with 4 cone points missing torus")
+    else:
+        print "SFS with 4 cone points has fault"
+
+@ 
+The next example is two Seifert-fibered spaces
+on discs with two cone points glued along their
+torus boundary components, in a way disagreeing
+with their fiber structure.
+
+<<fault testing>>=
+    ex1 = T3('hLAvQkbccefggglpksulwb')
+    if isFaultless(ex1)[0]:
+        raise Exception("Graph manifold missing torus")
+    else:
+        print "Graph manifold has fault"
+
 <<faults.py>>=
+<<preamble>>
+from sanity import *
 <<trivially inessential>>
 <<faults>>
-<<packaged fault finding>>
+<<how to find a fault the hard way>>
+<<fault testing>>
+
 @
+\pagebreak
 \section{Nonelementary embeddings}
 The above was a nice warmup. But for our problem,
 we don't need hyperbolic necklaces---we need necklaces
 that embed nonelementarily into hyperbolic manifolds.
 For Mom-$n$ manifolds with $n\leq 4$, Gabai, Meyerhoff, and Milley
-were able to show this is a trivial distinction, using
+were able to show in \cite{GMM11} that this 
+is a trivial distinction, using
 normal surface theory (not Regina, but normal surface theory
 as such) and a notion of complexity due to
 Matveev. However, bead-number 7 structures are Mom-5s,
@@ -1575,7 +1762,20 @@ of low cusp volume.
 \end{lemma}
 
 @
+\begin{definition}
 We call such an embedding a \emph{Dehn embedding}.
+\end{definition}
+
+@
+In order to get a full nonelementary embedding recognition
+algorithm, one would need to refine the following lemma,
+part \ref{itm:essT2},
+to account for \emph{how} the two components get identified
+along their particular torus boundaries. This would start to
+involve a computation of the \emph{companionship graph} of the
+JSJ-decomposition of $M$, an involved process (see \cite{Budney}).
+We do not go into this here and content ourselves with using
+the lemma below as it stands.
 
 @
 \begin{lemma}
@@ -1628,15 +1828,6 @@ We call such an embedding a \emph{Dehn embedding}.
   \end{enumerate}
 \end{lemma}
 
-@
-In order to get a full nonelementary embedding recognition
-algorithm, one would need to refine this lemma in part \ref{itm:essT2}
-to account for \emph{how} the two components get identified
-along their particular torus boundaries. This would start to
-involve a computation of the \emph{companionship graph} of the
-JSJ-decomposition of $M$, an involved process (see \cite{Budney}).
-We do not go into this here and content ourselves with using
-the above lemma.
 
 @
 The proof comes more or less verbatim from the introductory
@@ -1780,7 +1971,7 @@ def obvious_isLinkIn(M,amb):
         assert amb in [s3, d2s1, t2i]
     except AssertionError:
         raise Exception("Only S^3, D^2 x S^1, and T^2 x I allowed as second argument")
-    if not linkComplement(M,True):
+    if not isLinkComplement(M,True):
         return False
 @        
 After the above sanity check (really, a type-check),
@@ -1862,14 +2053,13 @@ methods complicate the boundary. With more work one
 could keep track of which surface is which.)
 
 @
-<<preamble>>=
-import regina as rg
-from unhyp import *
-nsl = rg.NormalSurfaces.enumerate
+We start off by idealizing our input manifold $M$,
+in the code called [[mfld]].
 
+@
 <<NE>>=
 def NE(mfld):
-    Mi = rg.Triangulation3(mfld)
+    Mi = T3(mfld)
     Mi.intelligentSimplify()
     Mi.finiteToIdeal()
     Mi.intelligentSimplify()
@@ -1879,15 +2069,24 @@ we check to see if $M$'s fundamental group
 is recognizable as above in the hyperbolicity
 section. If so, then not only is $M$ not hyperbolic,
 but also $M$ does not even embed nonelementarily
-into any hyperbolic link complement.
+into any hyperbolic link complement. This fact
+is dependent upon the particular set of group
+presentations that Regina 5.1 recognises [sic],
+so unfortunately we must do a version check here.
 
 <<NE>>=
-    x = possiblyHyperbolicPi1(mfld)
-    if not x[0]:
-        return []
+    if versionString() == '5.1':
+        x = possiblyHyperbolicPi1(mfld)
+        if not x[0]:
+            return []
+        x = possiblyHyperbolicPi1(Mi)
+        if not x[0]:
+            return []
 @ 
 Next, we do census checks on both the given
 triangulation, and its simplified idealization.
+(This also depends on using version 5.1, but
+that is already incorporated into [[censusNE]].)
 
 <<NE>>=
     x = censusNE(Mi)
@@ -1914,33 +2113,36 @@ quick check.
     if Mi.hasStrictAngleStructure():
         return [Mi]
 @ 
-We set up two normal surface collections:
+Having done our preliminary sanity checks,
+we now set up two normal surface collections:
 first, the fundamental-standard collection for an ideal
-triangulation of $M$, or the FSI collection; and, much 
-later, the quad-vertex collection for a material 
+triangulation of $M$, or the FSI collection; and
+the quad-vertex collection for a material 
 triangulation of $M$ (which Regina
 calls a ``finite'' triangulation). We call that the
 QVM collection. We can find all
 essential surfaces we need in the QVM collection;
 however, we suspect the FSI collection is smaller,
 and it contains all the essential \emph{closed}
-surfaces that we need.
+surfaces that we need. So we set it up and look
+through it first, insofar as that is possible.
 
 <<NE>>=
-    Li = nsl(Mi,rg.NS_STANDARD,rg.NS_FUNDAMENTAL)
+    fsi = enumerate(Mi,NSS,NSF)
 @ 
 Next, we look for obviously bad surfaces.
 Assuming $M$ is orientable, we can lump these
 bad surfaces all together as closed non-separating
 surfaces of nonnegative Euler characteristic.
+(Remember, we can't look for surfaces with boundary
+using an ideal triangulation.)
 
 <<NE>>=
     assert mfld.isOrientable()
     for i in range(Li.size()):
         s = Li.surface(i)
         x = s.eulerChar()
-        if (not s.hasRealBoundary()) and x >= 0 \
-          and s.cutAlong().isConnected():
+        if x >= 0 and s.cutAlong().isConnected():
             return []
 @ 
 Next, we look for an essential, connect-sum sphere.
@@ -2022,7 +2224,7 @@ Most importantly, a Seifert-fibered manifold admits
 no nonelementary embeddings into a hyperbolic link complement.
 
 <<NE>>=
-    Mf = rg.Triangulation3(mfld)
+    Mf = T3(mfld)
     Mf.intelligentSimplify()
     Mf.idealToFinite()
     Mf.intelligentSimplify()
@@ -2656,7 +2858,7 @@ def minFill(snappyMfld,fuel):
         new = (N.num_tetrahedra(), x)
         if new < minimum:
             minimum = new
-    return regina.Triangulation3(minimum[1])
+    return T3(minimum[1])
 
 @
 We can now conclude with our computation.
@@ -2897,7 +3099,7 @@ if ___name___ == "___main___":
     for b in [4,5,6,7]:
         forallOrbitReps(b,checkNecklace)
     for sig in threeCusped:
-        tc = regina.Triangulation3(sig)
+        tc = T3(sig)
         f = NE(tc)
         if f != []:
             mag = Manifold(tc.snapPea())
@@ -2924,7 +3126,7 @@ structures (up to isomorphism). We use this later.
 <<vetting.py>>=
 from neckl import forallOrbitReps
 from neckl import makeNecklace
-from unhyp import linkComplement
+from unhyp import isLinkComplement
 from unhyp import isFaultless
 from nonelem import NE
 from shortSlopes import forallShortSlopes
@@ -2958,7 +3160,7 @@ def vetNecklaces(n,wstat=False):
         if wstat:
             print str(inv)
         mfld = makeNecklace(inv)
-        if not linkComplement(mfld,False):
+        if not isLinkComplement(mfld,False):
            if wstat:
                print "invalid\n"
            return None
@@ -3268,13 +3470,3 @@ python naming.py
 pdflatex hypNames.tex
 @ 
 \end{document} 
-
-<<unhyp preamble>>=
-from regina import Triangulation3
-from regina import NormalSurfaces as NS
-enumerate = NS.enumerate
-from regina import NS_STANDARD as NSS
-from regina import NS_QUAD as NSQ
-from regina import NS_FUNDAMENTAL as NSF
-# This computation is partially supported by NSF
-from regina import NS_VERTEX as NSV
