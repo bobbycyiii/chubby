@@ -1172,10 +1172,11 @@ def essentialS2In(nsl):
 @
 If the Euler characteristic is 2, then
 $s$ is a sphere.
-Cut $M$ along $s$ into $m$. (It is
+Cut $M$ along $s$ into $m$. (It seems
   unfortunate here that we cut instead of crush.
   We should probably be able to crush instead.
-  We leave this optimization for future work.)
+  We leave this optimization for future work;
+  cutting suffices for us.)
 Then $m$ has two sphere boundary components. 
 We cap them off by idealizing $m$.
 
@@ -1963,7 +1964,7 @@ $T^2\times I$-link complements are themselves $S^3$-link complements.)
 @
 <<obvious link complement tests>>=
 from unhyp import isT2xI
-def obvious_isLinkIn(M,amb):
+def couldBeLinkIn(M,amb):
     s3 = "S^3"
     d2s1 = "D^2 x S^1"
     t2i = "T^2 x I"
@@ -2026,11 +2027,12 @@ H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
 If at this point we haven't determined
 whether or not the manifold is a link
 complement in whichever ambient manifold,
-then we give up.
+then we give up. It could still be a
+link in the given manifold.
 
 <<obvious link complement tests>>=
     else:
-        return None
+        return True
 
 @
 \subsubsection{[[NE]]}
@@ -2053,15 +2055,13 @@ methods complicate the boundary. With more work one
 could keep track of which surface is which.)
 
 @
-We start off by idealizing our input manifold $M$,
-in the code called [[mfld]].
+We assume our input manifold is given
+as an ideal triangulation.
 
 @
 <<NE>>=
-def NE(mfld):
-    Mi = T3(mfld)
-    Mi.intelligentSimplify()
-    Mi.finiteToIdeal()
+def NE(ideal):
+    Mi = T3(ideal)
     Mi.intelligentSimplify()
 @
 Before any normal surface enumeration,
@@ -2076,9 +2076,6 @@ so unfortunately we must do a version check here.
 
 <<NE>>=
     if versionString() == '5.1':
-        x = possiblyHyperbolicPi1(mfld)
-        if not x[0]:
-            return []
         x = possiblyHyperbolicPi1(Mi)
         if not x[0]:
             return []
@@ -2095,15 +2092,8 @@ that is already incorporated into [[censusNE]].)
            return [Mi]
        if not x[0]:
            return []
-    x = censusNE(mfld)
-    if x != None:
-       if x[0]:
-           return [mfld]
-       if not x[0]:
-           return []
 @ 
-Next, we check to see
-whether or not $M$ admits a strict angle
+Next, we check to see whether or not $M$ admits a strict angle
 structure. If it does, then $M$ is hyperbolic,
 and every hyperbolic $N$ into which $M$ embeds nonelementarily
 is a hyperbolic Dehn filling of $M$. This is a relatively
@@ -2139,40 +2129,53 @@ using an ideal triangulation.)
 
 <<NE>>=
     assert mfld.isOrientable()
-    for i in range(Li.size()):
-        s = Li.surface(i)
+    for i in range(fsi.size()):
+        s = fsi.surface(i)
         x = s.eulerChar()
         if x >= 0 and s.cutAlong().isConnected():
             return []
 @ 
 Next, we look for an essential, connect-sum sphere.
-But we already know how to do this. Then we cut along
-it and test the components for being link complements
-as in the above pseudocode.
+But we already know how to do this. Then we undo the
+connect-sum and test the summands for being link complements
+as in the above pseudocode. We undo a connect-sum
+by cutting along a sphere, then idealizing. (As above,
+this slow, obvious cutting code works just fine for us.
+But one ought to be able to improve it with crushing.)
 
 <<NE>>=
-    s2 = essentialS2In(Li)
+    s2 = essentialS2In(fsi)
     if not s2 == None:
-        s2 = Li.surface(s2[0])
+        s2 = fsi.surface(s2[0])
         MM = s2.cutAlong()
         MM.intelligentSimplify()
+	MM.finiteToIdeal()
         MM.splitIntoComponents()
         mp = MM.firstChild()
         mpp = mp.nextSibling()
-        Xp = obvious_isLinkIn(mp,"S^3")
-        Xpp = obvious_isLinkIn(mpp,"S^3")
+        Xp = couldBeLinkIn(mp,"S^3")
+        Xpp = couldBeLinkIn(mpp,"S^3")
         Lp, Lpp = [],[]
-        if Xp != False:
+        if Xp:
             Lpp = NE(mpp)
-        if Xpp != False: 
+        if Xpp: 
             Lp = NE(mp)
         return Lp + Lpp
 @
-We follow this up with a boundary irreducibility
+We follow the reducibility test by a boundary irreducibility
 test. If we finish the above $S^2$ search with no
-essential $S^2$, then $M$ is irreducible. So
-it is $\partial$-irreducible if and only if
-it is a solid torus.
+essential $S^2$, then $M$ is irreducible. Since 
+$M$ is assumed to be a non-trivial link complement,
+it is therefore $\partial$-irreducible if and only if
+it is a solid torus. So we don't need to do a
+disc search ourselves, and can leave this to Regina.
+We can put off the quad-normal surface enumeration till
+the very end.
+
+@
+Of course, $D^2 \times S^1$ has fundamental group
+$\mathbf{Z}$, so it has no nonelementary embeddings
+into any manifold whatever.
 
 <<NE>>=
     if mfld.isSolidTorus():
@@ -2191,16 +2194,17 @@ is performed. That is because we cannot yet keep
 track of boundary components in Regina under cutting.
 
 <<NE>>=
-    t2 = essentialT2In(Li)
+    t2 = essentialT2In(fsi)
     if t2 != None:
-        t2 = Li.surface(t2[0])
+        t2 = fsi.surface(t2[0])
         MM = t2.cutAlong()
         MM.intelligentSimplify()
+	MM.finiteToIdeal()
         MM.splitIntoComponents()
         mp = MM.firstChild()
         mpp = mp.nextSibling()
-        Xp = obvious_isLinkIn(mp,"D^2 x S^1")
-        Xpp = obvious_isLinkIn(mpp,"D^2 x S^1")
+        Xp = couldBeLinkIn(mp,"D^2 x S^1")
+        Xpp = couldBeLinkIn(mpp,"D^2 x S^1")
         Lp, Lpp = [],[]
         if Xp != False:
             Lpp = NE(mpp)
@@ -2222,32 +2226,40 @@ among quad-vertex surfaces, under our assumptions on $M$.
 @
 Most importantly, a Seifert-fibered manifold admits
 no nonelementary embeddings into a hyperbolic link complement.
+So we don't need any recursive calls to [[NE]] in this case.
 
 <<NE>>=
-    Mf = T3(mfld)
-    Mf.intelligentSimplify()
+    Mf = T3(Mi)
     Mf.idealToFinite()
     Mf.intelligentSimplify()
-    Lf = nsl(Mf, rg.NS_QUAD, rg.NS_VERTEX)
-    m2 = essentialM2In(Lf)
+    qvm = enumerate(Mf,NSQ,NSV)
+    m2 = essentialM2In(qvm)
     if m2 != None:
         return []
-    a2 = essentialA2In(Lf)
+    a2 = essentialA2In(qvm)
     if a2 != None:
         return []
 @ 
-If we have found no ``faulty'' surfaces,
+If we have found no faults,
 then $M$ is hyperbolic.
 
 <<NE>>=
-    return [mfld]
+    return [ideal]
 @
 That concludes the procedure [[NE]].
+
+@
+\subsubsection{Testing}
+Our test cases are a connect-sum of 
+two figure-eight knot exteriors, and two
+Whitehead links glued along two of their
+boundaries.
 
 <<nonElementary.py>>=
 <<preamble>>
 <<obvious link complement tests>>
 <<NE>>
+
 @
 \section{Exceptional fillings}
 Our final crucial computation is to determine those one-cusped
