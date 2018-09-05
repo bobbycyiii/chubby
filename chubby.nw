@@ -833,12 +833,25 @@ fundamental group of the figure-eight knot complement.
 One gets the gamut by replacing ``extension of an
 Abelian group'' in the above definition by
 ``extension of a Regina-5.1 group'' and changing
-``nixed Regina-5.1'' to ``Regina-5.1''. This makes
-
+``nixed Regina-5.1'' to ``Regina-5.1''. We could
+get a way to recognise nixed presentations by implementing
+a parser for the output of Regina's recognition
+routines. Really, Regina itself should be modified
+to return richer output from its recognition
+routine (we may do this in future work).
 
 @
-In addition to these obstructions,
-two other obstructions happen exceedingly often.
+In the meantime, what we will do instead is
+to determine whether or not a manifold's
+fundamental group is recognised, and if so,
+\emph{act as though that fundamental group
+  is not the group of a hyperbolic 3-manifold},
+but \emph{record the group's presentation for
+  verification later}.
+
+@
+In addition to the nixed obstruction,
+two other obstructions happen quite often.
 These are presentations of the fundamental group
 of the forms $\langle a,b\ |\ \ldots, [a^p,b^q], \ldots \rangle$
 or $\langle a,b\ |\ \ldots, a^p b^q, \ldots \rangle$. We call these
@@ -883,7 +896,7 @@ def isCommonAxisEquation(expr):
 
 @
 <<fundamental group obstructions>>=
-def hasPossiblyHyperbolicPi1(mfld):
+def hasPossiblyHyperbolicPi1(mfld,groups):
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
     if G.countGenerators() == 2:
@@ -894,7 +907,9 @@ def hasPossiblyHyperbolicPi1(mfld):
                 return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, a^p b^q, \ldots \\rangle$")
     name = G.recogniseGroup()
     if name != '':
-        return (False, "$\\pi_1 =" + name + "$")
+        pres = "$\\pi_1 =" + name + "$"
+	groups.add(pres)
+        return (False, pres)
     return (True,'')
     
 @
@@ -2083,9 +2098,10 @@ However, it
 
 <<NE>>=
     if versionString() == '5.1':
-        x = hasPossiblyHyperbolicPi1(Mi)
+        groups = set()
+        x = hasPossiblyHyperbolicPi1(Mi,groups)
         if not x[0]:
-            return []
+            return ([],groups)
 @ 
 Next, we do census checks on both the given
 triangulation, and its simplified idealization.
@@ -2096,9 +2112,9 @@ that is already incorporated into [[censusNE]].)
     x = censusNE(Mi)
     if x != None:
        if x[0]:
-           return [Mi]
+           return ([Mi],None)
        if not x[0]:
-           return []
+           return ([],None)
 @ 
 Next, we check to see whether or not $M$ admits a strict angle
 structure. If it does, then $M$ is hyperbolic,
@@ -2108,7 +2124,7 @@ quick check.
 
 <<NE>>=
     if Mi.hasStrictAngleStructure():
-        return [Mi]
+        return ([Mi],None)
 @ 
 Having done our preliminary sanity checks,
 we now set up two normal surface collections:
@@ -2140,7 +2156,7 @@ using an ideal triangulation.)
         s = fsi.surface(i)
         x = s.eulerChar()
         if x >= 0 and s.cutAlong().isConnected():
-            return []
+            return ([],None)
 @ 
 Next, we look for an essential, connect-sum sphere.
 But we already know how to do this. Then we undo the
@@ -2164,10 +2180,10 @@ But one ought to be able to improve it with crushing.)
         Xpp = couldBeLinkIn(mpp,"S^3")
         Lp, Lpp = [],[]
         if Xp:
-            Lpp = NE(mpp)
+            (Lpp,gpsp) = NE(mpp)
         if Xpp: 
-            Lp = NE(mp)
-        return Lp + Lpp
+            (Lp,gpspp) = NE(mp)
+        return (Lp + Lpp,gpsp.union(gpspp))
 @
 We follow the reducibility test by a boundary irreducibility
 test. If we finish the above $S^2$ search with no
@@ -2186,7 +2202,7 @@ into any manifold whatever.
 
 <<NE>>=
     if ideal.isSolidTorus():
-        return []
+        return ([],None)
 @
 Next, we look for an essential separating $T^2$.
 We already found no non-separating $T^2$. So all
@@ -2214,10 +2230,10 @@ track of boundary components in Regina under cutting.
         Xpp = couldBeLinkIn(mpp,"D^2 x S^1")
         Lp, Lpp = [],[]
         if Xp != False:
-            Lpp = NE(mpp)
+            (Lpp,gpspp) = NE(mpp)
         if Xpp != False: 
-            Lp = NE(mp)
-        return Lp + Lpp
+            (Lp,gpsp) = NE(mp)
+        return (Lp + Lpp, gpsp.union(gpspp))
 @
 Finally, if there are no obviously bad surfaces,
 nor essential separating $S^2$s nor $T^2$s nor
@@ -2242,16 +2258,16 @@ So we don't need any recursive calls to [[NE]] in this case.
     qvm = enumerate(Mf,NSQ,NSV)
     m2 = essentialM2In(qvm)
     if m2 != None:
-        return []
+        return ([],None)
     a2 = essentialA2In(qvm)
     if a2 != None:
-        return []
+        return ([],None)
 @ 
 If we have found no faults,
 then $M$ is hyperbolic.
 
 <<NE>>=
-    return [ideal]
+    return ([ideal], None)
 @
 That concludes the procedure [[NE]].
 
