@@ -2925,6 +2925,8 @@ triangulation routines are not deterministic,
 which can lead to large variance in running times.
 So we define the following technical routine
 for trying to Dehn fill in a consistent way.
+The [[fuel]] input is just a number indicating
+how many times we want to redo the Dehn filling.
 
 <<DehnFillHack.py>>=
 def minFill(snappyMfld,fuel):
@@ -2950,25 +2952,26 @@ We build our computation from the bottom up,
 memoizing the longer calculations.
 
 @
-<<main.py>>=
-from neckl import forallOrbitReps
-from unhyp import isFaultless
-from nonelem import NE
-from shortSlopes import forallShortSlopes
-from cuspForm import cuspFormLowerBound
-from DehnFillHack import minFill
-from snappy import Manifold
+<<main preamble>>=
+from necklace import *
+from enumerateGluings import *
+from sanity import *
+from faults import *
+from nonElementary import *
+from shortSlopes import *
+import regina
+import snappy
 @
 \subsubsection{Checking a single filling}
 First, we will want to determine
-whether or not a slope on a cusp of a [[Snappy.Manifold]]
+whether or not a slope on a cusp of a [[snappy.Manifold]]
 is exceptional or not. We make a copy [[M]] of the manifold,
 so as not to disturb the manifold itself. We
 then clear any Dehn fillings [[M]] might have.
 Then we fill, and immediately see if we can verify
 its hyperbolicity in SAGE.
 
-<<main.py>>=
+<<filling type>>=
 def fillingType(snappyMfld,cusp,slope,memo):
     M = snappyMfld.copy()
     for cusp in range(M.num_cusps()):
