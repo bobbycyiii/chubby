@@ -79,7 +79,7 @@ def makeDipyr(n):
                 you = newt.simplex((i+1)%n)
                 me.join(2,you,Perm4(2,3))
         return newt
-	
+        
 @
 As you can verify, we have glued up the $n$-dipyramid so
 that the interior faces are all faces 2 and 3 of their
@@ -701,21 +701,21 @@ even cardinality at most 8.
 if __name__ == "__main__":
     for i in range(4):
         reps = []
-	all = []
+        all = []
         def putInReps(x):
             reps.append(x)
-	pt = completePairTrie(i+1)
-	x = leftMatching(pt)
-	while pt[0] != PTLeaf:
+        pt = completePairTrie(i+1)
+        x = leftMatching(pt)
+        while pt[0] != PTLeaf:
             all.append(x)
             pt = removeMatching(x,pt)
-	    x = leftMatching(pt)
+            x = leftMatching(pt)
         forallOrbitReps(i+1,putInReps)
         print "Cardinality " + str(2*i+2)
         for rep in reps:
             print str(rep)
-	print "That's " + str(len(reps)) + " reps,"
-	print "from " + str(len(all)) + " total matchings."
+        print "That's " + str(len(reps)) + " reps,"
+        print "from " + str(len(all)) + " total matchings."
         print "\n"
 
 <<enumerateGluings.py>>=
@@ -880,6 +880,14 @@ common axis \emph{equation}.
 \end{proof}
 
 @
+\begin{definition}
+  For the purposes of the following code,
+  we say a group presentation is \emph{subtle}
+  when it is neither recognised by Regina, nor
+  does it admit common axis relations.
+\end{definition}
+
+@
 <<fundamental group obstructions>>=
 def isCommonAxisCommutator(expr):
     l = expr.terms()
@@ -896,19 +904,19 @@ def isCommonAxisEquation(expr):
 
 @
 <<fundamental group obstructions>>=
-def hasPossiblyHyperbolicPi1(mfld,groups):
+def hasSubtlePi1(mfld,groups):
     G = mfld.fundamentalGroup()
     G.intelligentSimplify()
     if G.countGenerators() == 2:
         for i in range(G.countRelations()):
             if isCommonAxisCommutator(G.relation(i)):
                 return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, [a^p,b^q], \ldots \\rangle$")
-            if isCommonAxisRelator(G.relation(i)):
+            if isCommonAxisEquation(G.relation(i)):
                 return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, a^p b^q, \ldots \\rangle$")
     name = G.recogniseGroup()
     if name != '':
         pres = "$\\pi_1 =" + name + "$"
-	groups.add(pres)
+        groups.add(pres)
         return (False, pres)
     return (True,'')
     
@@ -977,6 +985,7 @@ in Table \ref{tab:censuses}.
       & homeomorphisms given by $m_i$ \\
       & (usually $m_1 =$[[ m]] and $m_2=$[[ n]]) \\ \hline
       [[Hyp_V]] & Hyperbolic manifold of volume $V$ \\ \hline
+      [[x\#\cdots\#]] & SnapPea census manifold \\ \hline
     \end{tabular}
     \caption{Names for homeomorphism types in Regina 5.1.}
     \label{tab:censuses}
@@ -1016,6 +1025,8 @@ with more than one boundary component.
     except:
         pass
     if name[0] == "L" and name[1] != "(":
+        return (True, name)
+    if name[0] in set(['m','s','v']):
         return (True, name)
     return (False, name)
 
@@ -1601,7 +1612,7 @@ then there is no such surface by Q-normal surface theory.
 <<essential A2>>=
     else:
         return None
-	
+        
 <<faults>>=
 <<is T2xI>>
 <<essential P2>>
@@ -2092,14 +2103,17 @@ def NE(ideal):
 @
 Before any normal surface enumeration,
 we check to see if $M$'s fundamental group
-is recognizable as above in the hyperbolicity
-section. If so, then $M$ is not hyperbolic.
-However, it 
+is subtle. If it is not subtle, then either
+the group is not hyperbolic, or it is
+hyperbolic and recognisable (for instance,
+the figure-eight knot group is recognisable).
+As decided above, we deal with non-subtle
+presentations separately.
 
 <<NE>>=
     if versionString() == '5.1':
         groups = set()
-        x = hasPossiblyHyperbolicPi1(Mi,groups)
+        x = hasSubtlePi1(Mi,groups)
         if not x[0]:
             return ([],groups)
 @ 
@@ -2112,9 +2126,9 @@ that is already incorporated into [[censusNE]].)
     x = censusNE(Mi)
     if x != None:
        if x[0]:
-           return ([Mi],None)
+           return ([Mi],set())
        if not x[0]:
-           return ([],None)
+           return ([],set())
 @ 
 Next, we check to see whether or not $M$ admits a strict angle
 structure. If it does, then $M$ is hyperbolic,
@@ -2124,7 +2138,7 @@ quick check.
 
 <<NE>>=
     if Mi.hasStrictAngleStructure():
-        return ([Mi],None)
+        return ([Mi],set())
 @ 
 Having done our preliminary sanity checks,
 we now set up two normal surface collections:
@@ -2156,7 +2170,7 @@ using an ideal triangulation.)
         s = fsi.surface(i)
         x = s.eulerChar()
         if x >= 0 and s.cutAlong().isConnected():
-            return ([],None)
+            return ([],set())
 @ 
 Next, we look for an essential, connect-sum sphere.
 But we already know how to do this. Then we undo the
@@ -2172,7 +2186,7 @@ But one ought to be able to improve it with crushing.)
         s2 = fsi.surface(s2[0])
         MM = s2.cutAlong()
         MM.intelligentSimplify()
-	MM.finiteToIdeal()
+        MM.finiteToIdeal()
         MM.splitIntoComponents()
         mp = MM.firstChild()
         mpp = mp.nextSibling()
@@ -2181,7 +2195,7 @@ But one ought to be able to improve it with crushing.)
         Lp, Lpp = [],[]
         if Xp:
             (Lpp,gpsp) = NE(mpp)
-        if Xpp: 
+        if Xpp:
             (Lp,gpspp) = NE(mp)
         return (Lp + Lpp,gpsp.union(gpspp))
 @
@@ -2202,7 +2216,7 @@ into any manifold whatever.
 
 <<NE>>=
     if ideal.isSolidTorus():
-        return ([],None)
+        return ([],set())
 @
 Next, we look for an essential separating $T^2$.
 We already found no non-separating $T^2$. So all
@@ -2222,7 +2236,7 @@ track of boundary components in Regina under cutting.
         t2 = fsi.surface(t2[0])
         MM = t2.cutAlong()
         MM.intelligentSimplify()
-	MM.finiteToIdeal()
+        MM.finiteToIdeal()
         MM.splitIntoComponents()
         mp = MM.firstChild()
         mpp = mp.nextSibling()
@@ -2231,7 +2245,7 @@ track of boundary components in Regina under cutting.
         Lp, Lpp = [],[]
         if Xp != False:
             (Lpp,gpspp) = NE(mpp)
-        if Xpp != False: 
+        if Xpp != False:
             (Lp,gpsp) = NE(mp)
         return (Lp + Lpp, gpsp.union(gpspp))
 @
@@ -2258,16 +2272,16 @@ So we don't need any recursive calls to [[NE]] in this case.
     qvm = enumerate(Mf,NSQ,NSV)
     m2 = essentialM2In(qvm)
     if m2 != None:
-        return ([],None)
+        return ([],set())
     a2 = essentialA2In(qvm)
     if a2 != None:
-        return ([],None)
+        return ([],set())
 @ 
 If we have found no faults,
 then $M$ is hyperbolic.
 
 <<NE>>=
-    return ([ideal], None)
+    return ([ideal], set())
 @
 That concludes the procedure [[NE]].
 
@@ -2277,6 +2291,28 @@ Our test cases are a connect-sum of
 two figure-eight knot exteriors, and two
 Whitehead links glued along two of their
 boundaries.
+
+@
+The first test case should
+state that, \emph{assuming the free product of the group}
+\[ \langle a,b,t\ |\ a^t = b, b^t = b A b^2 \rangle \]
+\emph{with itself is nixed}, then the connect-sum
+of two figure-eight knot exteriors does not
+embed nonelementarily into a hyperbolic knot
+complement. Of course this connect-sum \emph{does}
+so embed; it can do so because this group is not nixed---its
+free factors are not Abelian (and in fact are figure-eight
+knot groups).
+
+@
+The second test case should state that
+two Whitehead links, glued along one boundary
+torus each, splits up along an essential torus
+into two Whitehead link exteriors, recognizable via a census check,
+and the hyperbolic knot complements into which
+the glued-up manifold embeds nonelementarily are included in the
+hyperbolic knot complements into which each
+Whitehead link exteriors embed nonelementarily. 
 
 <<nonelementary testing>>=
 if __name__ == "__main__":
@@ -3478,9 +3514,9 @@ if __name__ == "__main__":
                 f.write("\\begin{itemize}\n")
                 for inv in named[nmc]:
                     f.write("\\item " + invToString(inv) + "\n")
-	        f.write("\\end{itemize}\n")
+                f.write("\\end{itemize}\n")
         writeGluings(newNames)
-	writeGluings(repeatNames)
+        writeGluings(repeatNames)
         f.write("\\end{itemize}\n")
     f.write("\\section{All the names together}\n")
     f.write("There were " + str(len(namesSoFar)) + " manifolds in all.\n")
