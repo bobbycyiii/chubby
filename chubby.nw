@@ -584,9 +584,9 @@ def necklaceIsoSigs(n):
     tr = completePairTrie(n)
     while tr != (PTLeaf,):
         sigma = leftMatching(tr)
-	tr = removeMatching(sigma,tr)
-	x = makeNecklace(sigma)
-	sigs.add(x.isoSig())
+        tr = removeMatching(sigma,tr)
+        x = makeNecklace(sigma)
+        sigs.add(x.isoSig())
     return sigs
 
 @ 
@@ -601,15 +601,15 @@ is unnecessary for our purposes.
 
 <<enumeration testing>>=
 if __name__ == "__main__":
-    for i in range(6):
+    for i in [4,5,6,7]:
         all = []
-        pt = completePairTrie(i+1)
+        pt = completePairTrie(i)
         while pt[0] != PTLeaf:
             x = leftMatching(pt)	    
             all.append(x)
             pt = removeMatching(x,pt)
-        sigs = necklaceIsoSigs(i+1)
-        print "Cardinality " + str(2*i+2)
+        sigs = necklaceIsoSigs(i)
+        print "Cardinality " + str(2*i)
         for sig in sigs:
             print str(sig)
         print "That's " + str(len(sigs)) + " isomorphism signatures,"
@@ -618,8 +618,6 @@ if __name__ == "__main__":
 
 <<enumerateGluings.py>>=
 from necklace import makeNecklace
-<<how to act>>
-<<how to orbit>>
 <<how to make the gluing trie>>
 <<how to get a matching if there is one>>
 <<how to remove a matching>>
@@ -1855,6 +1853,7 @@ we do the boundary-component tests.
             else:
                 return True
 @ 
+
 Now having checked the boundary components
 are appropriate, we make sure the manifold's
 homology agrees with Alexander duality. Recall
@@ -1876,6 +1875,7 @@ H_1(M; \mathbf{Z}) = \mathbf{Z}^{|\pi_0(\partial M)|}
        or h2.rank() != nbc-1:
        return False
 @ 
+
 If at this point we haven't determined
 whether or not the manifold is a link
 complement in whichever ambient manifold,
@@ -2823,40 +2823,48 @@ def memoNE(ideal):
 @ 
 Now we implement the above plan.
 The following code runs in about a minute
-on a 2009 iMac. 
+on a 2009 iMac. We will have to treat
+three-cusped parents separately. Fortunately
+there only ends up being one of those, namely [[s776]]. 
 
 <<nonelementary candidate enumeration>>=
-    S = set()
-    necklSigs = set()
-    for i in [4,5,6,7]:
-        print "Enumerate necklace sigs of bead number " + str(i)
-        necklSigs = necklSigs.union(necklaceIsoSigs(i))
-    mfldSigs = set()
-    print "Simplifying the necklace sigs..."
-    for sig in necklSigs:
-        x = regina.Triangulation3(sig)
-        x.intelligentSimplify()
-        mfldSigs.add(x.isoSig())
-    saneSigs = set()
-    print "Performing sanity checks..."
-    for sig in mfldSigs:
-        x = regina.Triangulation3(sig)
-        if isLinkComplement(x,True):
-	    print sig + "is link complement"
-            saneSigs.add(sig)
-	else:
-	    print sig + "is not link complement"
-    print "Now for the real work..."
-    for sig in saneSigs:
-        print "Working on signature " + sig
-        x = regina.Triangulation3(sig)
-        (parents,groups) = memoNE(x)
-        for y in parents:
-            S.add(y.isoSig())
-        for pres in groups:
-            nixedToDo.add(pres)
-    print str(S)
-    print str(nixedToDo)
+S = set()
+necklSigs = set()
+for i in [4,5,6,7]:
+    print "Enumerate necklace sigs of bead number " + str(i)
+    necklSigs = necklSigs.union(necklaceIsoSigs(i))
+mfldSigs = set()
+print "Simplifying the necklace sigs..."
+for sig in necklSigs:
+    x = regina.Triangulation3(sig)
+    x.intelligentSimplify()
+    mfldSigs.add(x.isoSig())
+saneSigs = set()
+print "Performing sanity checks..."
+for sig in mfldSigs:
+    x = regina.Triangulation3(sig)
+    if isLinkComplement(x,False):
+        print sig + " is a link complement"
+        saneSigs.add(sig)
+    else:
+        print sig + " is not a link complement"
+print "Now for the real work..."
+for sig in saneSigs:
+    print "Working on signature " + sig
+    x = regina.Triangulation3(sig)
+    parents = memoNE(x)
+    for y in parents:
+        S.add(y.isoSig())
+for sig in S:
+    parent = regina.Triangulation3(sig)
+    if parent.countBoundaryComponents() == 3:
+        x = regina.Census.lookup(parent)
+        c = x.first()
+        if c == None:
+            raise Exception("unknown three-cusped")
+        else:
+            print "The name associated with " + sig
+            print "is " + c.name() + "."
 @ 
 
 \subsection{Determining exceptional fillings}
@@ -3013,4 +3021,23 @@ def classifyShortSlopes(snappyManifold, cusp):
     return (hyp,nonhyp,unknown)
 @
 
+\subsubsection{Determining the candidate knot complements}
+The next order of business is to determine 
+the hyperbolic Dehn fillings of the elements 
+of $\mathcal{S}$ that could possibly have
+more than eight exceptional Dehn fillings. 
+We first show that it suffices to restrict 
+our attention to short hyperbolic Dehn fillings,
+as there are never more than eight short 
+fillings in the cusps of elements of $\mathcal{S}$.
+
+<<bounding the number of short slopes on parents>>=
+    for parent
+@ 
+<<main.py>>=
+<<main preamble>>
+<<memoizing NE>>
+if __name__ == "__main__":
+    <<nonelementary candidate enumeration>>
+@ 
 \end{document} 
