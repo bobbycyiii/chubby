@@ -69,15 +69,15 @@ definition in Regina.
 
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
-        """Returns an n-dipyr."""
-        newt = T3()
-        for i in range(0,n):
-                newt.newTetrahedron()
-        for i in range(0,n):
-                me = newt.simplex(i)
-                you = newt.simplex((i+1)%n)
-                me.join(2,you,Perm4(2,3))
-        return newt
+    """Returns an n-dipyr."""
+    newt = T3()
+    for i in range(0,n):
+        newt.newTetrahedron()
+    for i in range(0,n):
+        me = newt.simplex(i)
+        you = newt.simplex((i+1)%n)
+        me.join(2,you,Perm4(2,3))
+    return newt
         
 @
 As you can verify, we have glued up the $n$-dipyramid so
@@ -500,7 +500,7 @@ from our trie if there is one. Just go left.
 
 <<how to get a matching if there is one>>=
 def leftMatching(pt):
-    if pt[0] == PTLeaf:
+    if pt == (PTLeaf,):
         return []
     else:
         (str, p, lt, rt) = pt
@@ -601,19 +601,24 @@ is unnecessary for our purposes.
 
 <<enumeration testing>>=
 if __name__ == "__main__":
-    for i in [4,5,6,7]:
+    for i in [4,5]:
         all = []
+        print "Computing the complete pair trie for " + str(2*i) + " elements..."
         pt = completePairTrie(i)
-        while pt[0] != PTLeaf:
-            x = leftMatching(pt)	    
+        print "Here are all the matchings:"
+        j = 0
+        while pt != (PTLeaf,):
+            j += 1
+            x = leftMatching(pt)
+            print str(x)
             all.append(x)
             pt = removeMatching(x,pt)
+        print "That's " + str(j) + " matchings."
+        print "Now for the isomorphism signatures."
         sigs = necklaceIsoSigs(i)
-        print "Cardinality " + str(2*i)
         for sig in sigs:
             print str(sig)
-        print "That's " + str(len(sigs)) + " isomorphism signatures,"
-        print "from " + str(len(all)) + " total matchings."
+        print "That's " + str(len(sigs)) + " isomorphism signatures."
         print "\n"
 
 <<enumerateGluings.py>>=
@@ -728,10 +733,10 @@ def hasCommonAxisObstruction(mfld):
     if G.countGenerators() == 2:
         for i in range(G.countRelations()):
             if isCommonAxisCommutator(G.relation(i)):
-                return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, [a^p,b^q], \ldots \\rangle$")
+                return (True, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, [a^p,b^q], \ldots \\rangle$")
             if isCommonAxisEquation(G.relation(i)):
-                return (False, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, a^p b^q, \ldots \\rangle$")
-    return (True,'')
+                return (True, "$\\pi_1 = \\langle a,b\\ |\\ \ldots, a^p b^q, \ldots \\rangle$")
+    return (False,'')
     
 @
 \subsubsection{Census obstructions}
@@ -805,13 +810,14 @@ in Table \ref{tab:censuses}.
 \end{table}
 
 @
-All the other orientable censuses are of hyperbolic 3-manifolds.
+All the other orientable censuses are of hyperbolic 3-manifolds
+or knot or link complements in $S^3$.
 The Hodgson-Weeks census has entries $\rho:N$ where
 $\rho$ is a decimal approximation of the hyperbolic volume
 and $N$ is an expression of the manifold
 as a Dehn filling of some SnapPea census manifold.
 The cusped census has the usual SnapPea census names.
-The link census has the usual link names.
+The knot and link census has the usual link names.
 
 @
 The following fact follows from the above.
@@ -825,9 +831,8 @@ The following fact follows from the above.
 Implementing a census check for hyperbolic
 manifolds, and indeed for nonelementary embedding,
 is almost completely straightforward. We just have
-to be careful to distinguish the two types of name beginning with $L$,
-viz. lens spaces and hyperbolic link complements
-with more than one boundary component.
+to distinguish the two types of name beginning with $L$,
+viz. lens spaces and knot and link complements in $S^3$.
  
 <<census obstructions>>=
     if name.find("Hyp") != -1:
@@ -837,10 +842,13 @@ with more than one boundary component.
         return (True, name)
     except:
         pass
-    if name[0] == "L" and name[1] != "(":
-        return (True, name)
     if name[0] in set(['m','s','v']):
         return (True, name)
+    if name[0] == 'L':
+        if name[1] == '(':
+            return (False, name)
+        else:
+            return None
     return (False, name)
 
 <<sanity.py>>=
@@ -1469,6 +1477,8 @@ def findFault(mfld):
     t2 = essentialT2In(l)
     if t2 != None:
         return t2
+    if mfld.isClosed():
+        return None
     M = T3(mfld)
     M.idealToFinite()
     M.intelligentSimplify()
@@ -2064,6 +2074,7 @@ track of boundary components in Regina under cutting.
             Lp = NE(mp)
         return Lp + Lpp
 @
+
 Finally, if there are no obviously bad surfaces,
 nor essential separating $S^2$s nor $T^2$s nor
 essential discs, then $M$ is irreducible,
@@ -2810,6 +2821,7 @@ Before diving into the above plan immediately, we note that we will
 memoize the arduous calls to [[NE]], since it is so easy to
 do so with a global memoization table [[NEmem]].
 
+@
 <<memoizing NE>>=
 memoTabNE = {}
 def memoNE(ideal):
@@ -2823,10 +2835,9 @@ def memoNE(ideal):
 @ 
 Now we implement the above plan.
 The following code runs in about a minute
-on a 2009 iMac. We will have to treat
-three-cusped parents separately. Fortunately
-there only ends up being one of those, namely [[s776]]. 
+on a 2009 iMac.
 
+@
 <<nonelementary candidate enumeration>>=
 S = set()
 necklSigs = set()
@@ -2855,16 +2866,27 @@ for sig in saneSigs:
     parents = memoNE(x)
     for y in parents:
         S.add(y.isoSig())
+
+@ 
+We will have to treat three-cusped parents
+separately. Fortunately, there only ends up
+being one of those, namely [[s776]].
+Upon the conclusion of this procedure,
+[[S]] has no three-cusped signatures.
+
+@ 
+<<three cusped parent determination>>=
+print "Here are the three-cusped parents."
 for sig in S:
     parent = regina.Triangulation3(sig)
     if parent.countBoundaryComponents() == 3:
+        S.remove(sig)
         x = regina.Census.lookup(parent)
         c = x.first()
         if c == None:
-            raise Exception("unknown three-cusped")
+            print sig + " is not in the census."
         else:
-            print "The name associated with " + sig
-            print "is " + c.name() + "."
+            print sig + " is '" + c.name() + "' in the census."
 @ 
 
 \subsection{Determining exceptional fillings}
@@ -2879,8 +2901,15 @@ so we make sure to memoize our computations.
 
 <<faultlessness memoization>>=
 faultMemo = {}
+def memoIsFaultless(mfld):
+    sig = mfld.isoSig()
+    if sig in faultMemo:
+        return faultMemo[sig]
+    x = isFaultless(mfld)
+    faultMemo[sig] = x
+    return x
+    
 @
-
 \subsubsection{Checking a single filling}
 First, we will want to determine
 whether or not a slope on a cusp of a [[snappy.Manifold]]
@@ -2949,16 +2978,6 @@ if not isomorphic triangulations.
     N = minFill(M,fuel)
 @ 
 
-Naturally, we now immediately check if
-we have seen this triangulation before. If
-so, we return the previous computation's result.
-
-<<filling type>>=
-    sig = N.isoSig()
-    if sig in faultMemo:
-        return faultMemo[sig]
-@ 
-
 Otherwise, after all this preliminary checking,
 we finally run the faultlessness routine in Regina.
 If the return value has first entry [[False]] then
@@ -2966,27 +2985,23 @@ the manifold is certainly not hyperbolic, for the
 reason that is in the second entry.
 
 <<filling type>>=
-    x = isFaultless(N)
+    x = memoIsFaultless(N)
     if x[0] == False:
         result = ("Not hyperbolic", x[1])
 @
 
 Otherwise, all we know is that $N$ is faultless.
-It could possibly be small Seifert fibered, in
+If it's closed then it could possibly be small Seifert fibered, in
 which case the filling would be exceptional.
-We record what we know.
 
+@
 <<filling type>>=
+    if N.countBoundaryComponents() > 0:
+        result = ("Hyperbolic", x[1])
     else:
         result = ("Faultless", x[1])
-@ 
-
-Whatever the result, we memoize our computation
-and return it.
-
-<<filling type>>=
-    faultMemo[sig] = result
     return result
+    
 @ 
 
 That concludes our method for checking whether
@@ -2999,11 +3014,9 @@ need to classify the short slopes of a cusp
 of a hyperbolic link complement. So we
 implement that here, using a short local
 function definition to fit it into the
-[[forallShortSlopes]] framework. We don't
-need to do any memoization here explicitly
-since we have no explicit calls to [[isFaultless]],
-but we do call [[fillingType]].
+[[forallShortSlopes]] framework. 
 
+@
 <<classify short slopes>>=
 def classifyShortSlopes(snappyManifold, cusp):
     mu = snappyManifold.copy()
@@ -3032,12 +3045,23 @@ as there are never more than eight short
 fillings in the cusps of elements of $\mathcal{S}$.
 
 <<bounding the number of short slopes on parents>>=
-    for parent
+for sig in S:
+    parent = snappy.Manifold(sig)
+    assert parent.num_cusps() == 2
+    for cusp in [0,1]:
+        (hyp, nonhyp, unknown) = classifyShortSlopes(parent, cusp)
+        if len(nonhyp) + len(unknown) > 8:
+            print "Too many potentially exceptional slopes on cusp " + str(cusp) + " of " + sig
 @ 
 <<main.py>>=
 <<main preamble>>
 <<memoizing NE>>
+<<faultlessness memoization>>
+<<filling type>>
+<<classify short slopes>>
 if __name__ == "__main__":
     <<nonelementary candidate enumeration>>
+    <<three cusped parent determination>>
+    <<bounding the number of short slopes on parents>>
 @ 
 \end{document} 
