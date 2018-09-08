@@ -39,20 +39,7 @@ the exceptional Dehn fillings of those knot complements.
 \section*{Conventions}
 We use camel-case naming, following Regina.
 We remind the reader that indexing begins at 0.
-<<preamble>>=
-from regina import Triangulation3 as T3
-from regina import Perm4
-from regina import NormalSurfaces
-from regina import NormalCoords
-from regina import NS_FUNDAMENTAL as NSF
-# This work supported in part
-# by the National Science Foundation.
-from regina import NS_VERTEX as NSV
-from regina import versionString
-from regina import Census
-NSS = NormalCoords.NS_STANDARD
-NSQ = NormalCoords.NS_QUAD
-enumerate = NormalSurfaces.enumerate
+
 @
 \section{Necklace gluings with $n$ beads}
 \begin{definition}
@@ -70,13 +57,13 @@ definition in Regina.
 <<how to make an n-dipyr>>=
 def makeDipyr(n):
     """Returns an n-dipyr."""
-    newt = T3()
+    newt = regina.Triangulation3()
     for i in range(0,n):
         newt.newTetrahedron()
     for i in range(0,n):
         me = newt.simplex(i)
         you = newt.simplex((i+1)%n)
-        me.join(2,you,Perm4(2,3))
+        me.join(2,you,regina.Perm4(2,3))
     return newt
         
 @
@@ -199,7 +186,7 @@ map on the vertices is the permutation $(2\ 3)$.
 
 <<how to make a necklace gluing>>=
         if (i % 2 == j % 2):
-            me.join(meFace,you,Perm4(2,3))
+            me.join(meFace,you,regina.Perm4(2,3))
 @
 On the other hand, if they lie along different
 suspension points, then the 0,1 vertices must
@@ -208,7 +195,7 @@ fixed so that the gluing is oriented.
 
 <<how to make a necklace gluing>>=
         else:
-            me.join(meFace,you,Perm4(0,1))
+            me.join(meFace,you,regina.Perm4(0,1))
     ndipyr.setLabel(str(match))
     return ndipyr
 
@@ -223,8 +210,8 @@ diagram, translate it into a necklace gluing,
 and test the above construction.
 
 <<exampleGluings.py>>=
+import regina
 from necklace import makeNecklace
-from regina import Census
 @
 \subsubsection{$S^3$}
 
@@ -292,19 +279,20 @@ if __name__ == "__main__":
         raise Exception("S3 gluing failed")
     else:
         print "s3 is S3"
-    x = Census.lookup(rp3).first().name()
+    x = regina.Census.lookup(rp3).first().name()
     if x != 'RP3 : #1':
         raise Exception("RP3 gluing failed")
     else:
         print "rp3 is RP3"
-    x = Census.lookup(whlx).first().name()
+    x = regina.Census.lookup(whlx).first().name()
     if x != 'm129 : #2':
         raise Exception("Whitehead exterior failed")
     else:
         print "whlx is Whitehead link exterior m129"
 
 <<necklace.py>>=
-<<preamble>>
+import regina
+import snappy
 <<how to make an n-dipyr>>
 <<how to make a necklace gluing>>
 
@@ -667,7 +655,7 @@ def isLinkComplement(mfld, allowInteriorVertices):
         return False
     if not mfld.isConnected():
         return False
-    M = T3(mfld)
+    M = regina.Triangulation3(mfld)
     M.finiteToIdeal()
     if not M.isValid():
         return False
@@ -754,7 +742,7 @@ The second class of obstructions come from census checks.
 
 <<census obstructions>>=
 def censusNE(mfld):
-    if versionString() != "5.1":
+    if regina.versionString() != "5.1":
         print "Censuses not vetted for Regina versions not equal to 5.1"
         return None
 @
@@ -766,7 +754,7 @@ linear in the triangulation. Regina assigns
 of a triangulation in a census.
 
 <<census obstructions>>=
-    ch = Census.lookup(mfld)
+    ch = regina.Census.lookup(mfld)
     if ch.first() == None:
         return None
     name = ch.first().name()
@@ -852,7 +840,8 @@ viz. lens spaces and knot and link complements in $S^3$.
     return (False, name)
 
 <<sanity.py>>=
-<<preamble>>
+import regina
+import snappy
 <<link complement>>
 <<fundamental group obstructions>>
 <<census obstructions>>
@@ -1213,7 +1202,7 @@ may as well add it for posterity.)
 @
 <<is T2xI>>=
 def isT2xI(mfld):
-    idl = T3(mfld)
+    idl = regina.Triangulation3(mfld)
     idl.finiteToIdeal()
     idl.intelligentSimplify()
     if not (isLinkComplement(idl,True) and \
@@ -1223,7 +1212,7 @@ def isT2xI(mfld):
         return False
     if mfld.fundamentalGroup().recogniseGroup() == '2 Z':
         return True
-    M = T3(mfld)
+    M = regina.Triangulation3(mfld)
     M.idealToFinite()
     M.intelligentSimplify()
     t = M.boundaryComponents()[0]
@@ -1232,7 +1221,7 @@ def isT2xI(mfld):
     edges = t.faces(1)
     for e in edges:
         i = e.index()
-        Mp = T3(M)
+        Mp = regina.Triangulation3(M)
         ep = Mp.face(1,i)
         Mp.closeBook(ep,False,True)
         if not Mp.isSolidTorus():
@@ -1459,10 +1448,10 @@ so we call it [[isFaultless]] and not
 <<how to find a fault the hard way>>=
 def findFault(mfld):
     assert isLinkComplement(mfld,True)
-    M = T3(mfld)
+    M = regina.Triangulation3(mfld)
     M.finiteToIdeal()
     M.intelligentSimplify()
-    l = enumerate(M,NSS,NSF)
+    l = regina.NormalSurfaces.enumerate(M,regina.NS_STANDARD,regina.NS_FUNDAMENTAL)
     p2 = essentialP2In(l)
     if p2 != None:
         return p2
@@ -1479,10 +1468,10 @@ def findFault(mfld):
         return t2
     if mfld.isClosed():
         return None
-    M = T3(mfld)
+    M = regina.Triangulation3(mfld)
     M.idealToFinite()
     M.intelligentSimplify()
-    l = enumerate(M,NSQ,NSV)
+    l = regina.NormalSurfaces.enumerate(M,regina.NS_QUAD,regina.NS_VERTEX)
     m2 = essentialM2In(l)
     if m2 != None:
         return m2
@@ -1530,7 +1519,7 @@ an orbifold with four cone points. This admits an
 essential torus.
 
 <<fault testing>>=
-    ex0 = T3('gLALQbccefffemkbemi')
+    ex0 = regina.Triangulation3('gLALQbccefffemkbemi')
     if isFaultless(ex0)[0]:
         raise Exception("SFS with 4 cone points missing torus")
     else:
@@ -1543,14 +1532,14 @@ torus boundary components, in a way disagreeing
 with their fiber structure.
 
 <<fault testing>>=
-    ex1 = T3('hLAvQkbccefggglpksulwb')
+    ex1 = regina.Triangulation3('hLAvQkbccefggglpksulwb')
     if isFaultless(ex1)[0]:
         raise Exception("Graph manifold missing torus")
     else:
         print "Graph manifold has fault"
 
 <<faults.py>>=
-<<preamble>>
+import regina
 from sanity import *
 <<trivially inessential>>
 <<faults>>
@@ -1923,7 +1912,7 @@ as an ideal triangulation.
 @
 <<NE>>=
 def NE(ideal):
-    Mi = T3(ideal)
+    Mi = regina.Triangulation3(ideal)
     Mi.intelligentSimplify()
 @
 Before any normal surface enumeration,
@@ -1936,7 +1925,7 @@ As decided above, we deal with non-subtle
 presentations separately.
 
 <<NE>>=
-    if versionString() == '5.1':
+    if regina.versionString() == '5.1':
         groups = set()
         x = hasCommonAxisObstruction(Mi)
         if x[0]:
@@ -1980,7 +1969,7 @@ surfaces that we need. So we set it up and look
 through it first, insofar as that is possible.
 
 <<NE>>=
-    fsi = enumerate(Mi,NSS,NSF)
+    fsi = regina.NormalSurfaces.enumerate(Mi,regina.NS_STANDARD,regina.NS_FUNDAMENTAL)
 @ 
 Next, we look for obviously bad surfaces.
 Assuming $M$ is orientable, we can lump these
@@ -2092,10 +2081,10 @@ no nonelementary embeddings into a hyperbolic link complement.
 So we don't need any recursive calls to [[NE]] in this case.
 
 <<NE>>=
-    Mf = T3(Mi)
+    Mf = regina.Triangulation3(Mi)
     Mf.idealToFinite()
     Mf.intelligentSimplify()
-    qvm = enumerate(Mf,NSQ,NSV)
+    qvm = regina.NormalSurfaces.enumerate(Mf,regina.NS_QUAD,regina.NS_VERTEX)
     m2 = essentialM2In(qvm)
     if m2 != None:
         return []
@@ -2137,13 +2126,14 @@ Whitehead link exteriors embed nonelementarily.
 
 <<nonelementary testing>>=
 if __name__ == "__main__":
-    f82 = T3('kLLAAzMkceeeffhhjjjadlqaaaamhl')
-    whl2 = T3('mLALLLMPQbcceghjkjllklmlbsakapsoknf')
+    f82 = regina.Triangulation3('kLLAAzMkceeeffhhjjjadlqaaaamhl')
+    whl2 = regina.Triangulation3('mLALLLMPQbcceghjkjllklmlbsakapsoknf')
     print str(NE(f82))
     print str(NE(whl2))
 
 <<nonElementary.py>>=
-<<preamble>>
+import regina
+import snappy
 from faults import *
 from sanity import *
 <<obvious link complement tests>>
@@ -2737,33 +2727,6 @@ positive-definite quadratic form. However, our
 procedure as defined above terminates with our 
 desired input, so we don't worry about this.
 
-@ 
-\subsection{Dehn filling hack}
-We will want to fill our manifolds along slopes
-and determine whether or not the results are
-hyperbolic. Unfortunately SnapPy's Dehn filling
-triangulation routines are not deterministic,
-which can lead to large variance in running times.
-So we define the following technical routine
-for trying to Dehn fill in a consistent way.
-The [[fuel]] input is just a number indicating
-how many times we want to redo the Dehn filling.
-
-<<DehnFillHack.py>>=
-def minFill(snappyMfld,fuel):
-    N = snappyMfld.filled_triangulation()
-    x = N.triangulation_isosig()
-    x = x[: x.find("_")]
-    minimum = (N.num_tetrahedra(), x)
-    for i in range(fuel):
-        N = mfld.filled_triangulation()
-        x = N.triangulation_isosig()
-        x = x[: x.find("_")]
-        new = (N.num_tetrahedra(), x)
-        if new < minimum:
-            minimum = new
-    return T3(minimum[1])
-
 @
 We can now conclude with our computation.
 
@@ -2782,14 +2745,16 @@ two parts: the nonelementary candidate enumeration,
 and the determination of exceptional fillings.
 
 <<main preamble>>=
+import regina
+import snappy
 from necklace import *
 from enumerateGluings import *
 from sanity import *
 from faults import *
 from nonElementary import *
 from DehnFillHack import *
-import regina
-import snappy
+from cuspForm import *
+from shortSlopes import *
 @
 
 \subsection{Nonelementary candidate enumeration}
@@ -2855,10 +2820,7 @@ print "Performing sanity checks..."
 for sig in mfldSigs:
     x = regina.Triangulation3(sig)
     if isLinkComplement(x,False):
-        print sig + " is a link complement"
         saneSigs.add(sig)
-    else:
-        print sig + " is not a link complement"
 print "Now for the real work..."
 for sig in saneSigs:
     print "Working on signature " + sig
@@ -2877,18 +2839,47 @@ Upon the conclusion of this procedure,
 @ 
 <<three cusped parent determination>>=
 print "Here are the three-cusped parents."
+c3 = set()
 for sig in S:
     parent = regina.Triangulation3(sig)
     if parent.countBoundaryComponents() == 3:
-        S.remove(sig)
+        c3.add(sig)
         x = regina.Census.lookup(parent)
         c = x.first()
         if c == None:
             print sig + " is not in the census."
         else:
             print sig + " is '" + c.name() + "' in the census."
+for sig in c3:
+    S.remove(sig)
 @ 
+\subsection{Dehn filling hack}
+We will want to fill our manifolds along slopes
+and determine whether or not the results are
+hyperbolic. Unfortunately SnapPy's Dehn filling
+triangulation routines are not deterministic,
+which can lead to large variance in running times.
+So we define the following technical routine
+for trying to Dehn fill in a consistent way.
+The [[fuel]] input is just a number indicating
+how many times we want to redo the Dehn filling.
 
+<<Dehn filling hack>>=
+def minFill(snappyMfld,fuel):
+    N = snappyMfld.filled_triangulation()
+    x = N.triangulation_isosig()
+    x = x[: x.find("_")]
+    minimum = (N.num_tetrahedra(), x)
+    for i in range(fuel):
+        N = snappyMfld.filled_triangulation()
+        x = N.triangulation_isosig()
+        x = x[: x.find("_")]
+        new = (N.num_tetrahedra(), x)
+        if new < minimum:
+            minimum = new
+    return regina.Triangulation3(minimum[1])
+
+@
 \subsection{Determining exceptional fillings}
 Having gotten our set $\mathcal{S}$ we now
 determine which hyperbolic knot complement
@@ -2944,7 +2935,7 @@ triangulations, canonized and not canonized.
     try:
         if M.volume() > 0.9:
             sig = M.triangulation_isosig()
-            for curve in mfld.dual_curves():
+            for curve in M.dual_curves():
                 for tryCanonize in [True, False]:
                     A = M.drill(curve)
                     if tryCanonize:
@@ -2952,7 +2943,7 @@ triangulations, canonized and not canonized.
                             A.canonize()
                         except:
                             pass
-                    A.dehn_fill((1,0),mfld.num_cusps())
+                    A.dehn_fill((1,0),M.num_cusps())
                     if tryCanonize:
                         try:
                             A.canonize()
@@ -3014,7 +3005,7 @@ need to classify the short slopes of a cusp
 of a hyperbolic link complement. So we
 implement that here, using a short local
 function definition to fit it into the
-[[forallShortSlopes]] framework. 
+[[forAllShortSlopes]] framework. 
 
 @
 <<classify short slopes>>=
@@ -3030,7 +3021,7 @@ def classifyShortSlopes(snappyManifold, cusp):
             nonhyp.append(s)
         if t[0] == "Faultless":
             unknown.append(s)
-    forallShortSlopes(q,6,checkSlope)
+    forAllShortSlopes(q,6,checkSlope)
     return (hyp,nonhyp,unknown)
 @
 
@@ -3045,13 +3036,20 @@ as there are never more than eight short
 fillings in the cusps of elements of $\mathcal{S}$.
 
 <<bounding the number of short slopes on parents>>=
+print "Now we bound the number of short slopes."
 for sig in S:
+    print "Working on " + sig + "..."
     parent = snappy.Manifold(sig)
-    assert parent.num_cusps() == 2
+    if parent.num_cusps() != 2:
+        print "Encountered " + parent.identify()[0].name() + " with " + str(parent.num_cusps()) + " cusps"
+        continue
     for cusp in [0,1]:
         (hyp, nonhyp, unknown) = classifyShortSlopes(parent, cusp)
         if len(nonhyp) + len(unknown) > 8:
             print "Too many potentially exceptional slopes on cusp " + str(cusp) + " of " + sig
+            break
+    else:
+        print "The number of possibly exceptional slopes was small enough."
 @ 
 <<main.py>>=
 <<main preamble>>
@@ -3059,6 +3057,7 @@ for sig in S:
 <<faultlessness memoization>>
 <<filling type>>
 <<classify short slopes>>
+<<Dehn filling hack>>
 if __name__ == "__main__":
     <<nonelementary candidate enumeration>>
     <<three cusped parent determination>>
