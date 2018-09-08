@@ -3021,7 +3021,7 @@ def classifyShortSlopes(snappyManifold, cusp):
             nonhyp.append(s)
         if t[0] == "Faultless":
             unknown.append(s)
-    forAllShortSlopes(q,6,checkSlope)
+    forAllShortSlopes(q,36,checkSlope)
     return (hyp,nonhyp,unknown)
 @
 
@@ -3051,6 +3051,90 @@ for sig in S:
     else:
         print "The number of possibly exceptional slopes was small enough."
 @ 
+
+Incidentally, the above also shows that the only
+one-cusped ``parent'' manifold in $\mathcal{S}$
+is the figure-eight knot complement [[m004]].
+So we've shown that $\mathcal{S}$ contains
+one one-cusped manifold [[m004]], one three-cusped
+manifold [[s776]], and, besides these, only
+two-cusped manifolds. The fillings of [[s776]] 
+have been classified in \cite{exc5}. Of course, 
+[[m004]] has 10 exceptional fillings as described 
+in \cite{ThurstonNotes}. It remains for us to 
+investigate the two-cusped parents.
+
+@
+We next determine those one-cusped hyperbolic fillings of
+two-cusped elements of $\mathcal{S}$ along short slopes;
+one-cusped fillings along long slopes, by the above 
+calculation, can have no more than 8 exceptional slopes.
+
+<<determining one-cusped candidates>>=
+c1names = set()
+c1sigs = set()
+for sig in S:
+    parent = snappy.Manifold(sig)
+    parent.canonize()
+    print "Working on " + parent.identify()[0].name() + "..."
+    if parent.num_cusps() != 2:
+        continue
+    for cusp in [0,1]:
+        print "Working on cusp " + str(cusp)
+        parent.dehn_fill((0,0),0)
+        parent.dehn_fill((0,0),1)
+        (hyp,nonhyp,unknown) = classifyShortSlopes(parent,cusp)
+        assert unknown == []
+        for slope in hyp:
+            print "Working on slope " + str(slope) + "..."
+            parent.dehn_fill(slope,cusp)
+            N = parent.filled_triangulation()
+            x = N.triangulation_isosig()
+            n = regina.Triangulation3(x)
+            n.intelligentSimplify()
+            n.idealToFinite()
+            n.intelligentSimplify()
+            n.finiteToIdeal()
+            n.intelligentSimplify()
+            try:
+                N.simplify()
+                N.canonize()
+                c1names.add(N.identify()[0].name())
+            except:
+                c1sigs.add(n.isoSig())
+for name in c1names:
+    print name
+for sig in c1sigs:
+    print sig
+@
+
+\subsection{Determining exceptional fillings}
+Let's say a hyperbolic knot complement with at least
+nine exceptional fillings is a \emph{superexceptional}
+knot complement. We have now constructed a superset
+[[c1]] of the set of superexceptional knot complements
+into which necklace gluings embed nonelementarily.
+Now we determine which among them are (in fact, is)
+superexceptional. (We add [[m004]] back into [[c1]]
+at this point, having finished our investigation of
+the two-cusped manifolds.)
+
+<<determining exceptional fillings>>=
+superexceptional = []
+for sig in c1sigs:
+    print "Working on " + sig + "..."
+	
+    m = snappy.Manifold(sig)
+    (hyp,nonhyp,unknown) = classifyShortSlopes(m,0)
+    if len(nonhyp) + len(unknown) <= 8:
+        print sig + " is not superexceptional."
+    else:
+        print sig + " is superexceptional."
+        superexceptional.append(sig)
+print "The superexceptionals are as follows: " + str(superexceptional) + "."
+
+@
+
 <<main.py>>=
 <<main preamble>>
 <<memoizing NE>>
@@ -3062,5 +3146,9 @@ if __name__ == "__main__":
     <<nonelementary candidate enumeration>>
     <<three cusped parent determination>>
     <<bounding the number of short slopes on parents>>
+    <<determining one-cusped candidates>>
+    <<determining exceptional fillings>>
+@
+
 @ 
 \end{document} 
