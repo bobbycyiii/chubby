@@ -2867,13 +2867,11 @@ how many times we want to redo the Dehn filling.
 <<Dehn filling hack>>=
 def minFill(snappyMfld,fuel):
     N = snappyMfld.filled_triangulation()
-    x = N.triangulation_isosig()
-    x = x[: x.find("_")]
+    x = N.triangulation_isosig(decorated=False)
     minimum = (N.num_tetrahedra(), x)
     for i in range(fuel):
         N = snappyMfld.filled_triangulation()
-        x = N.triangulation_isosig()
-        x = x[: x.find("_")]
+        x = N.triangulation_isosig(decorated=False)
         new = (N.num_tetrahedra(), x)
         if new < minimum:
             minimum = new
@@ -2934,7 +2932,7 @@ triangulations, canonized and not canonized.
 <<filling type>>=
     try:
         if M.volume() > 0.9:
-            sig = M.triangulation_isosig()
+            sig = M.triangulation_isosig(decorated=False)
             for curve in M.dual_curves():
                 for tryCanonize in [True, False]:
                     A = M.drill(curve)
@@ -3089,7 +3087,7 @@ for sig in S:
             print "Working on slope " + str(slope) + "..."
             parent.dehn_fill(slope,cusp)
             N = parent.filled_triangulation()
-            x = N.triangulation_isosig()
+            x = N.triangulation_isosig(decorated=False)
             n = regina.Triangulation3(x)
             n.intelligentSimplify()
             n.idealToFinite()
@@ -3135,7 +3133,7 @@ print "The superexceptionals are as follows: " + str(superexceptional) + "."
 
 @
 
-<<main.py>>=
+<<chubby.py>>=
 <<main preamble>>
 <<memoizing NE>>
 <<faultlessness memoization>>
