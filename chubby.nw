@@ -2313,7 +2313,7 @@ and the \emph{right child of $M$} is the matrix
   a+b & b \\
   c+d & d
 \end{pmatrix}
-= M.\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
+= M.\begin{pmatrix} 1 & 0 \\ 1 & 1 \end{pmatrix}.
 \]
 
 The \emph{slope} of $M$ is $s(M) = (a+b\ \ c+d)^t = M.(1\ 1)^t$.
@@ -2324,7 +2324,7 @@ The \emph{number} of $M$ is $r(M) = (c+d)/(a+b)$.
 @
 We see that $L(M), R(M) \in T$ if $M \in T$.
 By the above considerations, $I(L(M)) \cap I(R(M)) = \emptyset$
-and $I(L(M)) \cup \{r(m)\} \cup I(R(M)) = I(M)$.
+and $I(L(M)) \cup \{r(M)\} \cup I(R(M)) = I(M)$.
 In particular, $I(L(M))$ and $I(R(M))$ are strict subsets of
 $I(M)$, and $r(M) \in I(M)$.
 
@@ -2653,12 +2653,12 @@ The result follows by structural induction on $D$.
 
 <<shortSlopes.py>>=
 def forAllShortSlopes(Q,B,f):
-    s = lambda M : (M[0][0]+M[0][1],M[1][0]+M[1][1])
+    s = lambda M : (M[0][0]+M[1][0],M[0][1]+M[1][1])
     g = lambda M : f(s(M))
     Qbar = lambda (p,q): Q((p,-q))
-    Lambda = lambda ((a,b),(c,d)): ((b,a),(-d,-c))
+    Lambda = lambda ((a,c),(b,d)): ((b,-d),(a,-c))
     gbar = lambda M : g(Lambda(M))
-    forAllShortDescendants(Qbar,B,((1,0),(0,1)),gbar)
+    forAllShortDescendants(Qbar,B,((0,1),(1,0)),gbar)
     if not Q((1,0)) > B:
         f((1,0))
     forAllShortDescendants(Q,B,((1,0),(0,1)),g)
